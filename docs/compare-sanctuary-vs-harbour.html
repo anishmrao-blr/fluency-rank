@@ -1,0 +1,580 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Side-by-Side: Sanctuary Voice (Original) vs. Harbour Sanctuary (D × A)</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700&family=JetBrains+Mono:wght@400;500;600&family=Newsreader:opsz,wght@6..72,400;6..72,500;6..72,600&family=Plus+Jakarta+Sans:wght@200;300;400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  *,*::before,*::after{box-sizing:border-box}
+  body{margin:0;min-height:100vh;background:#090E13;color:#EAF2F4;font-family:'Plus Jakarta Sans',system-ui,sans-serif;-webkit-font-smoothing:antialiased}
+  button{font:inherit;color:inherit;cursor:pointer}
+  h1,h2,h3,p{margin:0}
+
+  /* Top Comparison Bar */
+  .top{max-width:1160px;margin:0 auto;padding:24px 24px 16px;display:flex;flex-wrap:wrap;align-items:flex-end;justify-content:space-between;gap:16px;border-bottom:1px solid rgba(255,255,255,.08)}
+  .top h1{font-family:'Newsreader',serif;font-size:28px;font-weight:500;letter-spacing:-.02em}
+  .top p{font-size:13px;color:#93B0BC;margin-top:4px;max-width:520px}
+  .sync{display:flex;flex-wrap:wrap;gap:4px;background:#111B24;padding:4px;border-radius:12px;border:1px solid rgba(255,255,255,.08)}
+  .sync button{border:0;background:transparent;color:#93B0BC;padding:8px 12px;border-radius:8px;font-size:12px;font-weight:600;transition:background .18s,color .18s}
+  .sync button.on{background:#EAF2F4;color:#090E13}
+
+  /* Two-Column Side-by-Side Stage */
+  .stage{max-width:1160px;margin:0 auto;padding:26px 24px 56px;display:grid;grid-template-columns:repeat(2,minmax(340px,395px));justify-content:center;gap:48px}
+  @media (max-width:860px){.stage{grid-template-columns:minmax(330px,395px)}}
+  .col{display:flex;flex-direction:column;gap:14px;align-items:center}
+  .col-head{width:100%;display:flex;flex-direction:column;gap:5px;padding:0 6px}
+  .col-head .row{display:flex;align-items:center;justify-content:space-between;gap:8px}
+  .col-head h2{font-size:18px;font-weight:700;letter-spacing:-.01em}
+  .col-head p{font-size:12.5px;color:#93B0BC;line-height:1.45}
+  .tag-pill{font-family:'JetBrains Mono',monospace;font-size:10px;font-weight:600;padding:4px 8px;border-radius:999px;background:rgba(127,209,199,.14);color:#7FD1C7;white-space:nowrap}
+  .mini-tog{border:1px solid rgba(127,209,199,.3);background:#112330;color:#7FD1C7;padding:4px 9px;border-radius:999px;font-size:11px;font-weight:600}
+
+  /* Shared Phone Frame */
+  .phone{width:375px;height:780px;border-radius:46px;border:10px solid #18232C;position:relative;overflow:hidden;box-shadow:0 28px 70px rgba(0,0,0,.5);display:flex;flex-direction:column}
+  .notch{position:absolute;top:10px;left:50%;transform:translateX(-50%);width:100px;height:24px;border-radius:14px;background:#050B0F;z-index:30}
+  .scr{position:absolute;inset:0;display:none;flex-direction:column}
+  .scr.on{display:flex;animation:fadeIn .24s cubic-bezier(.16,1,.3,1)}
+  .sbar{height:44px;padding:14px 24px 0;display:flex;justify-content:space-between;align-items:center;font-size:12px;font-weight:600;flex:none;z-index:5}
+  .scroll{flex:1;overflow-y:auto;scrollbar-width:none;padding:8px 20px 20px;display:flex;flex-direction:column;gap:14px}
+  .scroll::-webkit-scrollbar{display:none}
+  .mono{font-family:'JetBrains Mono',monospace}
+  .serif{font-family:'Newsreader',serif}
+
+  /* =============================================================
+     LEFT PHONE: SANCTUARY VOICE (Original Dribbble Botanical + 21st)
+     ============================================================= */
+  .sv{background:#F7F9F7;color:#1A211E}
+  .sv .scr{background:#F7F9F7;color:#1A211E}
+  .sv .ey{font-size:10px;font-weight:600;letter-spacing:.11em;text-transform:uppercase;color:#6C7671}
+  .sv .h1{font-size:27px;font-weight:700;letter-spacing:-.025em;line-height:1.12}
+  .sv .h2{font-size:19px;font-weight:700;letter-spacing:-.02em}
+  .sv .mu{font-size:13px;color:#6C7671;line-height:1.45}
+  .sv .bento{background:#ECEFEA;border-radius:18px;padding:15px}
+  .sv .bento-m{background:linear-gradient(160deg,#E6EFEA 0%,#DAE5DF 100%);border-radius:22px;padding:18px;text-align:center}
+  .sv .cta{width:100%;min-height:48px;border:0;border-radius:999px;background:#315753;color:#FFFFFF;font-size:14px;font-weight:600}
+  .sv .cta-s{width:100%;min-height:44px;border:0;border-radius:999px;background:#ECEFEA;color:#1A211E;font-size:13px;font-weight:600}
+  .sv .avatar{width:32px;height:32px;border-radius:50%;background:#315753;color:#FFFFFF;display:grid;place-items:center;font-size:13px;font-weight:700}
+  .sv .icb{width:36px;height:36px;border:0;border-radius:50%;background:#ECEFEA;display:grid;place-items:center;color:#1A211E}
+  .sv .play-o{width:66px;height:66px;border-radius:50%;background:#315753;color:#FFFFFF;border:0;margin:10px auto;display:grid;place-items:center;box-shadow:0 0 0 10px rgba(49,87,83,.13)}
+  .sv .qgrid{display:grid;grid-template-columns:repeat(3,1fr);gap:9px}
+  .sv .qtile{border:0;background:#EFF2EE;border-radius:16px;padding:12px 8px;display:flex;flex-direction:column;align-items:center;gap:6px}
+  .sv .qtile b{font-size:12.5px;font-weight:700}
+  .sv .qtile span{font-size:9.5px;font-weight:700;letter-spacing:.08em;color:#6C7671}
+  .sv .qb{width:34px;height:34px;border-radius:50%;display:grid;place-items:center}
+  .sv .ml{display:grid;grid-template-columns:1fr 1fr;gap:9px;margin-top:auto}
+  .sv .ml button{border:0;background:#ECEFEA;border-radius:14px;padding:11px 12px;text-align:left}
+  .sv .ml b{font-size:12.5px;display:block}
+  .sv .ml small{font-size:11px;color:#6C7671}
+  .sv .scr.dark{background:#111916;color:#F4F7F5}
+  .sv .dark-bg{position:absolute;inset:0;z-index:0}
+  .sv .dark-bg img{width:100%;height:100%;object-fit:cover;opacity:.42;filter:saturate(.75) brightness(.7)}
+  .sv .dark-bg::after{content:'';position:absolute;inset:0;background:linear-gradient(180deg,rgba(12,18,15,.85),rgba(17,25,22,.46) 48%,rgba(12,18,15,.94))}
+  .sv .scr.dark .sbar,.sv .scr.dark .scroll{position:relative;z-index:2}
+  .sv .scr.dark .ey{color:#9AA6A0}
+  .sv .dock-p{flex:1;min-height:46px;border:0;border-radius:999px;background:linear-gradient(135deg,#A8D0C9,#6A9992);color:#0E1B18;font-size:12.5px;font-weight:700;letter-spacing:.06em;text-transform:uppercase}
+  .sv .dock-i{width:44px;height:44px;border-radius:50%;border:1px solid rgba(255,255,255,.15);background:rgba(255,255,255,.08);color:#F4F7F5;display:grid;place-items:center}
+  .sv .gcard{background:rgba(24,36,32,.68);border:1px solid rgba(255,255,255,.12);border-radius:18px;padding:15px;backdrop-filter:blur(10px)}
+  .sv .wbanner{background:linear-gradient(125deg,#EFF2EF 48%,#BAC9BF 78%,#7C9286 100%);border-radius:20px;padding:16px}
+  .sv .pbar{height:7px;border-radius:999px;background:#CFE0D8;overflow:hidden;margin-top:8px}
+  .sv .pbar i{display:block;height:100%;width:92%;background:#315753;border-radius:999px}
+
+  /* =============================================================
+     RIGHT PHONE: HARBOUR SANCTUARY (Option D x A Fusion)
+     ============================================================= */
+  .hs{
+    --bg:#0B1821;--surf:#112330;--fill:#183040;--sep:rgba(127,209,199,.14);
+    --ink:#EAF2F4;--ink2:#93B0BC;--snd:#7FD1C7;--snds:rgba(127,209,199,.45);
+    --tint:#F28C38;--ontint:#1A0E04;
+    background:var(--bg);color:var(--ink)
+  }
+  .hs.light{
+    --bg:#F2F6F7;--surf:#FFFFFF;--fill:#E4EDF0;--sep:rgba(14,34,48,.12);
+    --ink:#0E2230;--ink2:#4A6270;--snd:#2E8C88;--snds:#68ACA9;
+    --tint:#B4500C;--ontint:#FFFFFF;
+  }
+  .hs .scr{background:var(--bg);color:var(--ink)}
+  .hs .ey{font-family:'JetBrains Mono',monospace;font-size:10px;font-weight:500;letter-spacing:.1em;text-transform:uppercase;color:var(--ink2)}
+  .hs .h1{font-family:'Newsreader',serif;font-size:33px;font-weight:500;letter-spacing:-.02em;line-height:1.08}
+  .hs .h2{font-family:'Newsreader',serif;font-size:22px;font-weight:500}
+  .hs .mu{font-size:13px;color:var(--ink2);line-height:1.45}
+  .hs .card{background:var(--surf);border:1px solid var(--sep);border-radius:18px;padding:15px}
+  .hs .icb{width:36px;height:36px;border:1px solid var(--sep);border-radius:50%;background:var(--surf);display:grid;place-items:center;color:var(--ink)}
+  .hs .cta{width:100%;min-height:48px;border:0;border-radius:14px;background:var(--tint);color:var(--ontint);font-size:14px;font-weight:700}
+  .hs .cta-s{width:100%;min-height:46px;border:1px solid var(--sep);border-radius:14px;background:var(--surf);color:var(--ink);font-size:14px;font-weight:600}
+  .hs .wdots{display:flex;gap:11px;margin-top:10px}
+  .hs .wd{display:flex;flex-direction:column;align-items:center;gap:4px}
+  .hs .wd i{width:8px;height:8px;border-radius:50%;background:var(--fill)}
+  .hs .wd.n1 i{background:var(--snds)}
+  .hs .wd.n2 i{background:var(--snd)}
+  .hs .wd.td i{background:transparent;border:2px solid var(--tint);width:10px;height:10px}
+  .hs .wd span{font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--ink2)}
+  .hs .focal{flex:1;display:flex;align-items:center;justify-content:center}
+  .hs .ring{width:198px;height:198px;border-radius:50%;border:1px solid var(--sep);background:radial-gradient(circle at 50% 40%,rgba(127,209,199,.16),transparent 74%);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:7px;position:relative}
+  .hs .ring::before{content:'';position:absolute;inset:-11px;border-radius:50%;border:1px solid var(--sep);animation:softPulse 6s ease-in-out infinite}
+  .hs .rplay{width:44px;height:44px;border-radius:50%;background:var(--tint);color:var(--ontint);display:grid;place-items:center}
+  .hs .ring b{font-size:15px;font-weight:700}
+  .hs .ring small{font-family:'JetBrains Mono',monospace;font-size:10.5px;color:var(--snd)}
+  .hs .tabbar{flex:none;height:66px;padding:6px 12px 14px;display:grid;grid-template-columns:repeat(4,1fr);background:var(--bg);border-top:1px solid var(--sep)}
+  .hs .tabbar button{border:0;background:transparent;color:var(--ink2);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;font-size:10.5px;font-weight:600}
+  .hs .tabbar button.on{color:var(--tint)}
+  .hs .tabbar svg{width:19px;height:19px;fill:none;stroke:currentColor;stroke-width:1.75;stroke-linecap:round;stroke-linejoin:round}
+  .hs .scr.night{background:#0B1821;color:#EAF2F4}
+  .hs .night-bg{position:absolute;inset:0;z-index:0}
+  .hs .night-bg img{width:100%;height:100%;object-fit:cover;opacity:.36;filter:saturate(.8) brightness(.65)}
+  .hs .night-bg::after{content:'';position:absolute;inset:0;background:linear-gradient(180deg,rgba(11,24,33,.9),rgba(11,24,33,.48) 46%,rgba(11,24,33,.95))}
+  .hs .scr.night .sbar,.hs .scr.night .scroll{position:relative;z-index:2}
+  .hs .scr.night .ey{color:#93B0BC}
+  .hs .dock-p{flex:1;min-height:46px;border:0;border-radius:999px;background:#F28C38;color:#1A0E04;font-size:12.5px;font-weight:700;letter-spacing:.05em;text-transform:uppercase}
+  .hs .dock-i{width:44px;height:44px;border-radius:50%;border:1px solid rgba(127,209,199,.24);background:rgba(17,35,48,.75);color:#EAF2F4;display:grid;place-items:center}
+  .hs .gcard{background:rgba(17,35,48,.76);border:1px solid rgba(127,209,199,.18);border-radius:18px;padding:15px;backdrop-filter:blur(10px)}
+  .hs .sys{font-family:'Barlow Condensed',sans-serif;font-weight:700;font-size:17px;letter-spacing:.06em;text-transform:uppercase;color:var(--snd)}
+  .hs .pbar{height:7px;border-radius:999px;background:var(--fill);overflow:hidden;margin-top:8px}
+  .hs .pbar i{display:block;height:100%;width:100%;background:var(--snd);border-radius:999px}
+
+  /* Shared 21st.dev Bloom / Waveform / Bars / Heat */
+  .bloom{width:204px;height:204px;border-radius:50%;display:grid;place-items:center;position:relative;margin:auto}
+  .bloom .petals{position:absolute;inset:0;display:grid;place-items:center;animation:bloomSpin 18s linear infinite}
+  .bloom .petals span{position:absolute;width:96px;height:96px;border-radius:50%;transition:transform 2.4s cubic-bezier(.37,0,.63,1)}
+  .bloom .petals span:nth-child(1){transform:translate(22px,0)}
+  .bloom .petals span:nth-child(2){transform:translate(-22px,0)}
+  .bloom .petals span:nth-child(3){transform:translate(0,22px)}
+  .bloom .petals span:nth-child(4){transform:translate(0,-22px)}
+  .bloom.exp .petals span:nth-child(1){transform:translate(34px,0) scale(1.12)}
+  .bloom.exp .petals span:nth-child(2){transform:translate(-34px,0) scale(1.12)}
+  .bloom.exp .petals span:nth-child(3){transform:translate(0,34px) scale(1.12)}
+  .bloom.exp .petals span:nth-child(4){transform:translate(0,-34px) scale(1.12)}
+  .bloom .core{width:108px;height:108px;border-radius:50%;backdrop-filter:blur(10px);display:grid;place-items:center;z-index:2;transition:transform 2.4s cubic-bezier(.37,0,.63,1)}
+  .bloom.exp .core{transform:scale(1.14)}
+  .wave-cv{width:100%;height:50px;display:block;margin:10px 0 6px;mask-image:linear-gradient(90deg,transparent 0%,#000 10%,#000 90%,transparent 100%);-webkit-mask-image:linear-gradient(90deg,transparent 0%,#000 10%,#000 90%,transparent 100%)}
+  .ap{display:flex;align-items:center;gap:8px;margin-top:8px}
+  .ap-b{width:30px;height:30px;border-radius:50%;border:0;font-weight:700;display:grid;place-items:center;flex:none}
+  .ap-t{flex:1;height:4px;border-radius:999px;background:rgba(255,255,255,.18);overflow:hidden}
+  .ap-t i{display:block;height:100%;width:45%;border-radius:999px}
+  .bars7{display:grid;grid-template-columns:repeat(7,1fr);gap:9px;align-items:end;height:82px;padding-top:8px}
+  .b7{display:flex;flex-direction:column;align-items:center;gap:5px;height:100%;justify-content:flex-end}
+  .b7 i{display:block;width:100%;max-width:18px;border-radius:999px}
+  .b7 span{font-size:10px;font-weight:600;opacity:.7}
+  .heat{display:grid;grid-template-columns:repeat(11,1fr);gap:3.5px;margin-top:8px}
+  .heat i{display:block;height:10px;border-radius:2.5px}
+  .med{width:136px;height:136px;border-radius:50%;overflow:hidden;margin:12px auto 4px;box-shadow:0 14px 32px rgba(0,0,0,.22)}
+  .med img{width:100%;height:100%;object-fit:cover}
+  .dock{display:flex;align-items:center;gap:10px;margin-top:auto}
+  .s2{display:grid;grid-template-columns:1fr 1fr;gap:9px}
+
+  @keyframes fadeIn{from{opacity:0;transform:translateY(5px)}to{opacity:1;transform:none}}
+  @keyframes bloomSpin{to{transform:rotate(360deg)}}
+  @keyframes softPulse{0%,100%{transform:scale(1);opacity:.45}50%{transform:scale(1.05);opacity:.85}}
+</style>
+</head>
+<body>
+
+<header class="top">
+  <div>
+    <h1>Sanctuary Voice vs. Harbour Sanctuary</h1>
+    <p>Both enriched with 21st.dev patterns (Breath-Bloom orb, Canvas live waveform, audio player, 66-day heat grid). Flip both phones together using the switcher.</p>
+  </div>
+  <div class="sync" role="group" aria-label="Switch both phones">
+    <button class="on" data-sync="home">1. Home</button>
+    <button data-sync="breathe">2. Active Pacer</button>
+    <button data-sync="record">3. Speak &amp; Record</button>
+    <button data-sync="done">4. Complete</button>
+    <button data-sync="progress">5. Progress</button>
+  </div>
+</header>
+
+<main class="stage">
+
+  <!-- ==================== LEFT: SANCTUARY VOICE (ORIGINAL DRIBBBLE + 21st) ==================== -->
+  <section class="col">
+    <div class="col-head">
+      <div class="row">
+        <h2>Sanctuary Voice (Original Dribbble)</h2>
+        <span class="tag-pill">Botanical · No Tab Bar</span>
+      </div>
+      <p>Sage alabaster (#F7F9F7) + deep pine teal (#315753) light mode; dark pine forest glass during drills. Hero card + 3 quick-session tiles on Home.</p>
+    </div>
+
+    <div class="phone sv" data-phone="sv">
+      <div class="notch"></div>
+
+      <!-- SV 1: HOME -->
+      <div class="scr on" data-s="home">
+        <div class="sbar"><span>9:41</span><span>5G · 100%</span></div>
+        <div class="scroll">
+          <div style="display:flex;justify-content:space-between;align-items:center">
+            <div style="display:flex;align-items:center;gap:9px;font-weight:700;font-size:15px"><span class="avatar">A</span>Sanctuary</div>
+            <button class="icb" data-sync="progress" aria-label="Progress">☰</button>
+          </div>
+          <div><div class="ey">Good morning, Anish</div><h3 class="h1" style="margin-top:3px">Ready to speak?</h3></div>
+          <div class="bento-m">
+            <div class="ey" style="color:#315753">Daily Voice Reset · 0 of 2</div>
+            <div class="h2" style="margin-top:4px">Calm Breath &amp; First Line</div>
+            <p class="mu" style="margin-top:3px">5 minutes to settle your breath and warm up.</p>
+            <button class="play-o" data-sync="breathe">▶</button>
+            <button class="cta" data-sync="breathe">Start Daily Session</button>
+          </div>
+          <div>
+            <div class="ey" style="margin-bottom:8px">Quick Sessions</div>
+            <div class="qgrid">
+              <button class="qtile" data-sync="breathe"><span class="qb" style="background:#D8EFEA;color:#2E7A72">≈</span><b>90 sec</b><span>PRE-CALL</span></button>
+              <button class="qtile" data-sync="record"><span class="qb" style="background:#DCEAF8;color:#4E76B8">●</span><b>2 min</b><span>READ ALOUD</span></button>
+              <button class="qtile" data-sync="breathe"><span class="qb" style="background:#DCEBE0;color:#3B7356">○</span><b>3 min</b><span>CALM NOW</span></button>
+            </div>
+          </div>
+          <div class="ml">
+            <button data-sync="progress"><b>Your Progress</b><small>Rank D · 3 of 5</small></button>
+            <button data-sync="record"><b>Voice Proof</b><small>Cold vs. paced</small></button>
+          </div>
+        </div>
+      </div>
+
+      <!-- SV 2: ACTIVE PACER -->
+      <div class="scr dark" data-s="breathe">
+        <div class="dark-bg"><img src="https://images.pexels.com/photos/167699/pexels-photo-167699.jpeg?auto=compress&cs=tinysrgb&w=900" alt="Misty pine forest"></div>
+        <div class="sbar"><span>9:41</span><span>LOCAL</span></div>
+        <div class="scroll">
+          <div style="display:flex;justify-content:space-between;align-items:flex-start">
+            <div><div class="ey">Calm Before Speaking</div><h3 class="h2" style="margin-top:2px">Cyclic Sighing</h3></div>
+            <span class="mono" style="font-size:14px;color:#9CD8D0">02:54</span>
+          </div>
+          <div class="bloom exp" id="svBloom" style="border:1px solid rgba(156,216,208,.2)">
+            <div class="petals">
+              <span style="background:rgba(156,216,208,.22);border:1px solid rgba(156,216,208,.26)"></span>
+              <span style="background:rgba(156,216,208,.22);border:1px solid rgba(156,216,208,.26)"></span>
+              <span style="background:rgba(156,216,208,.22);border:1px solid rgba(156,216,208,.26)"></span>
+              <span style="background:rgba(156,216,208,.22);border:1px solid rgba(156,216,208,.26)"></span>
+            </div>
+            <div class="core" style="background:rgba(130,160,154,.28);border:1px solid rgba(255,255,255,.18)">
+              <span class="mono" id="svNum" style="font-size:32px;font-weight:500;color:#F4F7F5">2</span>
+            </div>
+          </div>
+          <div style="text-align:center">
+            <div id="svWord" style="font-size:32px;font-weight:200">Inhale</div>
+            <div id="svSub" class="ey" style="margin-top:4px;color:#9CD8D0">THROUGH THE NOSE</div>
+          </div>
+          <div class="dock">
+            <button class="dock-i" data-sync="home">✕</button>
+            <button class="dock-p" data-sync="done">❚❚ Pause Session</button>
+            <button class="dock-i" data-sync="done">✓</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- SV 3: SPEAK & RECORD -->
+      <div class="scr dark" data-s="record">
+        <div class="dark-bg"><img src="https://images.pexels.com/photos/167699/pexels-photo-167699.jpeg?auto=compress&cs=tinysrgb&w=900" alt="Misty pine forest"></div>
+        <div class="sbar"><span>9:41</span><span>LOCAL</span></div>
+        <div class="scroll">
+          <div style="display:flex;justify-content:space-between;align-items:center">
+            <div><div class="ey">Step 4 · Paced Reading</div><h3 class="h2">Monday Forecast</h3></div>
+            <button class="dock-i" style="width:34px;height:34px" data-sync="home">✕</button>
+          </div>
+          <div class="gcard">
+            <p style="font-size:15.5px;line-height:1.62">Good morning, <span style="color:#9CD8D0">▾</span> let me start with the headline. <span style="color:#9CD8D0">▾</span> Volume is running four percent above plan.</p>
+            <canvas class="wave-cv" id="svWave" width="290" height="50"></canvas>
+            <div style="display:flex;justify-content:space-between" class="mono"><span style="font-size:10.5px;color:#9AA6A0">PACE 102 WPM</span><span style="font-size:10.5px;color:#9AA6A0">PAUSES &gt;1s: 3</span></div>
+            <div class="ap">
+              <button class="ap-b" style="background:#9CD8D0;color:#111916">▶</button>
+              <div class="ap-t"><i style="background:#9CD8D0"></i></div>
+              <span class="mono" style="font-size:10.5px;color:#9AA6A0">0:08 · 1.0x</span>
+            </div>
+          </div>
+          <div class="gcard">
+            <div class="ey" style="margin-bottom:8px">Am I doing it right?</div>
+            <div style="display:flex;gap:6px;flex-wrap:wrap">
+              <span style="padding:6px 10px;border-radius:999px;background:#9CD8D0;color:#111916;font-size:11.5px;font-weight:700">Soft first word</span>
+              <span style="padding:6px 10px;border-radius:999px;background:#9CD8D0;color:#111916;font-size:11.5px;font-weight:700">Paused at ▾</span>
+              <span style="padding:6px 10px;border-radius:999px;border:1px solid rgba(255,255,255,.2);font-size:11.5px">Exhaled first</span>
+            </div>
+          </div>
+          <div class="dock">
+            <button class="dock-i">●</button>
+            <button class="dock-p" data-sync="done">Save &amp; Finish Take</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- SV 4: COMPLETE -->
+      <div class="scr" data-s="done">
+        <div class="sbar"><span>9:41</span><span>5G · 100%</span></div>
+        <div class="scroll" style="text-align:center">
+          <div class="med"><img src="https://images.pexels.com/photos/19280054/pexels-photo-19280054.jpeg?auto=compress&cs=tinysrgb&w=600" alt="Lotus"></div>
+          <div><h3 class="h1">Great Job!</h3><p class="mu" style="margin-top:4px">You completed <strong style="color:#315753">3 minutes</strong> of calm prep.</p></div>
+          <div class="bento-m" style="text-align:left;padding:15px">
+            <div style="display:flex;justify-content:space-between;align-items:center"><span class="ey" style="color:#315753">[Quest Complete] · +40 XP</span><b style="color:#315753">92%</b></div>
+            <div class="pbar"><i></i></div>
+          </div>
+          <div class="s2" style="text-align:left">
+            <div class="bento"><div class="ey">Duration</div><b style="font-size:18px;display:block;margin-top:3px">3m 0s</b></div>
+            <div class="bento"><div class="ey">This Week</div><b style="font-size:18px;display:block;margin-top:3px;color:#315753">4 of 5</b></div>
+          </div>
+          <button class="cta" style="margin-top:auto" data-sync="home">Back to Sanctuary</button>
+        </div>
+      </div>
+
+      <!-- SV 5: PROGRESS -->
+      <div class="scr" data-s="progress">
+        <div class="sbar"><span>9:41</span><span>5G · 100%</span></div>
+        <div class="scroll">
+          <div style="display:flex;justify-content:space-between;align-items:center">
+            <button class="icb" data-sync="home">←</button><b style="font-size:15px">Your Progress</b><span style="width:36px"></span>
+          </div>
+          <div class="wbanner"><div class="ey">Current Rank · Level 9</div><div style="font-size:22px;font-weight:700;color:#315753;margin-top:3px">Rank D Speaker</div></div>
+          <div class="bento">
+            <div style="display:flex;justify-content:space-between"><b style="font-size:14px">Weekly Activity</b><span class="ey">7 Days</span></div>
+            <div class="bars7">
+              <div class="b7"><i style="height:82%;background:#315753"></i><span>M</span></div>
+              <div class="b7"><i style="height:50%;background:#9CD8D0"></i><span>T</span></div>
+              <div class="b7"><i style="height:86%;background:#315753"></i><span>W</span></div>
+              <div class="b7"><i style="height:20%;background:#DFE3DE"></i><span>T</span></div>
+              <div class="b7"><i style="height:78%;background:#315753"></i><span>F</span></div>
+              <div class="b7"><i style="height:48%;background:#9CD8D0"></i><span>S</span></div>
+              <div class="b7"><i style="height:20%;background:#DFE3DE"></i><span>S</span></div>
+            </div>
+          </div>
+          <div class="bento">
+            <div style="display:flex;justify-content:space-between"><b style="font-size:13.5px">66-Day Habit Mosaic</b><span class="ey">14 / 66</span></div>
+            <div class="heat" id="svHeat"></div>
+          </div>
+          <button class="cta-s" data-sync="record" style="margin-top:auto">Play Then vs. Now Baseline</button>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ==================== RIGHT: HARBOUR SANCTUARY (OPTION D x A FUSION) ==================== -->
+  <section class="col">
+    <div class="col-head">
+      <div class="row">
+        <h2>Harbour Sanctuary (Option D × A)</h2>
+        <button class="mini-tog" id="hsTheme">Toggle Light/Dark</button>
+      </div>
+      <p>Harbour Night (#0B1821) + Buoy Orange (#F28C38) + Seafoam (#7FD1C7) + Newsreader serif. Uncluttered 1-focal-ring Home + whisper-quiet 4-tab bar.</p>
+    </div>
+
+    <div class="phone hs" id="hsPhone" data-phone="hs">
+      <div class="notch"></div>
+
+      <!-- HS 1: UNCLUTTERED HOME -->
+      <div class="scr on" data-s="home">
+        <div class="sbar"><span>9:41</span><span>5G · 100%</span></div>
+        <div class="scroll">
+          <div style="display:flex;justify-content:space-between;align-items:flex-start;padding-top:2px">
+            <div>
+              <div class="ey">Thursday · 3 of 5 this week</div>
+              <h3 class="h1" style="margin-top:4px">Today</h3>
+              <div class="wdots">
+                <div class="wd n2"><i></i><span>M</span></div>
+                <div class="wd n1"><i></i><span>T</span></div>
+                <div class="wd n2"><i></i><span>W</span></div>
+                <div class="wd td"><i></i><span>T</span></div>
+                <div class="wd"><i></i><span>F</span></div>
+                <div class="wd"><i></i><span>S</span></div>
+                <div class="wd"><i></i><span>S</span></div>
+              </div>
+            </div>
+            <button class="icb" data-sync="progress" aria-label="Reminders">🔔</button>
+          </div>
+          <div class="focal">
+            <button class="ring" data-sync="breathe">
+              <span class="rplay">▶</span>
+              <b>Start daily session</b>
+              <small>5 MIN · TODAY 0 OF 2</small>
+            </button>
+          </div>
+          <div style="display:flex;flex-direction:column;gap:8px">
+            <button class="cta-s" data-sync="breathe">I’m about to speak · 90s</button>
+            <button style="border:0;background:transparent;color:var(--ink2);font-size:12.5px;padding:2px" data-sync="record">Low energy? 2-min version · or 3-min voice proof</button>
+          </div>
+        </div>
+        <nav class="tabbar">
+          <button class="on" data-sync="home"><svg viewBox="0 0 24 24"><path d="M3 10.5 12 3l9 7.5V20h-6v-6H9v6H3z"/></svg>Today</button>
+          <button data-sync="breathe"><svg viewBox="0 0 24 24"><path d="M3 10c2-2 4-2 6 0s4 2 6 0 4-2 6 0"/><path d="M3 15c2-2 4-2 6 0s4 2 6 0 4-2 6 0"/></svg>Breathe</button>
+          <button data-sync="record"><svg viewBox="0 0 24 24"><path d="M12 3a3 3 0 0 0-3 3v6a3 3 0 0 0 6 0V6a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/></svg>Speak</button>
+          <button data-sync="progress"><svg viewBox="0 0 24 24"><path d="M5 20v-7M12 20V5M19 20v-10"/></svg>Progress</button>
+        </nav>
+      </div>
+
+      <!-- HS 2: ACTIVE PACER -->
+      <div class="scr night" data-s="breathe">
+        <div class="night-bg"><img src="https://images.pexels.com/photos/12294063/pexels-photo-12294063.jpeg?auto=compress&cs=tinysrgb&w=900" alt="Fog over sea"></div>
+        <div class="sbar"><span>9:41</span><span>LOCAL</span></div>
+        <div class="scroll">
+          <div style="display:flex;justify-content:space-between;align-items:flex-start">
+            <div><div class="ey">Calm Before Speaking</div><h3 class="h2" style="margin-top:2px">Cyclic Sighing</h3></div>
+            <span class="mono" style="font-size:14px;color:#7FD1C7">02:54</span>
+          </div>
+          <div class="bloom exp" id="hsBloom" style="border:1px solid rgba(127,209,199,.22)">
+            <div class="petals">
+              <span style="background:radial-gradient(circle,rgba(127,209,199,.28),rgba(23,65,79,.08));border:1px solid rgba(127,209,199,.24)"></span>
+              <span style="background:radial-gradient(circle,rgba(127,209,199,.28),rgba(23,65,79,.08));border:1px solid rgba(127,209,199,.24)"></span>
+              <span style="background:radial-gradient(circle,rgba(127,209,199,.28),rgba(23,65,79,.08));border:1px solid rgba(127,209,199,.24)"></span>
+              <span style="background:radial-gradient(circle,rgba(127,209,199,.28),rgba(23,65,79,.08));border:1px solid rgba(127,209,199,.24)"></span>
+            </div>
+            <div class="core" style="background:rgba(23,65,79,.54);border:1px solid rgba(127,209,199,.38)">
+              <span id="hsNum" style="font-family:'Barlow Condensed',sans-serif;font-weight:700;font-size:44px;color:#7FD1C7">2</span>
+            </div>
+          </div>
+          <div style="text-align:center">
+            <div id="hsWord" class="serif" style="font-size:32px;font-weight:400">Inhale</div>
+            <div id="hsSub" class="ey" style="margin-top:4px;color:#7FD1C7">THROUGH THE NOSE</div>
+          </div>
+          <div class="dock">
+            <button class="dock-i" data-sync="home">✕</button>
+            <button class="dock-p" data-sync="done">❚❚ Pause Session</button>
+            <button class="dock-i" data-sync="done">✓</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- HS 3: SPEAK & RECORD -->
+      <div class="scr night" data-s="record">
+        <div class="night-bg"><img src="https://images.pexels.com/photos/12294063/pexels-photo-12294063.jpeg?auto=compress&cs=tinysrgb&w=900" alt="Fog over sea"></div>
+        <div class="sbar"><span>9:41</span><span>LOCAL</span></div>
+        <div class="scroll">
+          <div style="display:flex;justify-content:space-between;align-items:center">
+            <div><div class="ey">Step 4 · Paced Reading</div><h3 class="h2">Monday Forecast</h3></div>
+            <button class="dock-i" style="width:34px;height:34px" data-sync="home">✕</button>
+          </div>
+          <div class="gcard">
+            <p style="font-size:15.5px;line-height:1.62">Good morning, <span style="color:#7FD1C7">▾</span> let me start with the headline. <span style="color:#7FD1C7">▾</span> Volume is running four percent above plan.</p>
+            <canvas class="wave-cv" id="hsWave" width="290" height="50"></canvas>
+            <div style="display:flex;justify-content:space-between" class="mono"><span style="font-size:10.5px;color:#93B0BC">PACE 102 WPM</span><span style="font-size:10.5px;color:#93B0BC">PAUSES &gt;1s: 3</span></div>
+            <div class="ap">
+              <button class="ap-b" style="background:#7FD1C7;color:#0B1821">▶</button>
+              <div class="ap-t"><i style="background:#7FD1C7"></i></div>
+              <span class="mono" style="font-size:10.5px;color:#93B0BC">0:08 · 1.0x</span>
+            </div>
+          </div>
+          <div class="gcard">
+            <div class="ey" style="margin-bottom:8px">Am I doing it right?</div>
+            <div style="display:flex;gap:6px;flex-wrap:wrap">
+              <span style="padding:6px 10px;border-radius:999px;background:#7FD1C7;color:#0B1821;font-size:11.5px;font-weight:700">Soft first word</span>
+              <span style="padding:6px 10px;border-radius:999px;background:#7FD1C7;color:#0B1821;font-size:11.5px;font-weight:700">Paused at ▾</span>
+              <span style="padding:6px 10px;border-radius:999px;border:1px solid rgba(127,209,199,.25);font-size:11.5px">Exhaled first</span>
+            </div>
+          </div>
+          <div class="dock">
+            <button class="dock-i">●</button>
+            <button class="dock-p" data-sync="done">Save &amp; Compare Takes</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- HS 4: COMPLETE -->
+      <div class="scr" data-s="done">
+        <div class="sbar"><span>9:41</span><span>5G · 100%</span></div>
+        <div class="scroll" style="text-align:center">
+          <div class="med" style="border:1px solid var(--sep)"><img src="https://images.pexels.com/photos/19280054/pexels-photo-19280054.jpeg?auto=compress&cs=tinysrgb&w=600" alt="Lotus"></div>
+          <div><h3 class="h1">Steady session.</h3><p class="mu" style="margin-top:4px">You completed <strong style="color:var(--snd)">3 minutes</strong> of calm prep.</p></div>
+          <div class="card" style="text-align:left">
+            <div style="display:flex;justify-content:space-between;align-items:center"><span class="sys">[Quest Complete] · +40 XP</span><span class="mono" style="font-size:13px">2 / 2</span></div>
+            <div class="pbar"><i></i></div>
+          </div>
+          <div class="s2" style="text-align:left">
+            <div class="card"><div class="ey">Duration</div><b style="font-size:18px;display:block;margin-top:3px">3m 0s</b></div>
+            <div class="card"><div class="ey">This Week</div><b style="font-size:18px;display:block;margin-top:3px;color:var(--snd)">4 of 5</b></div>
+          </div>
+          <button class="cta" style="margin-top:auto" data-sync="home">Back to Today</button>
+        </div>
+      </div>
+
+      <!-- HS 5: PROGRESS -->
+      <div class="scr" data-s="progress">
+        <div class="sbar"><span>9:41</span><span>5G · 100%</span></div>
+        <div class="scroll">
+          <div style="display:flex;justify-content:space-between;align-items:flex-end"><h3 class="h1">Progress</h3><span class="sys">Rank D · Lv 9</span></div>
+          <div class="card">
+            <div style="display:flex;justify-content:space-between"><b style="font-size:14px">Weekly Tide</b><span class="ey">3 of 5 · Best 6</span></div>
+            <div class="bars7">
+              <div class="b7"><i style="height:84%;background:var(--snd)"></i><span>M</span></div>
+              <div class="b7"><i style="height:48%;background:var(--snds)"></i><span>T</span></div>
+              <div class="b7"><i style="height:84%;background:var(--snd)"></i><span>W</span></div>
+              <div class="b7"><i style="height:18%;background:var(--fill)"></i><span style="border-bottom:2px solid var(--tint)">T</span></div>
+              <div class="b7"><i style="height:84%;background:var(--snd)"></i><span>F</span></div>
+              <div class="b7"><i style="height:48%;background:var(--snds)"></i><span>S</span></div>
+              <div class="b7"><i style="height:18%;background:var(--fill)"></i><span>S</span></div>
+            </div>
+          </div>
+          <div class="card">
+            <div style="display:flex;justify-content:space-between"><b style="font-size:13.5px">66-Day Tide Table</b><span class="ey">14 / 66</span></div>
+            <div class="heat" id="hsHeat"></div>
+          </div>
+          <button class="cta-s" data-sync="record" style="margin-top:auto">Play Then vs. Now Baseline</button>
+        </div>
+        <nav class="tabbar">
+          <button data-sync="home"><svg viewBox="0 0 24 24"><path d="M3 10.5 12 3l9 7.5V20h-6v-6H9v6H3z"/></svg>Today</button>
+          <button data-sync="breathe"><svg viewBox="0 0 24 24"><path d="M3 10c2-2 4-2 6 0s4 2 6 0 4-2 6 0"/><path d="M3 15c2-2 4-2 6 0s4 2 6 0 4-2 6 0"/></svg>Breathe</button>
+          <button data-sync="record"><svg viewBox="0 0 24 24"><path d="M12 3a3 3 0 0 0-3 3v6a3 3 0 0 0 6 0V6a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/></svg>Speak</button>
+          <button class="on" data-sync="progress"><svg viewBox="0 0 24 24"><path d="M5 20v-7M12 20V5M19 20v-10"/></svg>Progress</button>
+        </nav>
+      </div>
+    </div>
+  </section>
+
+</main>
+
+<script>
+  // Synced switcher across both phones
+  function syncTo(s) {
+    document.querySelectorAll('.sync button').forEach(b => b.classList.toggle('on', b.dataset.sync === s));
+    document.querySelectorAll('.phone').forEach(p => {
+      p.querySelectorAll('.scr').forEach(el => el.classList.toggle('on', el.dataset.s === s));
+    });
+  }
+  document.addEventListener('click', e => {
+    const b = e.target.closest('[data-sync]');
+    if (b) syncTo(b.dataset.sync);
+  });
+  document.getElementById('hsTheme').onclick = () => document.getElementById('hsPhone').classList.toggle('light');
+
+  // Synced Breath-Bloom timer
+  const ph = [{w:'Inhale', s:'THROUGH THE NOSE', e:true, t:2}, {w:'In again', s:'TOP UP YOUR LUNGS', e:true, t:1}, {w:'Out, slowly', s:'SOFTLY THROUGH MOUTH', e:false, t:6}];
+  let pi = 0, rem = 2;
+  setInterval(() => {
+    rem--; if (rem <= 0) { pi = (pi + 1) % ph.length; rem = ph[pi].t; }
+    const p = ph[pi];
+    ['sv', 'hs'].forEach(k => {
+      document.getElementById(k + 'Word').textContent = p.w;
+      document.getElementById(k + 'Sub').textContent = p.s;
+      document.getElementById(k + 'Num').textContent = rem;
+      document.getElementById(k + 'Bloom').classList.toggle('exp', p.e);
+    });
+  }, 1000);
+
+  // Live Canvas Waveforms on both phones
+  function startWave(id, hi, lo) {
+    const cv = document.getElementById(id), ctx = cv.getContext('2d');
+    let t = 0;
+    (function draw() {
+      ctx.clearRect(0, 0, cv.width, cv.height);
+      const n = 40, gap = 3, bw = (cv.width - gap * (n - 1)) / n, mid = cv.height / 2;
+      for (let i = 0; i < n; i++) {
+        const amp = 0.18 + 0.72 * Math.abs(Math.sin(t + i * 0.34) * Math.cos(t * 0.6 + i * 0.17));
+        const h = Math.max(4, amp * (cv.height - 6));
+        ctx.fillStyle = i > 11 && i < 30 ? hi : lo;
+        ctx.beginPath(); ctx.roundRect(i * (bw + gap), mid - h / 2, bw, h, 2); ctx.fill();
+      }
+      t += 0.08; requestAnimationFrame(draw);
+    })();
+  }
+  startWave('svWave', '#9CD8D0', 'rgba(156,216,208,.4)');
+  startWave('hsWave', '#7FD1C7', 'rgba(127,209,199,.4)');
+
+  // 66-Day Heat Calendars
+  function fillHeat(id, c1, c2, c0) {
+    const el = document.getElementById(id);
+    for (let i = 0; i < 66; i++) {
+      const d = document.createElement('i');
+      d.style.background = i < 14 ? (i % 3 === 0 ? c1 : c2) : c0;
+      el.appendChild(d);
+    }
+  }
+  fillHeat('svHeat', '#9CD8D0', '#315753', '#DFE3DE');
+  fillHeat('hsHeat', 'var(--snds)', 'var(--snd)', 'var(--fill)');
+</script>
+</body>
+</html>

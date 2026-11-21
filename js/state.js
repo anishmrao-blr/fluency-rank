@@ -10,7 +10,9 @@ export const fresh = () => ({
   v:3, xp:0, stats:{breath:0, pace:0, retrieval:0, composure:0, resilience:0},
   streak:0, best:0, shields:0, lastDay:null, energy:3,
   hard:'', opener:DEFAULT_OPENER, showSkeleton:true, hideClock:false, sound:false, voice:false,
-  breathMins:3, customBreath:{inS:4, hold1:0, outS:6, hold2:0},
+  breathMins:3, pacerStyle:'bloom', customBreath:{inS:4, hold1:0, outS:6, hold2:0},
+  proofDone:false, proofColdId:'', proofPacedId:'', proofColdRate:null, proofPacedRate:null,
+  proofColdMeta:null, proofPacedMeta:null, lastReeval:'', reevalId:'', reevalRate:null, reevalMeta:null,
   rung:2, up:0, down:0, coldSecs:60, bosses:0,
   plan:{anchor:'', mins:10}, planBonus:false, started:'', days:{},
   weekAward:'', weak:{}, comeback:false, titles:[],
@@ -37,8 +39,21 @@ export function sanitize(o) {
   s.sound = o.sound === true;
   s.voice = o.voice === true;
   s.breathMins = [1, 3, 5].indexOf(Number(o.breathMins)) >= 0 ? Number(o.breathMins) : 3;
+  s.pacerStyle = o.pacerStyle === 'tide' ? 'tide' : 'bloom';
   const cb = o.customBreath || {};
   s.customBreath = {inS:int(cb.inS, 4, 2, 8), hold1:int(cb.hold1, 0, 0, 8), outS:int(cb.outS, 6, 2, 12), hold2:int(cb.hold2, 0, 0, 8)};
+  const sanMeta = m => m && typeof m === 'object' ? {durationSec:num(m.durationSec, 0, 0, 600), speakingSec:num(m.speakingSec, 0, 0, 600), pauses:int(m.pauses, 0, 0, 99), wpm:m.wpm == null ? null : int(m.wpm, 0, 0, 300)} : null;
+  s.proofDone = o.proofDone === true;
+  s.proofColdId = typeof o.proofColdId === 'string' ? o.proofColdId.slice(0, 64) : '';
+  s.proofPacedId = typeof o.proofPacedId === 'string' ? o.proofPacedId.slice(0, 64) : '';
+  s.proofColdRate = o.proofColdRate == null ? null : int(o.proofColdRate, 3, 1, 5);
+  s.proofPacedRate = o.proofPacedRate == null ? null : int(o.proofPacedRate, 3, 1, 5);
+  s.proofColdMeta = sanMeta(o.proofColdMeta);
+  s.proofPacedMeta = sanMeta(o.proofPacedMeta);
+  s.lastReeval = isDate(o.lastReeval) ? o.lastReeval : '';
+  s.reevalId = typeof o.reevalId === 'string' ? o.reevalId.slice(0, 64) : '';
+  s.reevalRate = o.reevalRate == null ? null : int(o.reevalRate, 3, 1, 5);
+  s.reevalMeta = sanMeta(o.reevalMeta);
   s.rung = int(o.rung, 2, 0, WPM.length - 1);
   s.up = int(o.up, 0, 0, 5); s.down = int(o.down, 0, 0, 5);
   s.coldSecs = [45, 60, 90].indexOf(Number(o.coldSecs)) >= 0 ? Number(o.coldSecs) : 60;
@@ -76,7 +91,8 @@ export function sanitize(o) {
     act: e.act == null ? null : int(e.act, 0, 0, 10),
     chance: e.chance == null ? null : int(e.chance, 0, 0, 100),
     bad: e.bad == null ? null : int(e.bad, 0, 0, 2),
-    mid: typeof e.mid === 'string' && /^m\d$/.test(e.mid) ? e.mid : ''
+    mid: typeof e.mid === 'string' && /^m\d$/.test(e.mid) ? e.mid : '',
+    ticks: Array.isArray(e.ticks) ? e.ticks.filter(x => typeof x === 'string').slice(0, 6).map(x => x.slice(0, 80)) : []
   }));
   const had = Array.isArray(o.titles) ? o.titles : [], migrated = Number(o.v) >= 3 ? [] : earnedTitles(s);
   s.titles = TITLES.map(t => t.id).filter(id => had.indexOf(id) >= 0 || migrated.indexOf(id) >= 0);

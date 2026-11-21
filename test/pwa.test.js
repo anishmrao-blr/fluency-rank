@@ -35,6 +35,7 @@ const need = ['./', 'index.html', 'manifest.webmanifest', 'fonts/fonts.css',
   ...fs.readdirSync(R('js')).filter(f => f.endsWith('.js')).map(f => 'js/' + f),
   ...fs.readdirSync(R('fonts')).filter(f => f.endsWith('.woff2')).map(f => 'fonts/' + f),
   ...fs.readdirSync(R('css')).filter(f => f.endsWith('.css')).map(f => 'css/' + f),
+  ...(fs.existsSync(R('assets')) ? fs.readdirSync(R('assets')).filter(f => /\.(jpg|jpeg|png|webp|svg)$/i.test(f)).map(f => 'assets/' + f) : []),
   ...m.icons.map(i => i.src), 'icons/icon-180.png'];
 for (const f of need) assert(list.includes(f), 'precache includes ' + f);
 assert(/const VERSION = '[^']+';/.test(sw), 'cache is versioned');

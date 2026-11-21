@@ -1,17 +1,16 @@
-# Design: Tide table
+# Design: Modified Sanctuary Voice
 
 ## Direction contract
-- **THESIS:** Breath works like a tide, and the app reads like a calm harbour tide table on a native iPhone. It refuses both category ruts: the soft pastel wellness gradient, and the neon gamer heads-up display.
-- **OWN-WORLD:** Native iOS structure. Harbour-night navy-teal (dark) or cool chart paper (light). Seafoam hairline soundings. One buoy-orange tint. SF Pro carries the UI. A condensed chart lettering (Barlow Condensed) appears only on reward notices and big numerals.
-- **STORY:** The user opens the app and sees exactly one next action. They breathe with a rising and falling water line, speak, and watch high-water marks fill their week.
+- **THESIS:** Calm botanical planning in warm sage-alabaster (`#F7F9F7`) paired with Deep Pine Teal (`#315753`), shifting seamlessly into Deep Pine Night (`#111916`) frosted-glass forest photography during active breathing and speaking/recording.
+- **OWN-WORLD:** Native iOS structure with an uncluttered single-focal-ring Home screen, whisper-quiet 4-tab bottom bar (`Home · Breathe · Speak · Progress`), local bundled `Plus Jakarta Sans` UI typography, and `Barlow Condensed` reserved exclusively for the leveling layer (`[Quest complete]`, rank emblem, pacer countdown).
+- **STORY:** The user opens the app and sees one calm focal ring surrounded by breathing room. One tap launches daily practice in a low-glare dark pine canvas; every completed session returns to light alabaster with a quiet lotus medallion and rising weekly tide mark.
 - **FIRST VIEWPORT (Home):**
-  - Large title "Today".
-  - A tide-mark week strip.
-  - The plain line "Today 0 of 2".
-  - The primary "Start daily session · 5 min" button in the thumb zone.
-  - The "I'm about to speak" button below it.
-  - The tab bar.
-- **FORM:** Tide table / harbour chart, candidate 7 of the grounded list, seed key 7a67e505. Staging: native tab app with full-screen covers for drills.
+  - Large title "Today" + Settings gear.
+  - Compact 7-day tide strip ("This week X of 5").
+  - Central living focal ring ("Start daily session · 5 min") + "Today 0 of 2".
+  - Thumb-zone "I'm about to speak" button + quiet "Low energy? Short version" and "3-min voice proof" links.
+  - Whisper-quiet 4-tab bar.
+- **ASSETS:** Bundled locally in `assets/` (`bg-forest-pacer.jpg`, `medallion-lotus.jpg`, `banner-rhythm.jpg`) and precached in `sw.js` for full offline Airplane Mode support.
 
 ## Platform rules (iOS-native web)
 - **Structure:** tab bar for Home · Breathe · Speak · Progress. Settings opens from a gear button in Home's title bar. Drills open as full-screen covers.

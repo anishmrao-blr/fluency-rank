@@ -99,3 +99,17 @@ export const TWISTS = [
 ];
 export const ANCHORS = ['after my morning tea or coffee', 'before my first call', 'after lunch', 'right after my last call of the day', 'on my commute'];
 export const DEFAULT_OPENER = 'Hi everyone, thanks for joining. Let me start with the headline.';
+export const BASELINE_PASSAGE = {
+  t:'Baseline check',
+  x:'Good morning, everyone. Let me start with the main point. We looked closely at both options this week, and the second plan is simpler to run. If anything changes before Friday, I will send a quick note so we stay aligned.'
+};
+export const TECH_CHECKS = {
+  read:['Soft start on the first word', 'Steady pace through each phrase', 'Paused at the ▾ marks', 'Started on an easy exhale'],
+  speak:['Breathed in quietly first', 'Started the phrase softly on the exhale', 'Kept shoulders and jaw loose'],
+  cold:['Paused to breathe before answering', 'Led with a clear position', 'Paused instead of dodging a word']
+};
+export const TECH_DEMOS = {
+  read:'What good sounds like: the first syllable of each phrase comes out like a soft sigh, with a unhurried breath at every ▾ mark rather than rushing to finish.',
+  speak:'What good sounds like: a quiet nose inhale, then the sentence riding smoothly out on the exhale without pushing from the throat.',
+  cold:'What good sounds like: a calm beat of silence before your first word, one clear sentence up front, and pausing openly if a word catches.'
+};

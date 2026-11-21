@@ -5,6 +5,7 @@ import {practicedThisWeek, rollDay, questProgress} from './rules.js';
 import {toast, bar, emblem, ICON, sheetOpen} from './ui.js';
 import {missionStats, recommendedMission} from './drills.js';
 import {customDesc} from './breath.js';
+import {storageStats, fmtBytes, getClip, playerHtml, wirePlayer, measuresHtml} from './recorder.js';
 
 const cap = s => s.charAt(0).toUpperCase() + s.slice(1);
 const titleBar = (t, extra) => '<header class="lt"><h1 tabindex="-1">' + esc(t) + '</h1>' + (extra || '') + '</header>';
@@ -26,8 +27,14 @@ export function viewHome() {
   const hint = qp.done === 2 ? 'Breathing and speaking both done today.' : qp.items[0].ok ? 'Breathing done. One speaking drill completes today.' : qp.items[1].ok ? 'Speaking done. One breathing session completes today.' : 'One breathing session and one speaking drill.';
   return '<div class="home">' + titleBar('Today', '<button type="button" class="icb" data-act="settings" aria-label="Settings">' + ICON.gear + '</button>')
     + '<section class="tide" aria-label="This week"><p class="nums">This week ' + practicedThisWeek() + ' of 5' + (app.S.best > 0 ? ' · Best run ' + app.S.best : '') + '</p>' + weekHtml() + '</section>'
+    + '<div class="focal-stage">'
+    + '<button type="button" class="hero-ring" data-act="session"><span class="ring-play" aria-hidden="true"><svg viewBox="0 0 24 24"><polygon points="7,5 19,12 7,19"/></svg></span>Start daily session · 5 min</button>'
     + '<p class="today-line">Today ' + qp.done + ' of ' + qp.total + '</p><p class="today-sub">' + hint + '</p>'
-    + '<div class="acts"><button type="button" class="btn btn-p" data-act="session">Start daily session · 5 min</button><button type="button" class="btn btn-s" data-act="speak">I’m about to speak</button><button type="button" class="lnk" data-act="short">Low energy? Short version</button></div></div>';
+    + '</div>'
+    + '<div class="acts"><button type="button" class="btn btn-s" data-act="speak">I’m about to speak</button>'
+    + '<div class="home-links"><button type="button" class="lnk" data-act="short">Low energy? Short version</button>'
+    + (!app.S.proofDone ? '<button type="button" class="lnk" data-act="proof">3-min voice proof</button>' : '')
+    + '</div></div></div>';
 }
 
 /* ---------- Breathe (goal-first, step 3) ---------- */
@@ -94,6 +101,19 @@ export function viewProgress() {
   h += gh('Titles') + '<div class="group">' + (titles.length ? titles.map(t => '<div class="li"><span class="tt">' + esc(t.n) + '</span></div>').join('') : '<div class="li"><span class="ds">Titles arrive at milestones, such as your first real-world step and your seventh practice day.</span></div>') + '</div>';
   h += gh('Stats') + '<div class="group">' + STAT_KEYS.map(k => { const p = app.S.stats[k] || 0; return '<div class="li stat"><span>' + STAT_N[k] + '</span>' + bar(p % 100) + '<span class="vl">Lv ' + (1 + Math.floor(p / 100)) + '</span></div>'; }).join('') + '<div class="li"><span class="grow">Reading pace target</span><span class="vl">' + WPM[app.S.rung] + ' wpm</span></div></div>';
   h += gh('Practice mosaic') + '<div class="group">' + mosaicHtml() + '</div><p class="gf">One cell per practice day, so a gap leaves no hole. ' + days + ' practice day' + (days === 1 ? '' : 's') + ' so far. In one UCL study a new routine took 66 days on average to feel automatic, and a missed day did not derail it.</p>';
+  const daysSinceReeval = app.S.lastReeval ? dayNum(dstr()) - dayNum(app.S.lastReeval) : 99;
+  h += gh('Then and now') + '<div class="group"><div class="sumbox" id="proofBox">';
+  if (app.S.proofDone && (app.S.proofColdRate != null || app.S.reevalRate != null)) {
+    const latestMeta = app.S.reevalMeta || app.S.proofPacedMeta;
+    const latestRate = app.S.reevalRate != null ? app.S.reevalRate : app.S.proofPacedRate;
+    h += '<p class="ds">Baseline cold read: fluency ' + (app.S.proofColdRate != null ? app.S.proofColdRate + ' of 5' : '—') + ' · Latest: ' + (latestRate != null ? latestRate + ' of 5' : '—') + '.</p>'
+      + '<div id="proofPlayers"></div>'
+      + (latestMeta ? measuresHtml(latestMeta) : '')
+      + '<button type="button" class="btn btn-s" data-act="reeval">' + (daysSinceReeval >= 7 ? 'Weekly re-record due (+50 XP)' : 'Record a fresh comparison') + '</button>';
+  } else {
+    h += '<p class="ds">Record a 20-second baseline, breathe for 2 minutes, and hear the shift on your own phone.</p><button type="button" class="btn btn-s" data-act="proof">Start 3-min before/after check</button>';
+  }
+  h += '</div></div>';
   if (field.length) {
     const pa = field.reduce((s, e) => s + e.pred, 0) / field.length, aa = field.reduce((s, e) => s + e.act, 0) / field.length, badN = field.filter(e => e.bad >= 1).length;
     h += gh('Predictions and reality') + '<div class="group"><div class="li"><span class="grow">Expected anxiety, average</span><span class="vl">' + pa.toFixed(1) + ' of 10</span></div><div class="li"><span class="grow">Actual anxiety, average</span><span class="vl">' + aa.toFixed(1) + ' of 10</span></div><div class="li"><span class="grow">Went badly, partly or fully</span><span class="vl">' + badN + ' of ' + field.length + '</span></div></div><p class="gf">' + (pa - aa >= 1.5 ? 'Real conversations have been easier than you predicted. That gap is a reason to move up a step.' : (aa - pa >= 1.5 ? 'Real conversations have run harder than predicted. Spend longer on the current step.' : 'Your predictions track reality well.')) + '</p>';
@@ -119,9 +139,11 @@ export function summaryText() {
 /* ---------- Settings sheet (absorbs the old Guide) ---------- */
 const toggle = (id, label, on) => '<label class="li tg"><span class="grow">' + esc(label) + '</span><input type="checkbox" id="' + id + '"' + (on ? ' checked' : '') + '></label>';
 export function settingsHtml() {
-  return gh('Practice time', 'ptH') + '<div class="group" role="group" aria-labelledby="ptH">' + ANCHORS.map(a => '<button type="button" class="li" data-act="plan" data-v="' + esc(a) + '" aria-pressed="' + (app.S.plan.anchor === a) + '"><span class="grow tt">' + esc(cap(a)) + '</span><svg class="ic ck" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg></button>').join('') + '</div><p class="gf">Tie practice to something you already do each day. This app cannot send reminders yet, so set a phone alarm for the same moment.</p>'
+  return '<div class="rhythm-banner"><img src="assets/banner-rhythm.jpg" alt=""><span class="rb-k">Consistency</span><strong class="rb-t">Small steps, every day.</strong></div>'
+    + gh('Practice time', 'ptH') + '<div class="group" role="group" aria-labelledby="ptH">' + ANCHORS.map(a => '<button type="button" class="li" data-act="plan" data-v="' + esc(a) + '" aria-pressed="' + (app.S.plan.anchor === a) + '"><span class="grow tt">' + esc(cap(a)) + '</span><svg class="ic ck" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg></button>').join('') + '</div><p class="gf">Tie practice to something you already do each day. This app cannot send reminders yet, so set a phone alarm for the same moment.</p>'
     + gh('Your words') + '<div class="group"><div class="field"><label for="hard">Sounds you find hard (letters)</label><input type="text" id="hard" maxlength="12" placeholder="For example B P S T M" value="' + esc(app.S.hard) + '" autocomplete="off"></div><div class="field"><label for="opener">Your opening line</label><textarea id="opener" maxlength="200">' + esc(app.S.opener) + '</textarea></div></div><p class="gf">Word warm-up picks your hard sounds about half the time. I’m about to speak uses your opening line.</p>'
     + gh('Practice options') + '<div class="group">' + toggle('skel', 'Show the answer outline in practice questions', app.S.showSkeleton) + toggle('hclk', 'Hide countdown numbers', app.S.hideClock) + toggle('snds', 'Sound cues for breathing and timers', app.S.sound) + toggle('voice', 'Voice guide for breathing', app.S.voice) + '</div>'
+    + gh('Recordings') + '<div class="group"><div class="field"><p class="ds" id="recStat" role="status">Checking on-device clips…</p><button type="button" class="btn btn-s btn-sm" data-act="delClips">Delete all recordings</button></div></div><p class="gf">Recordings stay on this device and are never uploaded. Drill clips delete after 14 days; baseline proof clips stay until you delete them.</p>'
     + gh('Backup') + '<div class="group"><div class="field"><p class="ds" id="sync" role="status"></p><div class="row"><button type="button" class="btn btn-s btn-sm" data-act="export">Export backup</button><button type="button" class="btn btn-s btn-sm" data-act="importFile">Import backup</button></div><input type="file" id="bkfile" accept="application/json,.json" hidden><p class="ds" id="bkmsg" role="status"></p></div><details class="bk-raw"><summary>Paste or copy backup text</summary><div class="field"><label for="bk">Backup text</label><textarea id="bk"></textarea><div class="row"><button type="button" class="btn btn-s btn-sm" data-act="copy">Copy text</button><button type="button" class="btn btn-s btn-sm" data-act="import">Load pasted backup</button></div></div></details></div><p class="gf">Progress stays on this device. Export a file to move it to another device, or import a saved backup.</p>'
     + '<div class="group" style="margin-top:16px"><button type="button" class="li" data-act="reset" id="rst"><span class="grow tt" style="color:var(--tint)">Reset progress</span></button></div>'
     + gh('Help') + '<div class="group help">'
@@ -135,6 +157,24 @@ export function renderSheet() {
   $('#sheetBody').innerHTML = settingsHtml();
   $('#bk').value = JSON.stringify(app.S);
   updateSync();
+  storageStats().then(st => {
+    const el = $('#recStat');
+    if (el) el.textContent = st.count + ' recording' + (st.count === 1 ? '' : 's') + ' on this device (' + fmtBytes(st.bytes) + ')';
+  }).catch(() => {});
+}
+
+async function hydrateProofPlayers() {
+  const host = $('#proofPlayers');
+  if (!host) return;
+  const cold = app.S.proofColdId ? await getClip(app.S.proofColdId) : null;
+  const nowId = app.S.reevalId || app.S.proofPacedId;
+  const latest = nowId ? await getClip(nowId) : null;
+  let html = '';
+  if (cold) html += playerHtml('prCold', 'Then · baseline', (app.S.proofColdMeta && app.S.proofColdMeta.durationSec) || 20);
+  if (latest) html += playerHtml('prNow', app.S.reevalId ? 'Now · weekly check' : 'After breathing', ((app.S.reevalMeta || app.S.proofPacedMeta) && (app.S.reevalMeta || app.S.proofPacedMeta).durationSec) || 20);
+  host.innerHTML = html;
+  if (cold) wirePlayer(host, 'prCold', cold);
+  if (latest) wirePlayer(host, 'prNow', latest);
 }
 
 const VIEWS = {home:viewHome, breathe:viewBreathe, gates:viewGates, progress:viewProgress};
@@ -145,6 +185,7 @@ export function renderAll() {
     $('#view').innerHTML = VIEWS[app.tab]();
     $$('#tabs button').forEach(b => { if (b.getAttribute('data-v') === app.tab) b.setAttribute('aria-current', 'page'); else b.removeAttribute('aria-current'); });
     const sm = $('#sum'); if (sm) sm.value = summaryText();
+    if (app.tab === 'progress') hydrateProofPlayers();
     if (sheetOpen()) renderSheet();
     updateSync();
   } catch (e) { toast('Something went wrong drawing this screen. Your progress is saved.'); }

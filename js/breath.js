@@ -2,7 +2,7 @@ import {$, esc, clamp, reduceMotion, shuffle, fmt} from './util.js';
 import {PATTERNS, PHRASES} from './content.js';
 import {app, save} from './state.js';
 import {award} from './rules.js';
-import {T, cue, runBody, openRun, setRun, setPartial, choiceRow, wireChoice, resultScreen} from './ui.js';
+import {T, cue, runBody, openRun, setRun, setPartial, setDarkCover, choiceRow, wireChoice, resultScreen} from './ui.js';
 
 export const LOW = 0.22, HIGH = 0.72;
 export const BREATH_IN = s => ({w:'Breathe in', s, to:HIGH, cue:'in'});
@@ -99,14 +99,25 @@ export function tidePacer(o) {
   const ph = o.phases, cycS = ph.reduce((a, p) => a + p.s, 0), totalS = o.totalS || cycS * o.cycles;
   ensureCleanup();
   acquireWakeLock();
-  setRun('<div class="tp-ui"><h2 class="h-t">' + esc(o.title) + '</h2>' + (o.head || '') + '<div class="tp-meta"><span id="tpCy"></span><span id="tpRem"></span></div><p class="tp-say" id="tpSay"></p></div>'
+  setDarkCover(true);
+  const mode = app.S.pacerStyle === 'tide' ? 'tide' : 'bloom';
+  setRun('<div class="tp-ui"><h2 class="h-t">' + esc(o.title) + '</h2>' + (o.head || '') + '<div class="tp-meta"><span id="tpCy"></span><span id="tpRem"></span><button type="button" class="mode-chip" id="tpMode" aria-label="Switch pacer visual">' + (mode === 'bloom' ? 'Orb view' : 'Tide view') + '</button></div><p class="tp-say" id="tpSay"></p></div>'
     + '<p class="sr" aria-live="polite" id="tpLive"></p>'
-    + '<div class="tp' + (reduceMotion ? ' rm' : '') + '" id="tp" aria-hidden="true"><div class="tp-water" id="tpW">' + WAVES + '</div><div class="tp-snd">' + SOUNDINGS + '</div><div class="tp-surf" id="tpS"><div class="tp-word" id="tpWord">Get ready</div><div class="tp-count" id="tpCount"></div></div><div class="tp-bar"><i id="tpBar"></i></div></div>');
-  const W = $('#tpW'), S = $('#tpS'), word = $('#tpWord'), count = $('#tpCount'), live = $('#tpLive'), cy = $('#tpCy'), rem = $('#tpRem'), say = $('#tpSay'), tb = $('#tpBar');
+    + '<div class="tp' + (reduceMotion ? ' rm' : '') + (mode === 'bloom' ? ' bloom-on' : '') + '" id="tp" aria-hidden="true">'
+    + '<div class="tp-bloom" id="tpB"><div class="tp-petals"><span></span><span></span><span></span><span></span></div><div class="tp-core"></div></div>'
+    + '<div class="tp-water" id="tpW">' + WAVES + '</div><div class="tp-snd">' + SOUNDINGS + '</div><div class="tp-surf" id="tpS"><div class="tp-word" id="tpWord">Get ready</div><div class="tp-count" id="tpCount"></div></div><div class="tp-bar"><i id="tpBar"></i></div></div>');
+  const W = $('#tpW'), S = $('#tpS'), B = $('#tpB'), word = $('#tpWord'), count = $('#tpCount'), live = $('#tpLive'), cy = $('#tpCy'), rem = $('#tpRem'), say = $('#tpSay'), tb = $('#tpBar');
   const start = performance.now();
   const elapsed = () => (performance.now() - start) / 1000;
   /* the gauge starts below the text block, so high water and the phase word never run under the copy */
   const tp = $('#tp'), ui = $('.tp-ui', runBody), snd = $('.tp-snd', tp);
+  const modeBtn = $('#tpMode');
+  if (modeBtn) modeBtn.onclick = () => {
+    app.S.pacerStyle = app.S.pacerStyle === 'tide' ? 'bloom' : 'tide';
+    save();
+    tp.classList.toggle('bloom-on', app.S.pacerStyle === 'bloom');
+    modeBtn.textContent = app.S.pacerStyle === 'bloom' ? 'Orb view' : 'Tide view';
+  };
   /* ...and it ends above the End control, so low water and the count never run under it. The water
      body still reaches the bottom of the screen. Measured once, before any End confirmation opens. */
   const footH = ($('#runFoot') || {}).offsetHeight || 0;
@@ -116,7 +127,11 @@ export function tidePacer(o) {
     const H = tp.clientHeight; if (H > 0 && footH) { span = clamp((H - footH - 8) / H, 0.5, 1); snd.style.bottom = Math.round(H * (1 - span)) + 'px'; }
   };
   fit();
-  const place = lvl => { const t = 'translateY(' + (span * (1 - lvl) * 100).toFixed(2) + '%)'; W.style.transform = t; S.style.transform = t; };
+  const place = lvl => {
+    const t = 'translateY(' + (span * (1 - lvl) * 100).toFixed(2) + '%)';
+    W.style.transform = t; S.style.transform = t;
+    if (B) { const sc = 0.78 + ((lvl - LOW) / (HIGH - LOW)) * 0.44; B.style.transform = 'scale(' + sc.toFixed(3) + ')'; }
+  };
   let last = '';
   const frame = () => {
     const el = elapsed();

@@ -1,10 +1,29 @@
 import {$, $$, esc, rnd, clamp, shuffle, fmt, dstr, dayNum} from './util.js';
-import {FLU, WPM, PASSAGES, QUESTIONS, STALL, LETTERS, CATS, MISSIONS} from './content.js';
+import {FLU, WPM, PASSAGES, QUESTIONS, STALL, LETTERS, CATS, MISSIONS, BASELINE_PASSAGE, TECH_CHECKS, TECH_DEMOS} from './content.js';
 import {app, save} from './state.js';
 import {award} from './rules.js';
-import {toast, bar, T, cue, runBody, RUN, openRun, setRun, setPartial, minsDone, choiceRow, wireChoice, rateHtml, wireRate, resultScreen, ICON} from './ui.js';
+import {toast, bar, T, cue, runBody, RUN, openRun, setRun, setPartial, setDarkCover, minsDone, choiceRow, wireChoice, rateHtml, wireRate, resultScreen, ICON} from './ui.js';
 import {LOW, BREATH_IN, SIGH, tidePacer, runBreath} from './breath.js';
+import {createRecorder, saveClip, getClip, measuresHtml, playerHtml, wirePlayer} from './recorder.js';
 export {runBreath, tidePacer, SIGH, LOW};
+
+function techCheckHtml(kind) {
+  const list = TECH_CHECKS[kind] || [], demo = TECH_DEMOS[kind] || '';
+  if (!list.length) return '';
+  return '<div class="tech-box"><div class="lab">Am I doing it right?</div>'
+    + (demo ? '<p class="cap">' + esc(demo) + '</p>' : '')
+    + '<div class="chk-chips" role="group" aria-label="Technique check">'
+    + list.map((t, i) => '<button type="button" class="chk-chip" data-tick="' + i + '" aria-pressed="false">' + esc(t) + '</button>').join('')
+    + '</div></div>';
+}
+function wireTechChecks(root) {
+  $$('.chk-chip', root).forEach(b => {
+    b.onclick = () => { b.setAttribute('aria-pressed', b.getAttribute('aria-pressed') === 'true' ? 'false' : 'true'); };
+  });
+}
+function selectedTicks(root) {
+  return $$('.chk-chip[aria-pressed="true"]', root).map(b => b.textContent.trim());
+}
 
 export const QUSED = {};
 export function nextQuestion() {
@@ -44,13 +63,46 @@ export function runRead(o) {
   };
   const play = () => {
     const P = PASSAGES[sel], words = P.x.split(/\s+/), t0 = performance.now();
-    setRun('<h2 class="h-t">' + esc(P.t) + '</h2><p class="note num">' + wpm + ' words a minute</p><div class="reader" id="rd">' + words.map(w => '<span class="w' + (/[,;:]$/.test(w) ? ' c' : '') + (/[.?!]$/.test(w) ? ' s' : '') + '">' + esc(w) + '</span>').join(' ') + '</div>');
+    let rec = null, recording = false, captured = null;
+    setDarkCover(true);
+    setRun('<h2 class="h-t">' + esc(P.t) + '</h2><p class="note num">' + wpm + ' words a minute</p>'
+      + '<div class="glass-panel"><div class="reader" id="rd">' + words.map(w => '<span class="w' + (/[,;:]$/.test(w) ? ' c' : '') + (/[.?!]$/.test(w) ? ' s' : '') + '">' + esc(w) + '</span>').join(' ') + '</div>'
+      + '<canvas class="wave-cv" id="waveCv" width="300" height="48" hidden></canvas>'
+      + '<div class="rec-row"><button type="button" class="btn btn-s btn-sm" id="recBtn" aria-pressed="false">Record voice</button><span class="cap" id="recMsg" role="status">Stays on this device</span></div></div>');
     setPartial(() => { const el = (performance.now() - t0) / 1000; return el >= 60 ? readPartial('The ' + minsDone(el) + ' you read still counts', P) : null; });
+    const recBtn = $('#recBtn'), recMsg = $('#recMsg'), waveCv = $('#waveCv');
+    recBtn.onclick = async () => {
+      if (recording && rec) {
+        recBtn.disabled = true;
+        captured = await rec.stop(words.length);
+        recording = false; rec = null;
+        waveCv.hidden = true;
+        recBtn.disabled = false; recBtn.textContent = 'Recorded ✓'; recBtn.setAttribute('aria-pressed', 'false');
+        recMsg.textContent = 'Saved for playback after reading.';
+        return;
+      }
+      rec = createRecorder({canvas:waveCv});
+      const r = await rec.start();
+      if (!r.ok) {
+        rec = null;
+        recMsg.textContent = r.reason === 'denied' ? 'Microphone blocked. You can still finish without recording.' : 'Recording is not available in this browser.';
+        return;
+      }
+      recording = true; waveCv.hidden = false;
+      recBtn.textContent = 'Stop recording'; recBtn.setAttribute('aria-pressed', 'true');
+      recMsg.textContent = 'Recording on device…';
+    };
     const spans = $$('.w', runBody), base = 60000 / wpm;
     let i = 0;
     const step = () => {
       if (i > 0) { spans[i - 1].classList.remove('now'); spans[i - 1].classList.add('done'); }
-      if (i >= spans.length) { T.after(500, rate); return; }
+      if (i >= spans.length) {
+        T.after(500, async () => {
+          if (recording && rec) { captured = await rec.stop(words.length); recording = false; rec = null; }
+          rate(captured);
+        });
+        return;
+      }
       const w = words[i];
       spans[i].classList.add('now');
       const d = base * (1 + (/[,;:]$/.test(w) ? 0.6 : 0) + (/[.?!]$/.test(w) ? 1.4 : 0) + (w.length > 8 ? 0.3 : 0));
@@ -58,13 +110,22 @@ export function runRead(o) {
     };
     step();
   };
-  const rate = () => {
+  const rate = clip => {
     let sc = 0;
     const P = PASSAGES[sel];
+    setDarkCover(false);
     setPartial(() => readPartial('The passage you read still counts', P));
-    setRun('<h2 class="h-t">How smooth was that?</h2>' + rateHtml('r1', 'Rate your fluency, not your effort.', FLU) + '<button type="button" class="btn btn-p" id="sub" disabled>Log it</button>');
+    const clipBlock = clip ? playerHtml('rdPlay', 'Your take', clip.measures.durationSec) + measuresHtml(clip.measures)
+      + '<div class="group"><label class="li tg"><span class="grow">Keep this clip on device (14 days)</span><input type="checkbox" id="keepClip" checked></label></div>' : '';
+    setRun('<h2 class="h-t">How smooth was that?</h2>' + clipBlock + rateHtml('r1', 'Rate your fluency, not your effort.', FLU) + techCheckHtml('read') + '<button type="button" class="btn btn-p" id="sub" disabled>Log it</button>');
+    if (clip) wirePlayer(runBody, 'rdPlay', clip);
+    wireTechChecks(runBody);
     wireRate('r1', n => { sc = n; $('#sub').disabled = false; });
-    $('#sub').onclick = () => {
+    $('#sub').onclick = async () => {
+      const ticks = selectedTicks(runBody);
+      if (clip && $('#keepClip') && $('#keepClip').checked) {
+        await saveClip({kind:'drill', durationMs:clip.durationMs, bytes:clip.bytes, blob:clip.blob, mimeType:clip.mimeType, wpm:clip.measures.wpm, pauses:clip.measures.pauses, speakingSec:clip.measures.speakingSec, ticks, meta:P.t});
+      }
       const coach = coachRead(sc, wpm), onTarget = wpm === WPM[app.S.rung];
       let note = '';
       if (onTarget) {
@@ -72,7 +133,7 @@ export function runRead(o) {
         else if (sc <= 2) { app.S.up = 0; app.S.down++; if (app.S.down >= 2 && app.S.rung > 0) { app.S.rung--; app.S.down = 0; note = 'Pace target eased to ' + WPM[app.S.rung] + ' words a minute. Slower is part of the plan.'; } }
         else { app.S.up = 0; app.S.down = 0; }
       }
-      const res = award('read', {pts:{pace:5 + sc * 2, breath:2}, q:'read', score:sc, meta:P.t + ' at ' + wpm + ' wpm'});
+      const res = award('read', {pts:{pace:5 + sc * 2, breath:2}, q:'read', score:sc, meta:P.t + ' at ' + wpm + ' wpm', extra:{ticks}});
       resultScreen({lead:'You read “' + P.t + '” aloud at ' + wpm + ' words a minute.', lines:['Fluency ' + sc + ' of 5.', coach].concat(note ? [note] : []), res, type:'read', actions:o.auto ? [] : [{id:'again', label:'Another passage', fn:() => { wpm = WPM[app.S.rung]; setup(); }}]});
     };
   };
@@ -139,15 +200,36 @@ export function runCold(boss, o) {
   };
   const askOne = idx => {
     const q = nextQuestion(), stall = shuffle(STALL).slice(0, 3), breathS = boss ? 3 : 5;
-    let total = secs;
+    let total = secs, rec = null, recording = false, captured = null;
+    setDarkCover(false);
     setRun((boss ? '<p class="note num">Question ' + (idx + 1) + ' of 5</p>' : '') + '<h2 class="h-q">' + esc(q.t) + '</h2>' + (q.u ? '<p class="note">You may not know this one. Give a position, what you would check, and when you will confirm.</p>' : '')
       + (app.S.showSkeleton ? '<div class="group outline" aria-label="Answer outline"><div class="li"><span><b>Position.</b> My recommendation is…</span></div><div class="li"><span><b>Because.</b> One or two reasons, one number if you have it.</span></div><div class="li"><span><b>Change.</b> I would revisit if…</span></div></div>' : '')
       + '<div class="phaseline"><span id="phl">Breathe</span><span id="clk" class="num" role="timer" aria-live="off">' + (app.S.hideClock ? '' : breathS) + '</span></div>' + barId('tb')
+      + (!boss ? '<canvas class="wave-cv" id="waveCv" width="300" height="44" hidden></canvas><div class="rec-row"><button type="button" class="btn btn-s btn-sm" id="recBtn" aria-pressed="false">Record answer</button><span class="cap" id="recMsg" role="status">Optional · stays on device</span></div>' : '')
       + '<div class="chips" aria-label="Phrases that buy a moment">' + stall.map(s => '<span class="chip">' + esc(s) + '</span>').join('') + '</div><div class="row"><button type="button" class="btn btn-p" id="done">' + (boss && idx < 4 ? 'Next question' : 'Done') + '</button><button type="button" class="btn btn-s" id="more" aria-label="Add 15 seconds">+15 s</button></div>');
     let t0 = performance.now(), phase = 'breath', finished = false;
+    if (!boss && $('#recBtn')) {
+      const recBtn = $('#recBtn'), recMsg = $('#recMsg'), waveCv = $('#waveCv');
+      recBtn.onclick = async () => {
+        if (recording && rec) {
+          recBtn.disabled = true; captured = await rec.stop(0); recording = false; rec = null; waveCv.hidden = true;
+          recBtn.disabled = false; recBtn.textContent = 'Recorded ✓'; recBtn.setAttribute('aria-pressed', 'false'); recMsg.textContent = 'Ready to play back.';
+          return;
+        }
+        rec = createRecorder({canvas:waveCv});
+        const r = await rec.start();
+        if (!r.ok) { rec = null; recMsg.textContent = r.reason === 'denied' ? 'Microphone blocked. You can still answer without recording.' : 'Recording unavailable.'; return; }
+        recording = true; waveCv.hidden = false; recBtn.textContent = 'Stop recording'; recBtn.setAttribute('aria-pressed', 'true'); recMsg.textContent = 'Recording on device…';
+      };
+    }
     if (boss) setPartial(() => idx >= 1 ? coldPartial('The ' + idx + ' question' + (idx > 1 ? 's you answered still count' : ' you answered still counts'), 'You answered ' + idx + ' of 5 questions. ' + (idx > 1 ? 'They count.' : 'It counts.'), 'Challenge round, ' + idx + ' of 5') : null);
     else setPartial(() => { const el = (performance.now() - t0) / 1000; return phase === 'speak' && el >= 60 ? coldPartial('The ' + minsDone(el) + ' you spoke still counts', 'You answered a practice question. It counts.', 'Practice question') : null; });
-    const end = () => { if (finished) return; finished = true; clearInterval(iv); cue('end'); if (boss && idx < 4) askOne(idx + 1); else rate(); };
+    const end = async () => {
+      if (finished) return;
+      finished = true; clearInterval(iv); cue('end');
+      if (recording && rec) { captured = await rec.stop(0); recording = false; rec = null; }
+      if (boss && idx < 4) askOne(idx + 1); else rate(captured);
+    };
     $('#done').onclick = end;
     $('#more').onclick = () => { total += 15; };
     const iv = T.every(100, () => {
@@ -163,19 +245,27 @@ export function runCold(boss, o) {
       }
     });
   };
-  const rate = () => {
+  const rate = clip => {
     let sc = 0;
     setPartial(() => boss ? coldPartial('The 5 questions you answered still count', 'You answered 5 questions. They count.', 'Challenge round, 5 of 5') : coldPartial('The answer you gave still counts', 'You answered a practice question. It counts.', 'Practice question'));
-    setRun('<h2 class="h-t">' + (boss ? 'How did the round go?' : 'How did that go?') + '</h2>' + rateHtml('r1', 'Rate your fluency, not the quality of your answer.', FLU) + '<div class="group"><label class="li tg"><span class="grow">I led with a clear position</span><input type="checkbox" id="lead"></label><label class="li tg"><span class="grow">I stayed calm when I got stuck</span><input type="checkbox" id="calm"></label></div><button type="button" class="btn btn-p" id="sub" disabled>Log it</button>');
+    const clipBlock = clip ? playerHtml('cdPlay', 'Your answer', clip.measures.durationSec) + measuresHtml(clip.measures)
+      + '<div class="group"><label class="li tg"><span class="grow">Keep this clip on device (14 days)</span><input type="checkbox" id="keepClip" checked></label></div>' : '';
+    setRun('<h2 class="h-t">' + (boss ? 'How did the round go?' : 'How did that go?') + '</h2>' + clipBlock + rateHtml('r1', 'Rate your fluency, not the quality of your answer.', FLU) + '<div class="group"><label class="li tg"><span class="grow">I led with a clear position</span><input type="checkbox" id="lead"></label><label class="li tg"><span class="grow">I stayed calm when I got stuck</span><input type="checkbox" id="calm"></label></div>' + (!boss ? techCheckHtml('cold') : '') + '<button type="button" class="btn btn-p" id="sub" disabled>Log it</button>');
+    if (clip) wirePlayer(runBody, 'cdPlay', clip);
+    wireTechChecks(runBody);
     wireRate('r1', n => { sc = n; $('#sub').disabled = false; });
-    $('#sub').onclick = () => {
+    $('#sub').onclick = async () => {
+      const ticks = selectedTicks(runBody);
+      if (clip && $('#keepClip') && $('#keepClip').checked) {
+        await saveClip({kind:'drill', durationMs:clip.durationMs, bytes:clip.bytes, blob:clip.blob, mimeType:clip.mimeType, wpm:clip.measures.wpm, pauses:clip.measures.pauses, speakingSec:clip.measures.speakingSec, ticks, meta:'Practice question'});
+      }
       const lead = $('#lead').checked, calm = $('#calm').checked, coach = coachCold(sc, lead, calm);
       if (boss) {
         app.S.bosses++;
         const res = award('boss', {pts:{composure:20 + sc * 3, retrieval:5, resilience:5}, q:'cold', qn:2, score:sc, meta:'Five question challenge round'});
         resultScreen({lead:'You answered five questions back to back.', lines:['Fluency ' + sc + ' of 5.', coach], res, type:'boss'});
       } else {
-        const res = award('cold', {pts:{composure:4 + sc * 2 + (lead ? 2 : 0)}, q:'cold', score:sc, meta:'Practice question'});
+        const res = award('cold', {pts:{composure:4 + sc * 2 + (lead ? 2 : 0)}, q:'cold', score:sc, meta:'Practice question', extra:{ticks}});
         resultScreen({lead:'You answered a question you had not seen.', lines:['Fluency ' + sc + ' of 5.', coach], res, type:'cold', actions:o.auto ? [] : [{id:'again', label:'Next question', fn:() => askOne(0)}]});
       }
     };
@@ -268,6 +358,131 @@ export function runField() {
     };
   };
   list();
+}
+
+/* ---------- Same-Session Before/After Proof (Step 4) & Weekly Re-Record ---------- */
+function recordBaselineStep(opts) {
+  const words = BASELINE_PASSAGE.x.split(/\s+/);
+  let rec = null, recording = false;
+  setDarkCover(true);
+  const textHtml = opts.marks
+    ? words.map(w => '<span class="w' + (/[,;:]$/.test(w) ? ' c' : '') + (/[.?!]$/.test(w) ? ' s' : '') + '">' + esc(w) + '</span>').join(' ')
+    : esc(BASELINE_PASSAGE.x);
+  setRun('<h2 class="h-t">' + esc(opts.title) + '</h2><p class="note">' + esc(opts.sub) + '</p>'
+    + '<div class="glass-panel"><div class="reader">' + textHtml + '</div>'
+    + '<canvas class="wave-cv" id="waveCv" width="300" height="48"></canvas>'
+    + '<p class="cap" id="recMsg" role="status">Tap Record when you are ready. Recordings never leave this device.</p></div>'
+    + '<div class="stack thumb"><button type="button" class="btn btn-p" id="recGo">Record (~20 s)</button>'
+    + (opts.onSkip ? '<button type="button" class="lnk" id="recSkip">Skip recording</button>' : '') + '</div>');
+  const btn = $('#recGo'), msg = $('#recMsg'), waveCv = $('#waveCv');
+  if (opts.onSkip && $('#recSkip')) $('#recSkip').onclick = () => { if (rec) rec.cancel(); setDarkCover(false); opts.onSkip(); };
+  btn.onclick = async () => {
+    if (recording && rec) {
+      btn.disabled = true;
+      const clip = await rec.stop(words.length);
+      recording = false; rec = null;
+      setDarkCover(false);
+      opts.onDone(clip);
+      return;
+    }
+    rec = createRecorder({canvas:waveCv});
+    const r = await rec.start();
+    if (!r.ok) {
+      rec = null;
+      msg.textContent = r.reason === 'denied' ? 'Microphone permission was denied. You can skip recording and still practise.' : 'Microphone recording is not available in this browser.';
+      return;
+    }
+    recording = true;
+    btn.textContent = 'Stop recording';
+    msg.textContent = 'Recording on device… read aloud at your natural pace.';
+  };
+}
+
+export function runProof() {
+  openRun('Before & after check');
+  let coldClip = null, pacedClip = null;
+  const step1 = () => recordBaselineStep({
+    title:'1 of 3 · Cold read',
+    sub:'Read this short passage aloud once before breathing. This also becomes your weekly baseline.',
+    marks:false,
+    onSkip:() => { app.S.proofDone = true; save(); startRun(SESSION(), 'Daily session'); },
+    onDone:clip => { coldClip = clip; step2(); }
+  });
+  const step2 = () => {
+    tidePacer({
+      title:'2 of 3 · Breathe & settle',
+      head:'<p class="note">Two minutes of cyclic sighing to drop tension before your second read.</p>',
+      phases:SIGH,
+      totalS:120,
+      onDone:() => step3()
+    });
+  };
+  const step3 = () => recordBaselineStep({
+    title:'3 of 3 · Paced re-read',
+    sub:'Read the exact same passage aloud now. Start each phrase softly and pause at each ▾ mark.',
+    marks:true,
+    onDone:clip => { pacedClip = clip; compare(); }
+  });
+  const compare = () => {
+    let r1 = 0, r2 = 0;
+    setDarkCover(false);
+    setRun('<h2 class="h-t">Hear the difference</h2><p class="note">Play both clips side by side and rate each one.</p>'
+      + (coldClip ? playerHtml('pCold', '1. Cold read', coldClip.measures.durationSec) + measuresHtml(coldClip.measures) : '')
+      + (pacedClip ? playerHtml('pPaced', '2. After breathing', pacedClip.measures.durationSec) + measuresHtml(pacedClip.measures) : '')
+      + rateHtml('rc1', 'Cold read fluency', FLU)
+      + rateHtml('rc2', 'Paced read fluency', FLU)
+      + '<button type="button" class="btn btn-p" id="sub" disabled>Save baseline</button>');
+    if (coldClip) wirePlayer(runBody, 'pCold', coldClip);
+    if (pacedClip) wirePlayer(runBody, 'pPaced', pacedClip);
+    const ready = () => { $('#sub').disabled = !(r1 > 0 && r2 > 0); };
+    wireRate('rc1', n => { r1 = n; ready(); });
+    wireRate('rc2', n => { r2 = n; ready(); });
+    $('#sub').onclick = async () => {
+      if (coldClip) {
+        const sc = await saveClip({kind:'proof-cold', durationMs:coldClip.durationMs, bytes:coldClip.bytes, blob:coldClip.blob, mimeType:coldClip.mimeType, wpm:coldClip.measures.wpm, pauses:coldClip.measures.pauses, speakingSec:coldClip.measures.speakingSec, meta:'Baseline cold read'});
+        app.S.proofColdId = sc.id; app.S.proofColdMeta = coldClip.measures;
+      }
+      if (pacedClip) {
+        const sp = await saveClip({kind:'proof-paced', durationMs:pacedClip.durationMs, bytes:pacedClip.bytes, blob:pacedClip.blob, mimeType:pacedClip.mimeType, wpm:pacedClip.measures.wpm, pauses:pacedClip.measures.pauses, speakingSec:pacedClip.measures.speakingSec, meta:'Baseline paced read'});
+        app.S.proofPacedId = sp.id; app.S.proofPacedMeta = pacedClip.measures;
+      }
+      app.S.proofColdRate = r1; app.S.proofPacedRate = r2; app.S.proofDone = true; app.S.lastReeval = dstr();
+      const res = award('read', {pts:{pace:6, breath:4}, q:'read', score:r2, meta:'Before/after proof (' + r1 + ' -> ' + r2 + ')'});
+      resultScreen({lead:'Baseline saved.', lines:['Cold read ' + r1 + ' of 5 · After breathing ' + r2 + ' of 5.', 'Your cold read is saved in Progress for weekly then-and-now comparisons.'], res, type:'read'});
+    };
+  };
+  step1();
+}
+
+export async function runReeval() {
+  openRun('Weekly re-record');
+  const baseClip = app.S.proofColdId ? await getClip(app.S.proofColdId) : null;
+  recordBaselineStep({
+    title:'Weekly baseline check',
+    sub:'Read your baseline passage aloud to compare then and now.',
+    marks:true,
+    onDone:nowClip => {
+      let sc = 0;
+      setDarkCover(false);
+      setRun('<h2 class="h-t">Then and now</h2><p class="note">Listen to your original baseline alongside today’s take.</p>'
+        + (baseClip ? playerHtml('pThen', 'Then · original baseline', (app.S.proofColdMeta && app.S.proofColdMeta.durationSec) || 20) + measuresHtml(app.S.proofColdMeta) : '')
+        + (nowClip ? playerHtml('pNow', 'Now · today', nowClip.measures.durationSec) + measuresHtml(nowClip.measures) : '')
+        + rateHtml('r1', 'Rate today’s fluency', FLU)
+        + '<button type="button" class="btn btn-p" id="sub" disabled>Log weekly check</button>');
+      if (baseClip) wirePlayer(runBody, 'pThen', baseClip);
+      if (nowClip) wirePlayer(runBody, 'pNow', nowClip);
+      wireRate('r1', n => { sc = n; $('#sub').disabled = false; });
+      $('#sub').onclick = async () => {
+        if (nowClip) {
+          const saved = await saveClip({kind:'reeval', durationMs:nowClip.durationMs, bytes:nowClip.bytes, blob:nowClip.blob, mimeType:nowClip.mimeType, wpm:nowClip.measures.wpm, pauses:nowClip.measures.pauses, speakingSec:nowClip.measures.speakingSec, meta:'Weekly re-record'});
+          app.S.reevalId = saved.id; app.S.reevalMeta = nowClip.measures;
+        }
+        app.S.reevalRate = sc; app.S.lastReeval = dstr();
+        const res = award('reeval', {pts:{pace:8, composure:4}, q:'read', score:sc, meta:'Weekly re-record'});
+        resultScreen({lead:'Weekly check logged.', lines:['Fluency ' + sc + ' of 5. Your baseline comparison is updated in Progress.'], res, type:'reeval'});
+      };
+    }
+  });
 }
 
 /* ---------- sessions from Home ---------- */

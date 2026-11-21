@@ -108,10 +108,14 @@ export const runEl = $('#run'), runBody = $('#runBody'), runTitle = $('#runTitle
 /* q: drills still to come in a session; i of n: the current step. partial: see setPartial. */
 export const RUN = {active:false, label:'', q:[], i:0, n:0, partial:null};
 export function syncSoundBtn() { const b = $('#snd'); b.textContent = app.S.sound ? 'Sound on' : 'Sound off'; b.setAttribute('aria-pressed', String(app.S.sound)); b.setAttribute('aria-label', 'Sound cues, ' + (app.S.sound ? 'on' : 'off')); }
+export function setDarkCover(on) {
+  runEl.classList.toggle('dark-cover', !!on);
+}
 export function openRun(title) {
   T.clear(); cancelClose(runEl);
   if (!app.running) runReturn = document.activeElement;
   app.running = true; RUN.partial = null;
+  setDarkCover(false);
   runTitle.textContent = RUN.active ? RUN.label + ' · ' + RUN.i + ' of ' + RUN.n : title;
   runBody.innerHTML = ''; runEl.hidden = false; runBody.scrollTop = 0;
   document.body.style.overflow = 'hidden'; setInert(true); syncSoundBtn(); primeAudio();
@@ -119,6 +123,7 @@ export function openRun(title) {
 }
 export function stopRun() {
   T.clear(); app.running = false; RUN.active = false; RUN.q = []; RUN.partial = null;
+  setDarkCover(false);
   document.body.style.overflow = ''; setInert(false);
   closeLater(runEl, () => { runEl.hidden = true; runBody.innerHTML = ''; runFoot.innerHTML = ''; });
   renderAll();
@@ -201,10 +206,12 @@ function resultTide(res) {
 export function resultScreen(o) {
   const res = o.res, inRun = RUN.active && RUN.q.length > 0, lastOne = RUN.active && RUN.q.length === 0;
   RUN.partial = null;
+  setDarkCover(false);
   if (res.rankUp) modal('[Rank up] Rank ' + res.rankUp, 'Your log, stats and mosaic carry over.', res.rankUp);
   const lines = (o.lines || []).concat(lastOne ? ['That is today’s session done.'] : []);
   const acts = inRun ? [{id:'nextb', label:'Next: ' + DRILL_N[RUN.q[0].replace(/\d+$/, '')], fn:nextRun}] : (o.actions || []);
-  setRun('<h2 class="lead">' + esc(o.lead) + '</h2>' + (lines.length ? '<div class="stack">' + lines.map(l => '<p class="note">' + esc(l) + '</p>').join('') + '</div>' : '')
+  const med = '<div class="med-wrap" aria-hidden="true"><div class="med-glow"></div><div class="med"><img src="assets/medallion-lotus.jpg" alt=""></div></div>';
+  setRun(med + '<h2 class="lead center">' + esc(o.lead) + '</h2>' + (lines.length ? '<div class="stack">' + lines.map(l => '<p class="note center">' + esc(l) + '</p>').join('') + '</div>' : '')
     + '<div class="sys" role="status">' + notices(res, o.type).map(n => '<p>' + noticeHtml(n) + '</p>').join('') + '</div>' + resultTide(res),
     '<div class="stack">' + acts.map((a, i) => '<button type="button" class="btn ' + (i === 0 ? 'btn-p' : 'btn-s') + '" id="' + a.id + '">' + esc(a.label) + '</button>').join('') + '<button type="button" class="btn ' + (acts.length ? 'btn-s' : 'btn-p') + '" id="back">Done</button></div>');
   acts.forEach(a => { $('#' + a.id).onclick = a.fn; });

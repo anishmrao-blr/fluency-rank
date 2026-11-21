@@ -3,7 +3,8 @@ import {rankOf, DEFAULT_OPENER} from './content.js';
 import {app, fresh, sanitize, save, initDb} from './state.js';
 import {rollDay} from './rules.js';
 import {toast, confirmModal, closeModal, primeAudio, openSheet, closeSheet, sheetOpen, dismissEnd} from './ui.js';
-import {runBreath, runRead, runRaid, runCold, runRitual, runField, startRun, SESSION, SHORT} from './drills.js';
+import {runBreath, runRead, runRaid, runCold, runRitual, runField, runProof, runReeval, startRun, SESSION, SHORT} from './drills.js';
+import {clearClips, pruneExpiredClips} from './recorder.js';
 import {renderAll, renderSheet} from './views.js';
 
 function selectText(el) { el.removeAttribute('readonly'); el.focus(); el.select(); }
@@ -36,6 +37,22 @@ const ACT = {
   breath(t) { runBreath({pat:t.getAttribute('data-v'), mins:app.S.breathMins}); },
   read() { runRead(); }, raid() { runRaid(); }, cold() { runCold(false); },
   field() { runField(); },
+  proof() { runProof(); },
+  reeval() { runReeval(); },
+  delClips() {
+    confirmModal({
+      title:'Delete all recordings?',
+      body:'This removes all drill clips and baseline recordings stored on this device. Your practice log, streak and stats stay intact.',
+      confirmLabel:'Delete all',
+      cancelLabel:'Cancel',
+      onConfirm() {
+        clearClips().then(() => {
+          app.S.proofColdId = ''; app.S.proofPacedId = ''; app.S.reevalId = '';
+          save(); renderAll(); toast('Recordings deleted');
+        });
+      }
+    });
+  },
   /* the Challenge round only appears from Rank D; a stale button does nothing */
   boss() { if (rankOf(app.S.xp) >= 1) runCold(true); },
   /* choosing a practice time no longer pays XP: all progress goes through award() */
@@ -125,6 +142,7 @@ window.addEventListener('error', () => { toast('Something went wrong. Your progr
 rollDay();
 renderAll();
 initDb();
+pruneExpiredClips().catch(() => {});
 
 /* offline support: cache the app so it opens without a connection */
 if ('serviceWorker' in navigator) {

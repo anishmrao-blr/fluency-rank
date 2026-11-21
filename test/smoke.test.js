@@ -6,6 +6,7 @@ const {bootApp}=require('./load');
 async function boot(seed,raw){
   return bootApp({onError:m=>errors.push(m),beforeParse(w){
     w.scrollTo=()=>{};
+    if(w.HTMLCanvasElement)w.HTMLCanvasElement.prototype.getContext=()=>({clearRect(){},fillRect(){},fillStyle:''});
     let now=1000;const q=[];const dead=new Set();let id=1;
     w.__clock={advance(ms){const target=now+ms;for(;;){q.sort((a,b)=>a.t-b.t);const n=q[0];if(!n||n.t>target)break;q.shift();now=n.t;try{n.fn()}catch(e){errors.push('timer: '+e.stack)}if(n.every&&!dead.has(n.id)){n.t=now+n.every;q.push(n)}}now=target}};
     w.performance.now=()=>now;
@@ -293,6 +294,76 @@ const dayIdx=()=>{const p=ds(new Date()).split('-').map(Number);return Math.roun
     adv(2000);assert($('#tpLive').textContent==='Out, slowly','custom pattern moves to exhale');
     click($('#end'));click($('#endYes'));adv(400);
     assert(cancelled>=1,'ending cancels speechSynthesis');
+  }
+
+  /* ---------- Step 4: recorder measures, 14-day retention, proof flow, checklist, mic denied ---------- */
+  {
+    const w=await boot();const k=kit(w);await sleep(50);
+    const {$,$$,click,adv,st,body,tab,view,done,settings}=k;
+    const Rec=w.__mod('js/recorder.js');
+
+    // 1. Synthetic PCM audio buffer: 2s speech (0.2 amp) + 1.5s silence + 2s speech at 1000 Hz
+    const sr=1000,pcm=new Float32Array(5500);
+    for(let i=0;i<2000;i++)pcm[i]=0.2*Math.sin(i*0.1);
+    for(let i=3500;i<5500;i++)pcm[i]=0.2*Math.sin(i*0.1);
+    const m=Rec.analyzeSamples(pcm,sr,12);
+    assert(m.pauses===1&&m.speakingSec>=3.5&&m.wpm>0,'synthetic PCM buffer measures pauses >1s, speaking time and WPM');
+
+    // 2. 14-day retention: expired drill deleted, fresh drill & old proof kept
+    const now=Date.now();
+    await Rec.saveClip({id:'old-drill',kind:'drill',createdAt:now-20*86400000,bytes:500});
+    await Rec.saveClip({id:'new-drill',kind:'drill',createdAt:now-2*86400000,bytes:500});
+    await Rec.saveClip({id:'old-proof',kind:'proof-cold',createdAt:now-30*86400000,bytes:800});
+    const pruned=await Rec.pruneExpiredClips(now);
+    const left=await Rec.listClips();
+    assert(pruned===1&&left.some(c=>c.id==='new-drill')&&left.some(c=>c.id==='old-proof')&&!left.some(c=>c.id==='old-drill'),'14-day retention deletes expired drill clips and keeps proof clips');
+
+    // 3. Mock MediaRecorder & getUserMedia for Before/After Proof flow
+    w.navigator.mediaDevices={getUserMedia:async()=>({getTracks:()=>[{stop(){}}]})};
+    w.MediaRecorder=class{
+      constructor(){this.mimeType='audio/webm';this.state='inactive';}
+      start(){this.state='recording';if(this.ondataavailable)this.ondataavailable({data:{size:1024}});}
+      stop(){this.state='inactive';if(this.onstop)this.onstop();}
+    };
+    tab('home');
+    click($('[data-act="proof"]'));
+    assert(body().includes('1 of 3 · Cold read'),'3-min proof starts with cold read');
+    click($('#recGo'));await sleep(20);adv(3000);
+    click($('#recGo'));await sleep(20);
+    assert(body().includes('2 of 3 · Breathe'),'proof moves to 2-min breathe');
+    adv(121000);
+    assert(body().includes('3 of 3 · Paced re-read'),'proof moves to paced re-read');
+    click($('#recGo'));await sleep(20);adv(3000);
+    click($('#recGo'));await sleep(20);
+    assert(body().includes('Hear the difference')&&body().includes('These measure pace and pauses, not stammering.'),'proof shows side-by-side comparison and honest measures caption');
+    click($('#rc1 .segb[data-n="2"]'));click($('#rc2 .segb[data-n="4"]'));
+    click($('#sub'));await sleep(20);
+    assert(body().includes('Baseline saved.'),'proof saves baseline');
+    done();
+    assert(st().proofDone===true&&st().proofColdRate===2&&st().proofPacedRate===4,'proof ratings and baseline state persisted');
+    tab('progress');
+    assert(view().includes('Then and now')&&view().includes('Baseline cold read: fluency 2 of 5'),'Progress shows Then and now baseline');
+
+    // 4. Technique checklist in Read aloud + mic denied still works
+    w.navigator.mediaDevices={getUserMedia:async()=>{throw new Error('NotAllowedError')}};
+    tab('gates');click($('[data-act="read"]'));click($('#go'));
+    click($('#recBtn'));await sleep(20);
+    assert($('#recMsg').textContent.includes('Microphone blocked'),'mic denied fails gracefully without blocking drill');
+    adv(150000);
+    assert(body().includes('Am I doing it right?'),'Read aloud shows technique checklist');
+    click($('.chk-chip[data-tick="0"]'));click($('.chk-chip[data-tick="2"]'));
+    k.rate(4);click($('#sub'));await sleep(20);
+    done();
+    const lastLog=st().log[st().log.length-1];
+    assert(Array.isArray(lastLog.ticks)&&lastLog.ticks.length===2,'technique checklist ticks saved on log entry');
+
+    // 5. Delete all recordings in Settings
+    settings();await sleep(20);
+    click($('[data-act="delClips"]'));
+    assert(!$('#modal').hidden&&$('#mconfirm').textContent==='Delete all','Delete all recordings opens confirmation sheet');
+    click($('#mconfirm'));await sleep(20);
+    const afterDel=await Rec.listClips();
+    assert(afterDel.length===0&&st().proofColdId==='','Delete all recordings clears clip store and baseline ids');
   }
 
   /* ---------- End control: partial credit, and nothing done ---------- */
