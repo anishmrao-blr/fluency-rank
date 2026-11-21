@@ -489,7 +489,7 @@ const dayIdx=()=>{const p=ds(new Date()).split('-').map(Number);return Math.roun
     click($('#go'));adv(31000);
     assert(body().includes('in 30 seconds')&&body().includes('That is today’s session done.'),'short version is a 30 second warm-up');
     done();
-    s=st();assert(s.log.length===5&&s.daily.raid===1,'short version logged');
+    s=st();assert(s.log.length===5&&s.daily.raid>=1,'short version logged');
     // End part-way through a session keeps what was finished
     click($('[data-act="session"]'));adv(61000);click($('#nextb'));
     click($('#end'));

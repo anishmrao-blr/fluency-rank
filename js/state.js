@@ -14,7 +14,7 @@ export const fresh = () => ({
   opener:DEFAULT_OPENER, showSkeleton:true, hideClock:false, sound:true, ambient:true, voice:false,
   breathMins:3, pacerStyle:'bloom', customBreath:{inS:4, hold1:0, outS:6, hold2:0},
   proofDone:false, proofColdId:'', proofPacedId:'', proofColdRate:null, proofPacedRate:null,
-  proofColdMeta:null, proofPacedMeta:null, lastReeval:'', reevalId:'', reevalRate:null, reevalMeta:null,
+  proofColdMeta:null, proofPacedMeta:null, lastReeval:'', reevalId:'', reevalRate:null, reevalMeta:null, lastReview:null,
   rung:2, up:0, down:0, coldSecs:60, bosses:0,
   plan:{anchor:'', mins:10}, reminder:{on:false, hour:8, min:30, days:[0,1,2,3,4]}, planBonus:false, started:'', days:{},
   weekAward:'', weak:{}, comeback:false, titles:[],
@@ -64,6 +64,16 @@ export function sanitize(o) {
   s.reevalId = typeof o.reevalId === 'string' ? o.reevalId.slice(0, 64) : '';
   s.reevalRate = o.reevalRate == null ? null : int(o.reevalRate, 3, 1, 5);
   s.reevalMeta = sanMeta(o.reevalMeta);
+  const lr = o.lastReview;
+  s.lastReview = lr && typeof lr === 'object' ? {
+    wpm: lr.wpm == null ? null : int(lr.wpm, 0, 0, 300),
+    pauses: int(lr.pauses, 0, 0, 99),
+    easyOnsetPct: lr.easyOnsetPct == null ? null : int(lr.easyOnsetPct, 0, 0, 100),
+    nextAct: typeof lr.nextAct === 'string' ? lr.nextAct.slice(0, 16) : '',
+    nextVal: typeof lr.nextVal === 'string' ? lr.nextVal.slice(0, 16) : '',
+    nextLabel: typeof lr.nextLabel === 'string' ? lr.nextLabel.slice(0, 48) : '',
+    t: num(lr.t, 0, 0, 4e12)
+  } : null;
   s.rung = int(o.rung, 2, 0, WPM.length - 1);
   s.up = int(o.up, 0, 0, 5); s.down = int(o.down, 0, 0, 5);
   s.coldSecs = [45, 60, 90].indexOf(Number(o.coldSecs)) >= 0 ? Number(o.coldSecs) : 60;

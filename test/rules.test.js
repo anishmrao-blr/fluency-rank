@@ -191,6 +191,23 @@ const ago = n => { const d = new Date(); d.setDate(d.getDate() - n); return ds(d
     const m = Rec.analyzeFrames(frames, 0.05, 10);
     assert(m.onsets === 2 && m.easyOnsetPct === 50, 'analyzeFrames counts onsets and computes easyOnsetPct');
     assert(Rec.measuresHtml(m).includes('Soft starts') && Rec.measuresHtml(m).includes('50%'), 'measuresHtml displays Soft starts percentage');
+
+    /* Voice scorecard & next-drill recommender */
+    const revSoft = Rec.buildClipReview({speakingSec:15, pauses:0, wpm:100, easyOnsetPct:35}, 105);
+    assert(revSoft.next.act === 'breath' && revSoft.next.val === 'speak', 'low soft-starts recommends Breathe & speak');
+    const revFast = Rec.buildClipReview({speakingSec:15, pauses:0, wpm:140, easyOnsetPct:80}, 105);
+    assert(revFast.next.act === 'read', 'fast pace recommends slower Read aloud');
+    const revSteady = Rec.buildClipReview({speakingSec:15, pauses:0, wpm:105, easyOnsetPct:85}, 105);
+    assert(revSteady.next.act === 'field', 'steady clip recommends real-world step');
+    assert(Rec.clipReviewHtml(revSteady).includes('Voice scorecard') && Rec.clipReviewHtml(revSteady).includes('Try a real-world step'), 'clipReviewHtml renders scorecard and suggestion');
+
+    /* Adaptive Generalization Journey */
+    const p0 = k.R.generalizationPlan({log:[], lastReview:null});
+    assert(p0.stage === 0 && p0.trend === 'Building baseline', 'new user starts at stage 0 (Breath)');
+    const p3 = k.R.generalizationPlan({log:[
+      {type:'read', score:4}, {type:'cold', score:4}, {type:'read', score:5}, {type:'cold', score:4}
+    ], lastReview:{easyOnsetPct:80}});
+    assert(p3.stage === 3 && p3.next.act === 'field', 'consistent >=4/5 sessions advance to Live conversation stage');
   }
 
   console.log('\n' + (fails ? fails + ' FAILED' : 'ALL PASSED'));

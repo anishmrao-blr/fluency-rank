@@ -209,6 +209,74 @@ export function measuresHtml(m) {
     + '</div>';
 }
 
+/* ---------- On-Device Audio Clip Scorecard & Next-Drill Recommender ----------
+   Pure, challengeable breakdown of a recorded clip (Pace, Soft starts, Pauses)
+   plus a concrete next drill based on whichever signal needs support most. */
+export function buildClipReview(m, targetWpm) {
+  if (!m) return null;
+  const target = targetWpm || 105;
+  const rows = [];
+
+  /* 1. Soft starts (Easy Onset) */
+  if (m.easyOnsetPct == null) {
+    rows.push({k:'Soft starts', level:'watch', badge:'Short clip', note:'Speak a few full phrases to gauge word starts.'});
+  } else if (m.easyOnsetPct >= 70) {
+    rows.push({k:'Soft starts', level:'steady', badge:'Steady', note:m.easyOnsetPct + '% gentle starts.'});
+  } else if (m.easyOnsetPct >= 45) {
+    rows.push({k:'Soft starts', level:'watch', badge:'Watch', note:m.easyOnsetPct + '% gentle starts. Soften the first sound slightly.'});
+  } else {
+    rows.push({k:'Soft starts', level:'focus', badge:'Focus', note:m.easyOnsetPct + '% gentle starts. Let breath move just before the word.'});
+  }
+
+  /* 2. Pace control */
+  let paceFast = false;
+  if (m.wpm == null) {
+    rows.push({k:'Pace', level:'steady', badge:'Logged', note:m.speakingSec + ' s of speaking captured.'});
+  } else {
+    const diff = m.wpm - target;
+    if (Math.abs(diff) <= 15) {
+      rows.push({k:'Pace', level:'steady', badge:'Steady', note:m.wpm + ' wpm (on your ' + target + ' wpm target).'});
+    } else if (diff > 15) {
+      paceFast = true;
+      rows.push({k:'Pace', level:'focus', badge:'Fast', note:m.wpm + ' wpm (' + diff + ' wpm above target). Stretch vowels slightly.'});
+    } else {
+      rows.push({k:'Pace', level:'steady', badge:'Unhurried', note:m.wpm + ' wpm (relaxed, unhurried pace).'});
+    }
+  }
+
+  /* 3. Pauses & flow */
+  if (m.pauses <= 1) {
+    rows.push({k:'Pauses', level:'steady', badge:'Steady', note:m.pauses + ' pause >1s.'});
+  } else if (m.pauses <= 3) {
+    rows.push({k:'Pauses', level:'watch', badge:'Watch', note:m.pauses + ' pauses >1s. Shorter phrases keep airflow steady.'});
+  } else {
+    rows.push({k:'Pauses', level:'focus', badge:'Focus', note:m.pauses + ' pauses >1s. Pause to exhale rather than pushing through.'});
+  }
+
+  /* Concrete next drill recommendation */
+  let next;
+  if (m.easyOnsetPct != null && m.easyOnsetPct < 55) {
+    next = {act:'breath', val:'speak', label:'Breathe & speak', why:'Pairs an easy exhale with softer word starts.'};
+  } else if (paceFast) {
+    next = {act:'read', val:'', label:'Read aloud (slower pace)', why:'Re-anchors a calm, stretched speaking rate.'};
+  } else if (m.pauses > 2) {
+    next = {act:'breath', val:'sigh', label:'Cyclic sighing (1 min)', why:'Drops speaking tension before your next round.'};
+  } else {
+    next = {act:'field', val:'', label:'Try a real-world step', why:'Starts and pace look steady. Carry this into live conversation.'};
+  }
+
+  return {rows, next};
+}
+
+export function clipReviewHtml(rev) {
+  if (!rev) return '';
+  return '<div class="score-card">'
+    + '<div class="sc-head"><span class="sc-title">Voice scorecard</span><span class="cap">On-device indicator</span></div>'
+    + rev.rows.map(r => '<div class="sc-row"><div class="sc-top"><b>' + esc(r.k) + '</b><span class="sc-pill ' + esc(r.level) + '">' + esc(r.badge) + '</span></div><p class="ds">' + esc(r.note) + '</p></div>').join('')
+    + '<div class="sc-next"><span class="sc-nk">Suggested next</span><b>' + esc(rev.next.label) + '</b><span class="ds">' + esc(rev.next.why) + '</span></div>'
+    + '</div>';
+}
+
 /* ---------- Live Microphone Recorder + Canvas Waveform ---------- */
 let activeRec = null;
 let cleanupWired = false;

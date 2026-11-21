@@ -5,7 +5,7 @@ import {app, save} from './state.js';
 import {award} from './rules.js';
 import {toast, bar, T, cue, runBody, RUN, openRun, setRun, setPartial, setDarkCover, setSteps, minsDone, choiceRow, wireChoice, rateHtml, wireRate, resultScreen, ICON} from './ui.js';
 import {LOW, BREATH_IN, SIGH, tidePacer, runBreath} from './breath.js';
-import {createRecorder, saveClip, getClip, measuresHtml, onsetMeterHtml, playerHtml, wirePlayer} from './recorder.js';
+import {createRecorder, saveClip, getClip, measuresHtml, onsetMeterHtml, buildClipReview, clipReviewHtml, playerHtml, wirePlayer} from './recorder.js';
 export {runBreath, tidePacer, SIGH, LOW};
 
 export function activePassages() {
@@ -58,6 +58,15 @@ export function pickRaid(last) {
 }
 const barId = id => bar(0).replace('<i ', '<i id="' + id + '" ');
 const setBar = (id, p) => { const el = $('#' + id); if (el) el.style.transform = 'scaleX(' + (clamp(p, 0, 100) / 100).toFixed(3) + ')'; };
+
+export function launchNext(next) {
+  if (!next || !next.act) { runRead(); return; }
+  if (next.act === 'breath') runBreath({pat:next.val || 'speak', mins:1, instant:true});
+  else if (next.act === 'raid') runRaid();
+  else if (next.act === 'cold') runCold(false);
+  else if (next.act === 'field') runField();
+  else runRead();
+}
 
 /* ---------- Read aloud ---------- */
 export function coachRead(sc, wpm) {
@@ -137,7 +146,8 @@ export function runRead(o) {
     const P = passages[sel] || passages[0];
     setDarkCover(false);
     setPartial(() => readPartial('The passage you read still counts', P));
-    const clipBlock = clip ? playerHtml('rdPlay', 'Your take', clip.measures.durationSec) + measuresHtml(clip.measures)
+    const rev = clip ? buildClipReview(clip.measures, wpm) : null;
+    const clipBlock = clip ? playerHtml('rdPlay', 'Your take', clip.measures.durationSec) + measuresHtml(clip.measures) + clipReviewHtml(rev)
       + '<div class="group"><label class="li tg"><span class="grow">Keep this clip on device (14 days)</span><input type="checkbox" id="keepClip" checked></label></div>' : '';
     setRun('<h2 class="h-t">How smooth was that?</h2>' + clipBlock + rateHtml('r1', 'Rate your fluency, not your effort.', FLU) + techCheckHtml('read') + '<button type="button" class="btn btn-p" id="sub" disabled>Log it</button>');
     if (clip) wirePlayer(runBody, 'rdPlay', clip);
@@ -155,9 +165,13 @@ export function runRead(o) {
         else if (sc <= 2) { app.S.up = 0; app.S.down++; if (app.S.down >= 2 && app.S.rung > 0) { app.S.rung--; app.S.down = 0; note = 'Pace target eased to ' + WPM[app.S.rung] + ' words a minute. Slower is part of the plan.'; } }
         else { app.S.up = 0; app.S.down = 0; }
       }
-      const win = clip ? ['Your take: ' + (clip.measures.wpm != null ? clip.measures.wpm + ' wpm · ' : '') + clip.measures.pauses + ' pause' + (clip.measures.pauses === 1 ? '' : 's') + ' >1s.'] : [];
+      const win = clip ? ['Your take: ' + (clip.measures.wpm != null ? clip.measures.wpm + ' wpm · ' : '') + clip.measures.pauses + ' pause' + (clip.measures.pauses === 1 ? '' : 's') + ' >1s' + (clip.measures.easyOnsetPct != null ? ' · ' + clip.measures.easyOnsetPct + '% soft starts' : '') + '.'] : [];
+      if (clip && rev) {
+        app.S.lastReview = {wpm:clip.measures.wpm, pauses:clip.measures.pauses, easyOnsetPct:clip.measures.easyOnsetPct, nextAct:rev.next.act, nextVal:rev.next.val, nextLabel:rev.next.label, t:Date.now()};
+      }
       const res = award('read', {pts:{pace:5 + sc * 2, breath:2}, q:'read', score:sc, meta:P.t + ' at ' + wpm + ' wpm', extra:{ticks}});
-      resultScreen({lead:'You read “' + P.t + '” aloud at ' + wpm + ' words a minute.', lines:['Fluency ' + sc + ' of 5.'].concat(win, [coach], note ? [note] : []), res, type:'read', actions:o.auto ? [] : [{id:'again', label:'Another passage', fn:() => { wpm = WPM[app.S.rung]; setup(); }}]});
+      const recAction = rev && !o.auto ? [{id:'recNext', label:'Next: ' + rev.next.label, fn:() => launchNext(rev.next)}] : [];
+      resultScreen({lead:'You read “' + P.t + '” aloud at ' + wpm + ' words a minute.', lines:['Fluency ' + sc + ' of 5.'].concat(win, [coach], note ? [note] : []), res, type:'read', actions:o.auto ? [] : recAction.concat([{id:'again', label:'Another passage', fn:() => { wpm = WPM[app.S.rung]; setup(); }}])});
     };
   };
   if (o.auto) { do { sel = rnd(passages.length); } while (sel === lastPassage && passages.length > 1); lastPassage = sel; play(); } else setup();
@@ -271,7 +285,8 @@ export function runCold(boss, o) {
   const rate = clip => {
     let sc = 0;
     setPartial(() => boss ? coldPartial('The 5 questions you answered still count', 'You answered 5 questions. They count.', 'Challenge round, 5 of 5') : coldPartial('The answer you gave still counts', 'You answered a practice question. It counts.', 'Practice question'));
-    const clipBlock = clip ? playerHtml('cdPlay', 'Your answer', clip.measures.durationSec) + measuresHtml(clip.measures)
+    const rev = clip ? buildClipReview(clip.measures, WPM[app.S.rung]) : null;
+    const clipBlock = clip ? playerHtml('cdPlay', 'Your answer', clip.measures.durationSec) + measuresHtml(clip.measures) + clipReviewHtml(rev)
       + '<div class="group"><label class="li tg"><span class="grow">Keep this clip on device (14 days)</span><input type="checkbox" id="keepClip" checked></label></div>' : '';
     setRun('<h2 class="h-t">' + (boss ? 'How did the round go?' : 'How did that go?') + '</h2>' + clipBlock + rateHtml('r1', 'Rate your fluency, not the quality of your answer.', FLU) + '<div class="group"><label class="li tg"><span class="grow">I led with a clear position</span><input type="checkbox" id="lead"></label><label class="li tg"><span class="grow">I stayed calm when I got stuck</span><input type="checkbox" id="calm"></label></div>' + (!boss ? techCheckHtml('cold') : '') + '<button type="button" class="btn btn-p" id="sub" disabled>Log it</button>');
     if (clip) wirePlayer(runBody, 'cdPlay', clip);
@@ -288,8 +303,12 @@ export function runCold(boss, o) {
         const res = award('boss', {pts:{composure:20 + sc * 3, retrieval:5, resilience:5}, q:'cold', qn:2, score:sc, meta:'Five question challenge round'});
         resultScreen({lead:'You answered five questions back to back.', lines:['Fluency ' + sc + ' of 5.', coach], res, type:'boss'});
       } else {
+        if (clip && rev) {
+          app.S.lastReview = {wpm:clip.measures.wpm, pauses:clip.measures.pauses, easyOnsetPct:clip.measures.easyOnsetPct, nextAct:rev.next.act, nextVal:rev.next.val, nextLabel:rev.next.label, t:Date.now()};
+        }
         const res = award('cold', {pts:{composure:4 + sc * 2 + (lead ? 2 : 0)}, q:'cold', score:sc, meta:'Practice question', extra:{ticks}});
-        resultScreen({lead:'You answered a question you had not seen.', lines:['Fluency ' + sc + ' of 5.', coach], res, type:'cold', actions:o.auto ? [] : [{id:'again', label:'Next question', fn:() => askOne(0)}]});
+        const recAction = rev && !o.auto ? [{id:'recNext', label:'Next: ' + rev.next.label, fn:() => launchNext(rev.next)}] : [];
+        resultScreen({lead:'You answered a question you had not seen.', lines:['Fluency ' + sc + ' of 5.', coach], res, type:'cold', actions:o.auto ? [] : recAction.concat([{id:'again', label:'Next question', fn:() => askOne(0)}])});
       }
     };
   };
@@ -460,7 +479,7 @@ export function runProof() {
     setDarkCover(false);
     setRun('<h2 class="h-t">Hear the difference</h2><p class="note">Play both clips side by side and rate each one.</p>'
       + (coldClip ? playerHtml('pCold', '1. Cold read', coldClip.measures.durationSec) + measuresHtml(coldClip.measures) : '')
-      + (pacedClip ? playerHtml('pPaced', '2. After breathing', pacedClip.measures.durationSec) + measuresHtml(pacedClip.measures) : '')
+      + (pacedClip ? playerHtml('pPaced', '2. After breathing', pacedClip.measures.durationSec) + measuresHtml(pacedClip.measures) + clipReviewHtml(buildClipReview(pacedClip.measures, WPM[app.S.rung])) : '')
       + rateHtml('rc1', 'Cold read fluency', FLU)
       + rateHtml('rc2', 'Paced read fluency', FLU)
       + '<button type="button" class="btn btn-p" id="sub" disabled>Save baseline</button>');

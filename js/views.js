@@ -1,7 +1,7 @@
 import {$, $$, esc, dstr, dayNum, numStr, weekStartNum} from './util.js';
 import {RANKS, rankOf, levelOf, STAT_KEYS, STAT_N, TYPE_N, WPM, STALL, ANCHORS, PATTERNS, BREATH_GOALS, BREATH_ALL, MISSIONS, TITLES, CONTEXTS} from './content.js';
 import {app, updateSync} from './state.js';
-import {practicedThisWeek, rollDay, questProgress} from './rules.js';
+import {practicedThisWeek, rollDay, questProgress, generalizationPlan} from './rules.js';
 import {toast, bar, emblem, ICON, sheetOpen} from './ui.js';
 import {missionStats, recommendedMission} from './drills.js';
 import {customDesc} from './breath.js';
@@ -162,7 +162,16 @@ export function viewProgress() {
   } else if (days > 0) {
     insight = days + ' practice day' + (days === 1 ? '' : 's') + ' logged so far. Every single day counts.';
   }
+  const plan = generalizationPlan(app.S);
   h += '<div class="insight-card"><span class="insight-k">Your top insight</span><p class="insight-v">' + esc(insight) + '</p></div>';
+  h += '<div class="journey-card">'
+    + '<div class="j-head"><span class="insight-k">Your adaptive journey</span><span class="j-trend">' + esc(plan.trend) + '</span></div>'
+    + '<ol class="j-ladder" aria-label="Generalization ladder">'
+    + plan.stages.map((st, idx) => '<li class="' + (idx < plan.stage ? 'done' : idx === plan.stage ? 'now' : '') + '"><i>' + (idx + 1) + '</i><span>' + esc(st) + '</span></li>').join('')
+    + '</ol>'
+    + '<p class="ds">' + esc(plan.summary) + '</p>'
+    + '<button type="button" class="btn btn-s btn-sm" data-act="nextStep" data-v="' + esc(plan.next.act + ':' + (plan.next.val || '')) + '">' + esc(plan.next.label) + '</button>'
+    + '</div>';
   h += '<div class="kpi-grid">'
     + '<div class="kpi-card"><span class="cap">Practice days</span><b class="kpi-val num">' + days + '</b></div>'
     + '<div class="kpi-card"><span class="cap">This week</span><b class="kpi-val num">' + practicedThisWeek() + ' of 5</b></div>'

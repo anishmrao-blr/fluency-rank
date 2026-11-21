@@ -4,7 +4,7 @@ import {parseFearedWords, parseName} from './personal.js';
 import {app, fresh, sanitize, save, initDb} from './state.js';
 import {rollDay} from './rules.js';
 import {toast, confirmModal, closeModal, primeAudio, openSheet, closeSheet, sheetOpen, dismissEnd} from './ui.js';
-import {runBreath, runRead, runRaid, runCold, runRitual, runField, runProof, runReeval, startRun, SESSION, SHORT} from './drills.js';
+import {runBreath, runRead, runRaid, runCold, runRitual, runField, runProof, runReeval, launchNext, startRun, SESSION, SHORT} from './drills.js';
 import {clearClips, pruneExpiredClips} from './recorder.js';
 import {renderAll, renderSheet} from './views.js';
 
@@ -66,6 +66,10 @@ const ACT = {
   field() { runField(); },
   proof() { runProof(); },
   reeval() { runReeval(); },
+  nextStep(t) {
+    const parts = String(t.getAttribute('data-v') || '').split(':');
+    launchNext({act:parts[0] || 'read', val:parts[1] || ''});
+  },
   delClips() {
     confirmModal({
       title:'Delete all recordings?',

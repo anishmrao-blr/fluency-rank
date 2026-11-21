@@ -375,6 +375,24 @@ input[type=range]{width:100%;min-height:44px;accent-color:var(--tint)}
 .measures{display:flex;flex-direction:column;gap:6px}
 .m-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
 .m-grid.m4{grid-template-columns:repeat(2,1fr)}
+.score-card,.journey-card{background:var(--bg-group);border:1px solid var(--sep);border-radius:14px;padding:14px;display:flex;flex-direction:column;gap:10px}
+.journey-card{margin-top:12px}
+.sc-head,.j-head{display:flex;justify-content:space-between;align-items:center;gap:8px}
+.sc-title{font-size:var(--t-sub);font-weight:700;color:var(--label)}
+.sc-row{display:flex;flex-direction:column;gap:3px;padding-top:8px;border-top:1px solid var(--sep)}
+.sc-top{display:flex;justify-content:space-between;align-items:center;gap:8px;font-size:var(--t-sub)}
+.sc-pill,.j-trend{font-size:11px;font-weight:700;letter-spacing:.03em;padding:3px 9px;border-radius:999px;background:var(--fill);color:var(--label-2)}
+.sc-pill.steady{background:color-mix(in srgb,var(--sounding) 22%,transparent);color:var(--tint)}
+.sc-pill.watch{background:color-mix(in srgb,#E8B86D 22%,transparent);color:#946215}
+.sc-pill.focus{background:color-mix(in srgb,#E8B86D 32%,transparent);color:#7E4F0E}
+.sc-next{display:flex;flex-direction:column;gap:2px;padding:10px 12px;border-radius:10px;background:color-mix(in srgb,var(--tint) 7%,transparent);border:1px solid color-mix(in srgb,var(--tint) 16%,transparent)}
+.sc-nk{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--tint)}
+.j-ladder{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;list-style:none}
+.j-ladder li{display:flex;flex-direction:column;align-items:center;gap:4px;font-size:11px;color:var(--label-2);font-weight:600;text-align:center}
+.j-ladder i{width:26px;height:26px;border-radius:50%;display:grid;place-items:center;font-style:normal;font-size:12px;font-weight:700;background:var(--fill);color:var(--label-2)}
+.j-ladder li.done i{background:var(--sounding);color:var(--on-tint)}
+.j-ladder li.now i{background:var(--tint);color:var(--on-tint);box-shadow:0 0 0 3px color-mix(in srgb,var(--tint) 18%,transparent)}
+.j-ladder li.now{color:var(--tint)}
 .m-cell{background:var(--bg-group);border-radius:12px;padding:10px 12px;display:flex;flex-direction:column;gap:2px}
 .m-k{font-size:var(--t-cap);color:var(--label-2)}
 .m-v{font-size:var(--t-body);font-weight:700}
