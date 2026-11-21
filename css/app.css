@@ -199,19 +199,22 @@ input[type=range]{width:100%;min-height:44px;accent-color:var(--tint)}
 .ss-head{display:flex;justify-content:space-between;align-items:center}
 .step-summary .btn{align-self:flex-start}
 
-/* ---------- Step 6: Reminder Picker & Accordion Help Cards ---------- */
+/* ---------- Step 6 + Mobile UX Blueprint: >=44px Touch Targets & Accordion Help ---------- */
 .rem-box{gap:12px}
 .rem-time{display:flex;align-items:center;justify-content:space-between;gap:10px;background:var(--fill);border-radius:14px;padding:10px 12px}
-.rem-step{width:40px;height:40px;border:0;border-radius:50%;background:var(--bg-group);color:var(--label);font-size:20px;font-weight:600;display:grid;place-items:center;cursor:pointer}
-.rem-val{font-size:1.65rem;font-weight:700;letter-spacing:.03em;color:var(--label)}
-.rem-ap{display:flex;flex-direction:column;gap:3px}
-.rem-ap button{min-height:24px;padding:2px 8px;border:0;border-radius:6px;background:transparent;color:var(--label-2);font-size:11px;font-weight:700;cursor:pointer}
+.rem-step{width:44px;height:44px;border:0;border-radius:50%;background:var(--bg-group);color:var(--label);font-size:20px;font-weight:600;display:grid;place-items:center;cursor:pointer}
+.rem-val{font-size:1.55rem;font-weight:700;letter-spacing:.03em;color:var(--label)}
+.rem-ap{display:flex;gap:4px}
+.rem-ap button{min-width:44px;min-height:44px;padding:0 10px;border:0;border-radius:10px;background:transparent;color:var(--label-2);font-size:var(--t-cap);font-weight:700;cursor:pointer}
 .rem-ap button[aria-pressed="true"]{background:var(--tint);color:var(--on-tint)}
 .rem-presets{display:flex;gap:6px;flex-wrap:wrap}
-.rem-pre{flex:1 1 auto;min-height:36px;padding:6px 10px;border:0;border-radius:999px;background:var(--fill);color:var(--label-2);font-size:var(--t-cap);font-weight:600;cursor:pointer}
-.rem-days{display:grid;grid-template-columns:repeat(7,1fr);gap:6px}
-.rem-day{min-height:40px;border:1px solid var(--sep);border-radius:50%;background:transparent;color:var(--label-2);font-size:var(--t-cap);font-weight:700;cursor:pointer;transition:background-color .16s,color .16s}
+.rem-pre{flex:1 1 auto;min-height:44px;padding:8px 12px;border:0;border-radius:999px;background:var(--fill);color:var(--label-2);font-size:var(--t-cap);font-weight:600;cursor:pointer}
+.rem-days{display:grid;grid-template-columns:repeat(7,1fr);gap:4px}
+.rem-day{min-height:44px;border:1px solid var(--sep);border-radius:999px;background:transparent;color:var(--label-2);font-size:var(--t-cap);font-weight:700;cursor:pointer;transition:background-color .16s,color .16s}
 .rem-day[aria-pressed="true"]{background:var(--tint);color:var(--on-tint);border-color:var(--tint)}
+.insight-card{margin-top:12px;background:var(--water);border-radius:16px;padding:14px 16px;display:flex;flex-direction:column;gap:4px}
+.insight-k{font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--sounding)}
+.insight-v{font-size:var(--t-sub);line-height:1.4;color:var(--label);font-weight:500}
 .help-stack{display:flex;flex-direction:column;gap:10px}
 .help-acc{background:var(--bg-group);border-radius:16px;overflow:hidden;box-shadow:0 4px 14px rgba(17,25,22,.04)}
 .help-acc>summary{list-style:none;display:flex;align-items:center;justify-content:space-between;min-height:52px;padding:12px 16px;font-size:var(--t-body);font-weight:600;color:var(--label);cursor:pointer}
@@ -272,8 +275,9 @@ input[type=range]{width:100%;min-height:44px;accent-color:var(--tint)}
 /* ---------- tab bar ---------- */
 #tabs{position:fixed;left:0;right:0;bottom:0;z-index:10;background:var(--bg);border-top:1px solid var(--sep);padding:0 env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left)}
 #tabs .in{display:flex;max-width:560px;margin:0 auto}
-#tabs button{flex:1;min-height:56px;padding:6px 2px 4px;border:0;background:transparent;color:var(--label-2);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;font-size:var(--t-cap);line-height:1.2;cursor:pointer;transition:color .2s ease}
-#tabs button[aria-current=page]{color:var(--tint);font-weight:600}
+#tabs button{position:relative;flex:1;min-height:56px;padding:6px 2px 4px;border:0;background:transparent;color:var(--label-2);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;font-size:var(--t-cap);line-height:1.2;cursor:pointer;transition:color .2s ease}
+#tabs button[aria-current=page]{color:var(--tint);font-weight:700}
+#tabs button[aria-current=page]::before{content:"";position:absolute;top:0;width:28px;height:3px;border-radius:0 0 3px 3px;background:var(--tint)}
 
 /* ---------- sheet (settings) ---------- */
 #scrim{position:fixed;inset:0;z-index:25;background:var(--scrim);animation:fade .38s ease}
@@ -320,10 +324,10 @@ input[type=range]{width:100%;min-height:44px;accent-color:var(--tint)}
 .ap-card{background:var(--bg-group);border:1px solid var(--sep);border-radius:14px;padding:12px 14px;display:flex;flex-direction:column;gap:8px}
 .ap-head{display:flex;justify-content:space-between;align-items:baseline;gap:8px}
 .ap-row{display:flex;align-items:center;gap:10px}
-.ap-play{width:40px;height:40px;border-radius:50%;border:0;background:var(--tint);color:var(--on-tint);font-weight:700;display:grid;place-items:center;flex:none;cursor:pointer}
+.ap-play{width:44px;height:44px;border-radius:50%;border:0;background:var(--tint);color:var(--on-tint);font-weight:700;display:grid;place-items:center;flex:none;cursor:pointer}
 .ap-trk{flex:1;height:6px;border-radius:999px;background:var(--fill);overflow:hidden}
 .ap-trk i{display:block;height:100%;background:var(--sounding);transform-origin:left;border-radius:999px}
-.ap-spd{min-height:36px;padding:0 10px;border:1px solid var(--sep);border-radius:10px;background:transparent;color:var(--label-2);font-size:var(--t-cap);font-weight:600;font-variant-numeric:tabular-nums;cursor:pointer}
+.ap-spd{min-height:44px;min-width:44px;padding:0 10px;border:1px solid var(--sep);border-radius:10px;background:transparent;color:var(--label-2);font-size:var(--t-cap);font-weight:600;font-variant-numeric:tabular-nums;cursor:pointer}
 .measures{display:flex;flex-direction:column;gap:6px}
 .m-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
 .m-cell{background:var(--bg-group);border-radius:12px;padding:10px 12px;display:flex;flex-direction:column;gap:2px}
@@ -403,7 +407,8 @@ input[type=range]{width:100%;min-height:44px;accent-color:var(--tint)}
 
 /* ---------- toasts and modal ---------- */
 #toasts{position:fixed;left:0;right:0;top:calc(10px + env(safe-area-inset-top));z-index:40;display:flex;flex-direction:column;align-items:center;gap:8px;pointer-events:none;padding:0 16px}
-.toast{max-width:420px;padding:10px 16px;border-radius:14px;background:var(--bg-group);color:var(--label);font-size:var(--t-sub);line-height:1.333;box-shadow:0 6px 20px rgba(0,0,0,.16);animation:drop .4s var(--ease-out)}
+.toast{max-width:420px;padding:11px 16px;border-radius:14px;background:var(--bg-group);color:var(--label);font-size:var(--t-sub);line-height:1.333;box-shadow:0 8px 24px rgba(17,25,22,.18);display:inline-flex;align-items:center;gap:8px;animation:drop .32s var(--ease-out)}
+.toast-ok{width:20px;height:20px;border-radius:50%;background:var(--sounding);color:var(--on-tint);display:grid;place-items:center;font-size:12px;font-weight:700;flex:none}
 .toast.sys-t{font-size:var(--t-body)}
 #modal{position:fixed;inset:0;z-index:30;background:var(--scrim);display:flex;align-items:center;justify-content:center;padding:16px}
 #modal.sheet-modal{align-items:flex-end;padding:12px calc(12px + env(safe-area-inset-right)) calc(12px + env(safe-area-inset-bottom)) calc(12px + env(safe-area-inset-left))}

@@ -10,7 +10,9 @@ const CLOSE = new Set(); // pending close timers for covers and sheets, kept out
 
 export function toast(m, sys) {
   const c = $('#toasts'), d = document.createElement('div');
-  d.className = 'toast' + (sys ? ' sys-t' : ''); d.textContent = m; c.appendChild(d);
+  d.className = 'toast' + (sys ? ' sys-t' : '');
+  d.innerHTML = (sys ? '' : '<span class="toast-ok" aria-hidden="true">✓</span>') + '<span>' + esc(m) + '</span>';
+  c.appendChild(d);
   setTimeout(() => d.remove(), 3400);
 }
 let modalReturn = null;

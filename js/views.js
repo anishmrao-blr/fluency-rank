@@ -147,6 +147,18 @@ export function viewProgress() {
   let h = titleBar('Progress');
   if (roughPatch()) h += '<p class="gf" style="margin-top:12px">Your last three ratings were low. That happens to everyone. Slow your pace, keep sessions short, and if you have a speech therapist, this is a good time to check in.</p>';
   h += '<div class="group rank-banner"><div class="rankcard">' + emblem(R.r) + '<div class="grow"><span class="tt">Level ' + lvl + '</span>' + bar(into / 150 * 100) + '<span class="ds num">' + into + ' of 150 XP to level ' + (lvl + 1) + '</span><span class="ds num">' + (N ? (N.xp - app.S.xp).toLocaleString() + ' XP to Rank ' + N.r : 'Top rank') + ' · ' + app.S.xp.toLocaleString() + ' XP in all</span></div></div></div>';
+  let insight = 'Your first 5-minute session starts your weekly tide and pace trend.';
+  if (app.S.proofColdRate != null && app.S.proofPacedRate != null && app.S.proofPacedRate > app.S.proofColdRate) {
+    insight = 'After 2 minutes of breathing, your baseline fluency rose from ' + app.S.proofColdRate + ' to ' + app.S.proofPacedRate + ' of 5.';
+  } else if (field.length) {
+    const pa = field.reduce((s, e) => s + e.pred, 0) / field.length, aa = field.reduce((s, e) => s + e.act, 0) / field.length;
+    if (pa - aa >= 1) insight = 'Real conversations ran easier than you expected by ' + (pa - aa).toFixed(1) + ' points.';
+  } else if (practicedThisWeek() >= 3) {
+    insight = 'You practised ' + practicedThisWeek() + ' days this week. Short, steady sessions build the habit.';
+  } else if (days > 0) {
+    insight = days + ' practice day' + (days === 1 ? '' : 's') + ' logged so far. Every single day counts.';
+  }
+  h += '<div class="insight-card"><span class="insight-k">Your top insight</span><p class="insight-v">' + esc(insight) + '</p></div>';
   h += '<div class="kpi-grid">'
     + '<div class="kpi-card"><span class="cap">Practice days</span><b class="kpi-val num">' + days + '</b></div>'
     + '<div class="kpi-card"><span class="cap">This week</span><b class="kpi-val num">' + practicedThisWeek() + ' of 5</b></div>'
