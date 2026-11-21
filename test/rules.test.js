@@ -101,7 +101,7 @@ const ago = n => { const d = new Date(); d.setDate(d.getDate() - n); return ds(d
     assert(J(r.titlesEarned) === J([]) && J(S().titles) === J(['first-step']), 'title not awarded twice');
     reset({xp: 1190});
     r = R.award('breath', {q: 'breath'});
-    assert(r.rankUp === 'D' && J(r.titlesEarned) === J(['rank-D']) && r.notes.includes('[Title earned] Rank D Hunter'), 'reaching rank D earns Rank D Hunter');
+    assert(r.rankUp === 'D' && J(r.titlesEarned) === J(['rank-D']) && r.notes.includes('[Title earned] Rank D Speaker'), 'reaching rank D earns Rank D Speaker');
     const six = {}; for (let i = 10; i < 16; i++) six[ago(i)] = {n: 1, e: 3};
     reset({days: six});
     r = R.award('breath', {q: 'breath'});

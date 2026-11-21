@@ -55,7 +55,7 @@ const dayIdx=()=>{const p=ds(new Date()).split('-').map(Number);return Math.roun
     const w=await boot();const k=kit(w);await sleep(50);
     const {$,$$,click,adv,st,body,tab,view,named,settings,key,d}=k;
     assert(view().includes('Today')&&view().includes('Today 0 of 2'),'Home shows the large title and Today 0 of 2');
-    assert(view().includes('This week 0 of 5 · Best run 0'),'Home shows the quiet numbers row');
+    assert(view().includes('This week 0 of 5')&&!view().includes('Best run'),'Home shows the quiet numbers row, with no best run before there is one');
     assert($$('#view .wd').length===7,'week strip has 7 days');
     assert($('[data-act="session"]').textContent==='Start daily session · 5 min','primary button is the daily session');
     assert($('[data-act="speak"]').textContent==='I’m about to speak','secondary button is I am about to speak');

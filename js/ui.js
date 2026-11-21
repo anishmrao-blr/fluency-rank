@@ -3,7 +3,7 @@ import {DRILL_N, TYPE_N} from './content.js';
 import {app, save} from './state.js';
 import {award} from './rules.js';
 import {nextRun} from './drills.js';
-import {renderAll} from './views.js';
+import {renderAll, weekHtml} from './views.js';
 
 const MOTION_MS = reduceMotion ? 0 : 380;
 const CLOSE = new Set(); // pending close timers for covers and sheets, kept outside T so stopRun's T.clear() cannot cancel them
@@ -167,6 +167,19 @@ export function notices(res, type) {
 }
 /* o: {lead, lines, res, type, actions:[{id, label, fn}]}. Leads with a plain line about what was done;
    XP and System notices sit below it. */
+/* One notice as markup: the bracketed tag in seafoam (done), the XP kept on one line. Text is unchanged. */
+function noticeHtml(n) {
+  const m = n.match(/^(\[[^\]]+\])\s*(.*?)(\s*·?\s*\+\d+ XP.*)?$/);
+  if (!m) return esc(n);
+  return '<span class="tag">' + esc(m[1]) + '</span>' + ' ' + esc(m[2]) + (m[3] ? (m[2] ? ' ' : '') + '<span class="xp">' + esc(m[3].trim()) + '</span>' : '');
+}
+/* The week strip with today's high-water mark coming in from where it stood before this session. */
+function resultTide(res) {
+  const t = res.tide; if (!t || !t[1]) return '';
+  let h = weekHtml();
+  if (t[1] > t[0]) h = h.replace('class="wd n' + t[1] + ' today"', 'class="wd n' + t[1] + ' today rise" style="--from:' + (t[0] / 2) + '"');
+  return '<div class="tide res">' + h + '</div>';
+}
 export function resultScreen(o) {
   const res = o.res, inRun = RUN.active && RUN.q.length > 0, lastOne = RUN.active && RUN.q.length === 0;
   RUN.partial = null;
@@ -174,7 +187,7 @@ export function resultScreen(o) {
   const lines = (o.lines || []).concat(lastOne ? ['That is today’s session done.'] : []);
   const acts = inRun ? [{id:'nextb', label:'Next: ' + DRILL_N[RUN.q[0].replace(/\d+$/, '')], fn:nextRun}] : (o.actions || []);
   setRun('<h2 class="lead">' + esc(o.lead) + '</h2>' + (lines.length ? '<div class="stack">' + lines.map(l => '<p class="note">' + esc(l) + '</p>').join('') + '</div>' : '')
-    + '<div class="sys" role="status">' + notices(res, o.type).map(n => '<p>' + esc(n) + '</p>').join('') + '</div>',
+    + '<div class="sys" role="status">' + notices(res, o.type).map(n => '<p>' + noticeHtml(n) + '</p>').join('') + '</div>' + resultTide(res),
     '<div class="stack">' + acts.map((a, i) => '<button type="button" class="btn ' + (i === 0 ? 'btn-p' : 'btn-s') + '" id="' + a.id + '">' + esc(a.label) + '</button>').join('') + '<button type="button" class="btn ' + (acts.length ? 'btn-s' : 'btn-p') + '" id="back">Done</button></div>');
   acts.forEach(a => { $('#' + a.id).onclick = a.fn; });
   $('#back').onclick = stopRun;

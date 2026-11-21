@@ -6,7 +6,7 @@
 :root{
   --bg:#F2F6F7; --bg-group:#FFFFFF; --fill:#E4EDF0; --sep:rgba(14,34,48,.14);
   --label:#0E2230; --label-2:#4A6270; --water:#CFE5EA; --sounding:#2E8C88;
-  /* DESIGN.md lists #C4580F; it measured 4.06:1 on --bg, so the light tint is darkened to pass 4.5:1 */
+  /* light tint darkened from #C4580F to #B4500C in step 2 so it passes 4.5:1 (see DESIGN.md) */
   --tint:#B4500C; --on-tint:#FFFFFF;
   --scrim:rgba(14,34,48,.36);
   --f-ui:system-ui,-apple-system,"SF Pro Text","Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;
@@ -84,6 +84,8 @@ button.li{cursor:pointer;min-height:60px}
 .li.tg input:checked{background:var(--sounding)}
 .li.tg input:checked::after{transform:translateX(20px)}
 .li.tg input:focus-visible{outline:2px solid var(--tint);outline-offset:2px}
+/* .group clips its corners, so a row's focus ring is drawn inside the row rather than cut off */
+.group .li:focus-visible{outline-offset:-3px;border-radius:12px}
 .field{display:flex;flex-direction:column;gap:6px;padding:11px 16px}
 .field+.field,.li+.field,.field+.li{border-top:1px solid var(--sep)}
 .field label{font-size:var(--t-sub);line-height:1.333;font-weight:600}
@@ -198,6 +200,8 @@ input[type=range]{width:100%;min-height:44px;accent-color:var(--tint)}
 #runBody{position:relative;z-index:1;flex:1;overflow:auto;width:100%;max-width:560px;margin:0 auto;padding:8px calc(16px + env(safe-area-inset-right)) 24px calc(16px + env(safe-area-inset-left));display:flex;flex-direction:column;gap:16px}
 #runBody>*{flex-shrink:0}
 .run-f{position:relative;z-index:2;width:100%;max-width:560px;margin:0 auto;padding:8px calc(16px + env(safe-area-inset-right)) calc(12px + env(safe-area-inset-bottom)) calc(16px + env(safe-area-inset-left))}
+/* End sits over the water on the tide pacer: a raised surface with a hairline keeps it findable */
+.run-f>.btn-s{background:var(--bg-group);box-shadow:0 0 0 1px var(--sep)}
 .endq{display:flex;flex-direction:column;gap:12px;padding:16px;border-radius:14px;background:var(--bg-group);box-shadow:0 6px 24px rgba(0,0,0,.16)}
 .endq p{font-size:var(--t-body);line-height:1.294;text-align:center}
 .endq .row>.btn{flex:1 1 0}
@@ -226,6 +230,11 @@ input[type=range]{width:100%;min-height:44px;accent-color:var(--tint)}
 .sys{display:flex;flex-direction:column;gap:6px;padding:14px 16px;border-radius:12px;background:var(--bg-group)}
 .sys p,.toast.sys-t{font-family:var(--f-display);font-weight:600;font-size:var(--t-title);line-height:1.15;letter-spacing:.06em;text-transform:uppercase;font-variant-numeric:tabular-nums}
 .sys p+p{padding-top:6px;border-top:1px solid var(--sep)}
+.sys .tag{color:var(--sounding)}
+.sys .xp{white-space:nowrap}
+/* the week strip on a result screen: today's high-water mark comes in once */
+.tide.res{margin-top:0}
+.wd.rise .trk i{animation:tiderise .6s var(--ease-out) .2s backwards}
 
 /* ---------- tide pacer ---------- */
 .tp{position:fixed;inset:0;z-index:0;overflow:hidden;pointer-events:none}
@@ -264,6 +273,7 @@ input[type=range]{width:100%;min-height:44px;accent-color:var(--tint)}
 @keyframes sink{to{transform:translateY(100%)}}
 @keyframes fade{from{opacity:0}}
 @keyframes drop{from{opacity:0;transform:translateY(-8px)}}
+@keyframes tiderise{from{transform:scaleY(var(--from,0))}}
 @keyframes drift{to{transform:translateX(-50%)}}
 
 @media (hover:hover) and (pointer:fine){

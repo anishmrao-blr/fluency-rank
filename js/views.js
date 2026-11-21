@@ -24,7 +24,7 @@ export function viewHome() {
   const qp = questProgress();
   const hint = qp.done === 2 ? 'Breathing and speaking both done today.' : qp.items[0].ok ? 'Breathing done. One speaking drill completes today.' : qp.items[1].ok ? 'Speaking done. One breathing session completes today.' : 'One breathing session and one speaking drill.';
   return '<div class="home">' + titleBar('Today', '<button type="button" class="icb" data-act="settings" aria-label="Settings">' + ICON.gear + '</button>')
-    + '<section class="tide" aria-label="This week"><p class="nums">This week ' + practicedThisWeek() + ' of 5 · Best run ' + app.S.best + '</p>' + weekHtml() + '</section>'
+    + '<section class="tide" aria-label="This week"><p class="nums">This week ' + practicedThisWeek() + ' of 5' + (app.S.best > 0 ? ' · Best run ' + app.S.best : '') + '</p>' + weekHtml() + '</section>'
     + '<p class="today-line">Today ' + qp.done + ' of ' + qp.total + '</p><p class="today-sub">' + hint + '</p>'
     + '<div class="acts"><button type="button" class="btn btn-p" data-act="session">Start daily session · 5 min</button><button type="button" class="btn btn-s" data-act="speak">I’m about to speak</button><button type="button" class="lnk" data-act="short">Low energy? Short version</button></div></div>';
 }

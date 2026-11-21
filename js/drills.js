@@ -49,10 +49,17 @@ export function tidePacer(o) {
   const start = performance.now();
   const elapsed = () => (performance.now() - start) / 1000;
   /* the gauge starts below the text block, so high water and the phase word never run under the copy */
-  const tp = $('#tp'), ui = $('.tp-ui', runBody);
-  const fit = () => { const b = ui.getBoundingClientRect().bottom - $('#run').getBoundingClientRect().top; if (b > 0) tp.style.top = Math.round(b + 64) + 'px'; };
+  const tp = $('#tp'), ui = $('.tp-ui', runBody), snd = $('.tp-snd', tp);
+  /* ...and it ends above the End control, so low water and the count never run under it. The water
+     body still reaches the bottom of the screen. Measured once, before any End confirmation opens. */
+  const footH = ($('#runFoot') || {}).offsetHeight || 0;
+  let span = 1;
+  const fit = () => {
+    const b = ui.getBoundingClientRect().bottom - $('#run').getBoundingClientRect().top; if (b > 0) tp.style.top = Math.round(b + 64) + 'px';
+    const H = tp.clientHeight; if (H > 0 && footH) { span = clamp((H - footH - 8) / H, 0.5, 1); snd.style.bottom = Math.round(H * (1 - span)) + 'px'; }
+  };
   fit();
-  const place = lvl => { const t = 'translateY(' + ((1 - lvl) * 100).toFixed(2) + '%)'; W.style.transform = t; S.style.transform = t; };
+  const place = lvl => { const t = 'translateY(' + (span * (1 - lvl) * 100).toFixed(2) + '%)'; W.style.transform = t; S.style.transform = t; };
   let last = '';
   const frame = () => {
     const el = elapsed();

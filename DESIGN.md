@@ -33,6 +33,7 @@
 | `--sounding` | #7FD1C7 | #2E8C88 | soundings, tide marks, the "done" state |
 | `--tint` | #F28C38 | #B4500C | the one interactive tint: buttons, links, selection |
 | `--on-tint` | #1A0E04 | #FFFFFF | text on the tint |
+| `--scrim` | rgba(2,8,12,.6) | rgba(14,34,48,.36) | dimming behind sheets and alerts |
 
 - The light `--tint` was #C4580F. It measured 4.06:1 on `--bg` and 4.42:1 under white text, so step 2 darkened it to #B4500C (4.72:1 and 5.13:1).
 - The scheme follows `prefers-color-scheme`. Both schemes are first-class and both get tested.
@@ -59,7 +60,8 @@
 - **Tide-table mosaic (Progress):** a 66-cell grid laid out like a tide table. Filled cells use `--sounding`, at 60% opacity for 1 item and 100% for 2. Day numbers are in `--label-2` and meet 4.5:1 contrast.
 - **Course of real-world steps (Speak):** a vertical course line with a buoy (circle) per step. Done buoys are filled `--sounding`, and the next buoy is ringed in the tint.
 - **Rank emblem (Progress and reward screens only):** the hexagon from the app icon, with its letter in display type.
-- **System notices:** a toast or result line in display type inside brackets, for example `[QUEST COMPLETE] DAILY QUEST · +40 XP`. They are only used for rewards.
+- **System notices:** a toast or result line in display type inside brackets, for example `[QUEST COMPLETE] DAILY QUEST · +40 XP`. The bracketed tag is set in `--sounding` (done), and the XP figure never breaks across lines. They are only used for rewards.
+- **Result tide mark:** every result screen that counts toward today shows the week strip, and today's high-water mark comes in from where it stood before the session.
 
 ## Motion
 These rules follow Emil Kowalski's design-engineering skill from skills.sh, read for reference and not installed.
@@ -73,8 +75,9 @@ These rules follow Emil Kowalski's design-engineering skill from skills.sh, read
   - Press feedback is 120ms (`scale(.97)` on buttons).
   - UI changes stay under 250ms.
   - Covers and sheets take 380ms. Toasts take 400ms.
-- **Pacer:** the wave is the only continuous motion. The water level eases sinusoidally through each phase, never linearly, so it slows at the top and bottom of each breath. That idea came from the 21st.dev "breath bloom" component. Animate `transform` only.
+- **Pacer:** the gauge (soundings and low water) ends above the End control, so the count is never covered; the water body still runs to the bottom edge. The wave is the only continuous motion. The water level eases sinusoidally through each phase, never linearly, so it slows at the top and bottom of each breath. That idea came from the 21st.dev "breath bloom" component. Animate `transform` only.
 - **No hover-only effects.** Hover styles sit behind `@media (hover:hover) and (pointer:fine)`.
+- **Result tide mark:** today's bar rises once, 600ms with the strong ease-out after a 200ms delay. It is the one authored reward motion, and it is off under reduced motion.
 - **Reduced motion** means fewer and gentler animations: opacity and colour changes stay, and movement goes.
 
 ## Craft references (inspiration only; no code copied)

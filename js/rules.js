@@ -43,6 +43,7 @@ export function award(type, o) {
   rollDay();
   const S = app.S, D = S.daily;
   const before = {rank: rankOf(S.xp), level: levelOf(S.xp)};
+  const tideFrom = Math.min(2, (S.days[D.date] || {n:0}).n);
   const e = S.energy, notes = [];
   const xp = type === 'debrief' && (D.debrief || 0) > 0 ? 0 : (XP[type] || 0);
   let bonus = 0;
@@ -78,7 +79,8 @@ export function award(type, o) {
   titlesEarned.forEach(id => { S.titles.push(id); notes.push('[Title earned] ' + TITLES.filter(x => x.id === id)[0].n); });
   save();
   const after = {rank: rankOf(S.xp), level: levelOf(S.xp)};
-  return {xp: xp + bonus, notes, titlesEarned, rankUp: after.rank > before.rank ? RANKS[after.rank].r : null, levelUp: after.level > before.level ? after.level : null};
+  /* tide: today's week-strip level before and after, so the result screen can show the mark coming in */
+  return {xp: xp + bonus, notes, titlesEarned, tide: [tideFrom, Math.min(2, n)], rankUp: after.rank > before.rank ? RANKS[after.rank].r : null, levelUp: after.level > before.level ? after.level : null};
 }
 export function avgScore(filter) {
   const a = app.S.log.filter(e => e.score != null && filter(e));

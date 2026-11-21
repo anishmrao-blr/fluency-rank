@@ -15,7 +15,7 @@ export const SPEAK_TYPES = ['read', 'raid', 'cold', 'boss', 'field'];
 export const TITLES = [
   {id:'first-step', n:'The One Who Spoke First'},
   {id:'week', n:'Seven Days'}
-].concat(RANKS.slice(1).map(x => ({id:'rank-' + x.r, n:'Rank ' + x.r + ' Hunter'})));
+].concat(RANKS.slice(1).map(x => ({id:'rank-' + x.r, n:'Rank ' + x.r + ' Speaker'})));
 /* Plain names used in UI copy and the log. Keys are the stored session types and never change. */
 export const TYPE_N = {breath:'Breathe', read:'Read aloud', raid:'Word warm-up', cold:'Practice question', boss:'Challenge round', ritual:'I’m about to speak', debrief:'Debrief', field:'Real-world step', reeval:'Weekly re-record'};
 export const DRILL_N = {breath:'Breathe', read:'Read aloud', raid:'Word warm-up', cold:'Practice question'};
