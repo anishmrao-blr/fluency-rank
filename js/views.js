@@ -1,5 +1,5 @@
 import {$, $$, esc, dstr, dayNum, numStr, weekStartNum} from './util.js';
-import {RANKS, rankOf, levelOf, STAT_KEYS, STAT_N, TYPE_N, WPM, STALL, ANCHORS, PATTERNS, BREATH_GOALS, BREATH_ALL, MISSIONS, TITLES} from './content.js';
+import {RANKS, rankOf, levelOf, STAT_KEYS, STAT_N, TYPE_N, WPM, STALL, ANCHORS, PATTERNS, BREATH_GOALS, BREATH_ALL, MISSIONS, TITLES, CONTEXTS} from './content.js';
 import {app, updateSync} from './state.js';
 import {practicedThisWeek, rollDay, questProgress} from './rules.js';
 import {toast, bar, emblem, ICON, sheetOpen} from './ui.js';
@@ -24,7 +24,7 @@ export function weekHtml() {
 }
 export function viewHome() {
   const qp = questProgress();
-  const hint = qp.done === 2 ? 'Breathing and speaking both done today.' : qp.items[0].ok ? 'Breathing done. One speaking drill completes today.' : qp.items[1].ok ? 'Speaking done. One breathing session completes today.' : 'One breathing session and one speaking drill.';
+  const hint = qp.done === 2 ? 'Both done today.' : qp.items[0].ok ? '1 drill left today · +40 XP' : qp.items[1].ok ? '1 breath left today · +40 XP' : '1 min breath + 1 drill.';
   return '<div class="home">' + titleBar('Today', '<button type="button" class="icb" data-act="settings" aria-label="Settings">' + ICON.gear + '</button>')
     + '<section class="tide-inline" aria-label="This week"><p class="nums">This week ' + practicedThisWeek() + ' of 5' + (app.S.best > 0 ? ' · Best run ' + app.S.best : '') + '</p>' + weekHtml() + '</section>'
     + '<section class="pcard hero-card" aria-label="Daily session">'
@@ -32,12 +32,13 @@ export function viewHome() {
     + '<span class="pc-pill">Today ' + qp.done + ' of ' + qp.total + ' · 5 min</span>'
     + '<h2 class="pc-title">Daily voice session</h2>'
     + '<p class="pc-sub">' + hint + '</p>'
+    + '<div class="goal-bar" aria-hidden="true"><i class="' + (qp.done >= 1 ? 'on' : '') + '"></i><i class="' + (qp.done >= 2 ? 'on' : '') + '"></i></div>'
     + '<button type="button" class="pc-cta" data-act="session">Start daily session · 5 min</button>'
     + '</section>'
     + '<section class="pcard relief-card" aria-label="Pre-call reset">'
     + '<img src="assets/bg-forest-pacer.jpg" alt="" aria-hidden="true">'
-    + '<span class="pc-pill mint">90 seconds · Acute relief</span>'
-    + '<p class="pc-sub">Three slow sighs, then rehearse your opening line aloud.</p>'
+    + '<span class="pc-pill mint">90 seconds · Pre-call</span>'
+    + '<p class="pc-sub">3 sighs + say your opening line aloud.</p>'
     + '<button type="button" class="pc-cta ghost" data-act="speak">I’m about to speak</button>'
     + '</section>'
     + '<div class="home-chips">'
@@ -71,9 +72,8 @@ export function viewBreathe() {
   }).join('') + rowBtn('breath', 'custom', 'Custom pattern', customDesc(app.S.customBreath) + ' seconds', 'Open Custom pattern');
   return titleBar('Breathe')
     + chips
-    + gh('Start by goal', 'bgH') + '<div class="goal-grid" role="group" aria-labelledby="bgH">' + goals + '</div>'
-    + '<p class="gf">One tap starts right away for ' + mins + ' min. Turn on sound cues or the voice guide in Settings to practise with your eyes closed.</p>'
-    + gh('All techniques', 'baH') + '<div class="group" role="group" aria-labelledby="baH">' + all + '</div>';
+    + '<div class="goal-grid" role="group" aria-label="Start by goal">' + goals + '</div>'
+    + '<details class="clean-disc"><summary>All techniques &amp; custom</summary><div class="group" role="group" aria-label="All techniques">' + all + '</div></details>';
 }
 
 /* ---------- Speak (Visual Studio Hero + 2-Col Drill Cards + Stepping Stones) ---------- */
@@ -87,25 +87,29 @@ export function courseHtml() {
 export function viewGates() {
   const challenge = rankOf(app.S.xp) >= 1;
   const doneSteps = MISSIONS.filter(m => missionStats(m.id).n > 0).length;
+  const recId = recommendedMission(), recM = MISSIONS.find(m => m.id === recId) || MISSIONS[0];
   return titleBar('Speak')
-    + gh('Drills', 'drH') + '<div class="speak-grid" role="group" aria-labelledby="drH">'
+    + '<div class="speak-grid" role="group" aria-label="Drills">'
     + '<button type="button" class="pcard drill-hero" data-act="read" aria-label="Open Read aloud">'
     + '<img src="assets/card-speak-studio.jpg" alt="" aria-hidden="true">'
-    + '<span class="pc-pill mint">Pace target ' + WPM[app.S.rung] + ' wpm · 2 min</span>'
+    + '<span class="pc-pill mint">' + WPM[app.S.rung] + ' wpm · 2 min</span>'
     + '<span class="pc-title">Read aloud</span>'
-    + '<span class="pc-sub">Soft starts at ▾ marks + optional live recording</span>'
+    + '<span class="pc-sub">Soft starts + live recording</span>'
     + '<span class="wave-mini" aria-hidden="true"><i style="height:36%"></i><i style="height:68%"></i><i style="height:92%"></i><i style="height:52%"></i><i style="height:82%"></i><i style="height:40%"></i><i style="height:96%"></i><i style="height:62%"></i><i style="height:34%"></i><i style="height:76%"></i><i style="height:52%"></i><i style="height:86%"></i></span>'
     + '</button>'
     + '<div class="drill-pair">'
-    + '<button type="button" class="dcard" data-act="raid" aria-label="Open Word warm-up"><span class="dicon" aria-hidden="true">Aa</span><span class="tt">Word warm-up</span><span class="ds">45 s · Name words by letter &amp; topic</span></button>'
-    + '<button type="button" class="dcard" data-act="cold" aria-label="Open Practice questions"><span class="dicon" aria-hidden="true">“ ”</span><span class="tt">Practice questions</span><span class="ds">60 s · Answer on the spot + record</span></button>'
+    + '<button type="button" class="dcard" data-act="raid" aria-label="Open Word warm-up"><span class="dicon" aria-hidden="true">Aa</span><span class="tt">Word warm-up</span><span class="ds">45 s · Word flow</span></button>'
+    + '<button type="button" class="dcard" data-act="cold" aria-label="Open Practice questions"><span class="dicon" aria-hidden="true">“ ”</span><span class="tt">Practice questions</span><span class="ds">60 s · On the spot</span></button>'
     + '</div>'
-    + (challenge ? '<button type="button" class="dcard full" data-act="boss" aria-label="Open Challenge round"><span class="dicon" aria-hidden="true">5×</span><span class="grow"><span class="tt">Challenge round</span><span class="ds">Five questions back to back. About 5 min.</span></span>' + ICON.chev + '</button>' : '')
+    + (challenge ? '<button type="button" class="dcard full" data-act="boss" aria-label="Open Challenge round"><span class="dicon" aria-hidden="true">5×</span><span class="grow"><span class="tt">Challenge round</span><span class="ds">5 questions · 5 min</span></span>' + ICON.chev + '</button>' : '')
     + '</div>'
-    + gh('Real-world steps · ' + doneSteps + ' of ' + MISSIONS.length, 'rwH')
-    + '<div class="group" role="group" aria-labelledby="rwH">' + courseHtml() + '</div>'
-    + '<p class="gf">Real conversations, from small to larger. They are always optional, and you never need them to progress.</p>'
-    + '<div class="stack" style="margin-top:14px"><button type="button" class="btn btn-p" data-act="field" aria-label="Open Real-world steps">Choose a real-world step</button></div>';
+    + '<div class="step-summary">'
+    + '<div class="ss-head"><span class="cap">Real-world steps · ' + doneSteps + ' of ' + MISSIONS.length + '</span><span class="cap">Optional</span></div>'
+    + '<strong class="tt">Next: ' + esc(recM.t) + '</strong>'
+    + bar(doneSteps / MISSIONS.length * 100)
+    + '<button type="button" class="btn btn-p btn-sm" data-act="field" aria-label="Open Real-world steps">Choose a real-world step</button>'
+    + '</div>'
+    + '<details class="clean-disc"><summary>All ' + MISSIONS.length + ' real-world steps</summary><div class="group">' + courseHtml() + '</div></details>';
 }
 
 /* ---------- Progress ---------- */
@@ -182,7 +186,19 @@ const toggle = (id, label, on) => '<label class="li tg"><span class="grow">' + e
 export function settingsHtml() {
   return '<div class="rhythm-banner"><img src="assets/banner-rhythm.jpg" alt=""><span class="rb-k">Consistency</span><strong class="rb-t">Small steps, every day.</strong></div>'
     + gh('Practice time', 'ptH') + '<div class="group" role="group" aria-labelledby="ptH">' + ANCHORS.map(a => '<button type="button" class="li" data-act="plan" data-v="' + esc(a) + '" aria-pressed="' + (app.S.plan.anchor === a) + '"><span class="grow tt">' + esc(cap(a)) + '</span><svg class="ic ck" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg></button>').join('') + '</div><p class="gf">Tie practice to something you already do each day. This app cannot send reminders yet, so set a phone alarm for the same moment.</p>'
-    + gh('Your words') + '<div class="group"><div class="field"><label for="hard">Sounds you find hard (letters)</label><input type="text" id="hard" maxlength="12" placeholder="For example B P S T M" value="' + esc(app.S.hard) + '" autocomplete="off"></div><div class="field"><label for="opener">Your opening line</label><textarea id="opener" maxlength="200">' + esc(app.S.opener) + '</textarea></div></div><p class="gf">Word warm-up picks your hard sounds about half the time. I’m about to speak uses your opening line.</p>'
+    + gh('Situations') + '<div class="group">' + CONTEXTS.map(c => toggle('ctx-' + c.id, c.n, (app.S.contexts || []).indexOf(c.id) >= 0)).join('') + '</div>'
+    + gh('Your words') + '<div class="group">'
+    + '<div class="field"><label for="uname">Your name (optional)</label><input type="text" id="uname" maxlength="40" placeholder="Used in phone &amp; intro prompts" value="' + esc(app.S.userName || '') + '" autocomplete="off"></div>'
+    + '<div class="field"><label for="hard">Sounds you find hard (letters)</label><input type="text" id="hard" maxlength="12" placeholder="For example B P S T M" value="' + esc(app.S.hard) + '" autocomplete="off"></div>'
+    + '<div class="field"><label for="feared">Words you avoid (up to 30)</label><textarea id="feared" placeholder="Comma or line separated, e.g. schedule, budget, Tuesday">' + esc((app.S.fearedWords || []).join(', ')) + '</textarea></div>'
+    + '<div class="field"><label for="opener">Your opening line</label><textarea id="opener" maxlength="200">' + esc(app.S.opener) + '</textarea></div>'
+    + '</div><p class="gf">Woven into roughly 1 in 3 drills. Commas, spaces or new lines all work.</p>'
+    + '<details class="clean-disc"><summary>Custom passages &amp; questions (' + ((app.S.customPassages || []).length + (app.S.customQuestions || []).length) + ')</summary><div class="group">'
+    + '<div class="field"><label for="newQ">Add a practice question</label><div class="row"><input type="text" id="newQ" maxlength="200" placeholder="e.g. Walk me through our launch timeline."><button type="button" class="btn btn-s btn-sm" data-act="addQ">Add</button></div></div>'
+    + ((app.S.customQuestions || []).map((q, i) => '<div class="li"><span class="grow ds">' + esc(q.t) + '</span><button type="button" class="lnk" data-act="delQ" data-v="' + i + '">Remove</button></div>').join(''))
+    + '<div class="field"><label for="newPT">Add a reading passage</label><input type="text" id="newPT" maxlength="80" placeholder="Passage title"><textarea id="newPX" maxlength="800" placeholder="Paste or write your passage…"></textarea><button type="button" class="btn btn-s btn-sm" data-act="addP">Add passage</button></div>'
+    + ((app.S.customPassages || []).map((p, i) => '<div class="li"><span class="grow ds">' + esc(p.t) + '</span><button type="button" class="lnk" data-act="delP" data-v="' + i + '">Remove</button></div>').join(''))
+    + '</div></details>'
     + gh('Practice options') + '<div class="group">' + toggle('skel', 'Show the answer outline in practice questions', app.S.showSkeleton) + toggle('hclk', 'Hide countdown numbers', app.S.hideClock) + toggle('snds', 'Sound cues for breathing and timers', app.S.sound) + toggle('voice', 'Voice guide for breathing', app.S.voice) + '</div>'
     + gh('Recordings') + '<div class="group"><div class="field"><p class="ds" id="recStat" role="status">Checking on-device clips…</p><button type="button" class="btn btn-s btn-sm" data-act="delClips">Delete all recordings</button></div></div><p class="gf">Recordings stay on this device and are never uploaded. Drill clips delete after 14 days; baseline proof clips stay until you delete them.</p>'
     + gh('Backup') + '<div class="group"><div class="field"><p class="ds" id="sync" role="status"></p><div class="row"><button type="button" class="btn btn-s btn-sm" data-act="export">Export backup</button><button type="button" class="btn btn-s btn-sm" data-act="importFile">Import backup</button></div><input type="file" id="bkfile" accept="application/json,.json" hidden><p class="ds" id="bkmsg" role="status"></p></div><details class="bk-raw"><summary>Paste or copy backup text</summary><div class="field"><label for="bk">Backup text</label><textarea id="bk"></textarea><div class="row"><button type="button" class="btn btn-s btn-sm" data-act="copy">Copy text</button><button type="button" class="btn btn-s btn-sm" data-act="import">Load pasted backup</button></div></div></details></div><p class="gf">Progress stays on this device. Export a file to move it to another device, or import a saved backup.</p>'

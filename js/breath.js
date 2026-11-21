@@ -1,5 +1,6 @@
 import {$, esc, clamp, reduceMotion, shuffle, fmt} from './util.js';
 import {PATTERNS, PHRASES} from './content.js';
+import {weavePhrases} from './personal.js';
 import {app, save} from './state.js';
 import {award} from './rules.js';
 import {T, cue, runBody, openRun, setRun, setPartial, setDarkCover, choiceRow, wireChoice, resultScreen} from './ui.js';
@@ -209,7 +210,7 @@ export function runBreath(o) {
   };
 
   const begin = () => {
-    const P = metaInfo(), phrases = P.speak ? shuffle(PHRASES) : null;
+    const P = metaInfo(), phrases = P.speak ? shuffle(weavePhrases(PHRASES, app.S)) : null;
     const pc = tidePacer({
       title:P.n,
       totalS:mins * 60,

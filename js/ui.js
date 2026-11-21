@@ -111,19 +111,28 @@ export function syncSoundBtn() { const b = $('#snd'); b.textContent = app.S.soun
 export function setDarkCover(on) {
   runEl.classList.toggle('dark-cover', !!on);
 }
+export function setSteps(labels, activeIdx) {
+  const el = $('#runSteps');
+  if (!el) return;
+  if (!labels || !labels.length) { el.hidden = true; el.innerHTML = ''; return; }
+  el.innerHTML = labels.map((l, i) => '<li class="' + (i < activeIdx ? 'done' : i === activeIdx ? 'now' : '') + '"><i>' + (i + 1) + '</i><span>' + esc(l) + '</span></li>').join('');
+  el.hidden = false;
+}
 export function openRun(title) {
   T.clear(); cancelClose(runEl);
   if (!app.running) runReturn = document.activeElement;
   app.running = true; RUN.partial = null;
   setDarkCover(false);
+  if (RUN.active && RUN.steps) setSteps(RUN.steps, RUN.i - 1);
+  else setSteps(null);
   runTitle.textContent = RUN.active ? RUN.label + ' · ' + RUN.i + ' of ' + RUN.n : title;
   runBody.innerHTML = ''; runEl.hidden = false; runBody.scrollTop = 0;
   document.body.style.overflow = 'hidden'; setInert(true); syncSoundBtn(); primeAudio();
   showEnd();
 }
 export function stopRun() {
-  T.clear(); app.running = false; RUN.active = false; RUN.q = []; RUN.partial = null;
-  setDarkCover(false);
+  T.clear(); app.running = false; RUN.active = false; RUN.q = []; RUN.steps = null; RUN.partial = null;
+  setDarkCover(false); setSteps(null);
   document.body.style.overflow = ''; setInert(false);
   closeLater(runEl, () => { runEl.hidden = true; runBody.innerHTML = ''; runFoot.innerHTML = ''; });
   renderAll();

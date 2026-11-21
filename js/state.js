@@ -1,5 +1,6 @@
 import {$, num, int, isDate} from './util.js';
-import {STAT_KEYS, TYPE_N, WPM, ANCHORS, DEFAULT_OPENER, TITLES} from './content.js';
+import {STAT_KEYS, TYPE_N, WPM, ANCHORS, DEFAULT_OPENER, TITLES, CONTEXTS} from './content.js';
+import {parseFearedWords, parseName} from './personal.js';
 import {rollDay, earnedTitles} from './rules.js';
 import {renderAll} from './views.js';
 
@@ -9,7 +10,8 @@ export const blankDaily = () => ({date:'', breath:0, read:0, raid:0, cold:0, rit
 export const fresh = () => ({
   v:3, xp:0, stats:{breath:0, pace:0, retrieval:0, composure:0, resilience:0},
   streak:0, best:0, shields:0, lastDay:null, energy:3,
-  hard:'', opener:DEFAULT_OPENER, showSkeleton:true, hideClock:false, sound:false, voice:false,
+  hard:'', userName:'', fearedWords:[], contexts:['work', 'phone'], customPassages:[], customQuestions:[],
+  opener:DEFAULT_OPENER, showSkeleton:true, hideClock:false, sound:false, voice:false,
   breathMins:3, pacerStyle:'bloom', customBreath:{inS:4, hold1:0, outS:6, hold2:0},
   proofDone:false, proofColdId:'', proofPacedId:'', proofColdRate:null, proofPacedRate:null,
   proofColdMeta:null, proofPacedMeta:null, lastReeval:'', reevalId:'', reevalRate:null, reevalMeta:null,
@@ -33,6 +35,13 @@ export function sanitize(o) {
   s.lastDay = isDate(o.lastDay) ? o.lastDay : null;
   s.energy = int(o.energy, 3, 1, 5);
   s.hard = String(o.hard || '').toUpperCase().replace(/[^A-Z]/g, '').slice(0, 12);
+  s.userName = parseName(o.userName);
+  s.fearedWords = parseFearedWords(o.fearedWords);
+  const validCtx = CONTEXTS.map(c => c.id);
+  const rawCtx = Array.isArray(o.contexts) ? o.contexts.filter(c => validCtx.indexOf(c) >= 0) : [];
+  s.contexts = rawCtx.length ? [...new Set(rawCtx)] : ['work', 'phone'];
+  s.customPassages = (Array.isArray(o.customPassages) ? o.customPassages : []).filter(p => p && typeof p.t === 'string' && typeof p.x === 'string').slice(0, 15).map(p => ({t:p.t.trim().slice(0, 80), x:p.x.trim().slice(0, 800)})).filter(p => p.t && p.x);
+  s.customQuestions = (Array.isArray(o.customQuestions) ? o.customQuestions : []).filter(q => q && typeof q.t === 'string').slice(0, 30).map(q => ({t:q.t.trim().slice(0, 200)})).filter(q => q.t);
   s.opener = String(o.opener || '').slice(0, 200).trim() || DEFAULT_OPENER;
   s.showSkeleton = o.showSkeleton !== false;
   s.hideClock = o.hideClock === true;

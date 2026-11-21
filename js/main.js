@@ -1,5 +1,6 @@
 import {$, dstr, reduceMotion} from './util.js';
-import {rankOf, DEFAULT_OPENER} from './content.js';
+import {rankOf, DEFAULT_OPENER, CONTEXTS} from './content.js';
+import {parseFearedWords, parseName} from './personal.js';
 import {app, fresh, sanitize, save, initDb} from './state.js';
 import {rollDay} from './rules.js';
 import {toast, confirmModal, closeModal, primeAudio, openSheet, closeSheet, sheetOpen, dismissEnd} from './ui.js';
@@ -79,6 +80,29 @@ const ACT = {
   },
   importFile() { const f = $('#bkfile'); if (f) { f.value = ''; f.click(); } },
   import() { const bk = $('#bk'); loadBackupText(bk ? bk.value : ''); },
+  addQ() {
+    const el = $('#newQ'), txt = (el && el.value || '').trim().slice(0, 200);
+    if (!txt) { toast('Write a question first'); return; }
+    app.S.customQuestions.unshift({t:txt});
+    app.S.customQuestions = app.S.customQuestions.slice(0, 30);
+    save(); renderSheet(); toast('Question added');
+  },
+  delQ(t) {
+    const i = Number(t.getAttribute('data-v'));
+    if (i >= 0) { app.S.customQuestions.splice(i, 1); save(); renderSheet(); }
+  },
+  addP() {
+    const tEl = $('#newPT'), xEl = $('#newPX');
+    const title = (tEl && tEl.value || '').trim().slice(0, 80), text = (xEl && xEl.value || '').trim().slice(0, 800);
+    if (!title || !text) { toast('Add a title and passage text'); return; }
+    app.S.customPassages.unshift({t:title, x:text});
+    app.S.customPassages = app.S.customPassages.slice(0, 15);
+    save(); renderSheet(); toast('Passage added');
+  },
+  delP(t) {
+    const i = Number(t.getAttribute('data-v'));
+    if (i >= 0) { app.S.customPassages.splice(i, 1); save(); renderSheet(); }
+  },
   reset() {
     confirmModal({
       title:'Reset all progress?',
@@ -101,6 +125,16 @@ $('#modal').addEventListener('click', e => { if (e.target === $('#modal')) close
 document.addEventListener('change', e => {
   const id = e.target && e.target.id;
   if (id === 'hard') { app.S.hard = e.target.value.toUpperCase().replace(/[^A-Z]/g, '').slice(0, 12); e.target.value = app.S.hard; save(); }
+  else if (id === 'uname') { app.S.userName = parseName(e.target.value); e.target.value = app.S.userName; save(); }
+  else if (id === 'feared') { app.S.fearedWords = parseFearedWords(e.target.value); e.target.value = app.S.fearedWords.join(', '); save(); }
+  else if (id && id.startsWith('ctx-')) {
+    const cid = id.slice(4), on = e.target.checked;
+    let next = (app.S.contexts || []).filter(x => x !== cid);
+    if (on) next.push(cid);
+    if (!next.length) { e.target.checked = true; toast('Keep at least one situation selected'); return; }
+    app.S.contexts = CONTEXTS.map(c => c.id).filter(x => next.indexOf(x) >= 0);
+    save();
+  }
   else if (id === 'opener') { app.S.opener = e.target.value.trim().slice(0, 200) || DEFAULT_OPENER; save(); }
   else if (id === 'skel') { app.S.showSkeleton = e.target.checked; save(); }
   else if (id === 'hclk') { app.S.hideClock = e.target.checked; save(); }

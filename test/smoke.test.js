@@ -366,6 +366,48 @@ const dayIdx=()=>{const p=ds(new Date()).split('-').map(Number);return Math.roun
     assert(afterDel.length===0&&st().proofColdId==='','Delete all recordings clears clip store and baseline ids');
   }
 
+  /* ---------- Step 5 + UX Laws: feared words, contexts, custom banks, step tracker, goal bar ---------- */
+  {
+    const w=await boot();const k=kit(w);await sleep(50);
+    const {$,$$,click,adv,st,tab,settings,change}=k;
+    const P=w.__mod('js/personal.js');
+
+    // Postel's Law forgiving parser & 30-word cap
+    const parsed=P.parseFearedWords(' "schedule", budget;\nTuesday , SCHEDULE ');
+    assert(parsed.join()==='schedule,budget,Tuesday','Postel parser normalises commas, semicolons, newlines, quotes and duplicates');
+    const many=P.parseFearedWords(Array.from({length:40},(_,i)=>'word'+i).join(','));
+    assert(many.length===30,'feared words capped at 30');
+
+    // Weaving into passage & question
+    const wState={userName:'Anish',fearedWords:['schedule'],hard:'B'};
+    const wp=P.weavePassage({t:'T',x:'Base text.'},wState,0.1);
+    assert(wp.x.includes('Anish')&&wp.x.includes('schedule'),'weavePassage weaves user name and feared word at ~1 in 3');
+    const wq=P.personalQuestion(wState,0.1);
+    assert(wq&&wq.t.includes('schedule')||wq&&wq.t.includes('Anish'),'personalQuestion weaves feared word or name');
+
+    // Home Goal-Gradient bar & Daily Session connected step tracker
+    tab('home');
+    assert($$('.goal-bar i').length===2&&$$('.goal-bar i.on').length===0,'Home renders 2-segment Goal-Gradient bar');
+    click($('[data-act="session"]'));
+    assert(!$('#runSteps').hidden&&$$('#runSteps li').length===3&&$$('#runSteps li.now').length===1,'Daily session shows 3-step connected tracker');
+    click($('#end'));click($('#endYes'));adv(400);
+
+    // Settings: contexts, feared words, name, custom question & passage
+    settings();
+    change('#uname','Anish');change('#feared','schedule; "budget"\nTuesday');
+    assert(st().userName==='Anish'&&st().fearedWords.join()==='schedule,budget,Tuesday','name and feared words save cleanly from Settings');
+    change('#ctx-work',false);
+    assert(st().contexts.join()==='phone','unchecking Work filters to Phone context');
+    change('#ctx-phone',false);
+    assert(st().contexts.join()==='phone','cannot uncheck the last active context');
+    $('#newQ').value='Tell me your order number slowly.';click($('[data-act="addQ"]'));
+    assert(st().customQuestions.length===1,'custom question added');
+    $('#newPT').value='My opener';$('#newPX').value='Hello, this is my custom practice passage.';click($('[data-act="addP"]'));
+    assert(st().customPassages.length===1,'custom passage added');
+    click($('[data-act="delQ"]'));click($('[data-act="delP"]'));
+    assert(st().customQuestions.length===0&&st().customPassages.length===0,'custom question and passage removed');
+  }
+
   /* ---------- End control: partial credit, and nothing done ---------- */
   {
     const w=await boot();const k=kit(w);await sleep(50);

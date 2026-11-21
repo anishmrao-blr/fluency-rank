@@ -1,11 +1,25 @@
 import {$, $$, esc, rnd, clamp, shuffle, fmt, dstr, dayNum} from './util.js';
-import {FLU, WPM, PASSAGES, QUESTIONS, STALL, LETTERS, CATS, MISSIONS, BASELINE_PASSAGE, TECH_CHECKS, TECH_DEMOS} from './content.js';
+import {FLU, WPM, PASSAGES, QUESTIONS, STALL, LETTERS, CATS, MISSIONS, BASELINE_PASSAGE, TECH_CHECKS, TECH_DEMOS, DRILL_N} from './content.js';
+import {hardLetterPool, personalQuestion, weavePassage} from './personal.js';
 import {app, save} from './state.js';
 import {award} from './rules.js';
-import {toast, bar, T, cue, runBody, RUN, openRun, setRun, setPartial, setDarkCover, minsDone, choiceRow, wireChoice, rateHtml, wireRate, resultScreen, ICON} from './ui.js';
+import {toast, bar, T, cue, runBody, RUN, openRun, setRun, setPartial, setDarkCover, setSteps, minsDone, choiceRow, wireChoice, rateHtml, wireRate, resultScreen, ICON} from './ui.js';
 import {LOW, BREATH_IN, SIGH, tidePacer, runBreath} from './breath.js';
 import {createRecorder, saveClip, getClip, measuresHtml, playerHtml, wirePlayer} from './recorder.js';
 export {runBreath, tidePacer, SIGH, LOW};
+
+export function activePassages() {
+  const ctxs = app.S.contexts || ['work', 'phone'];
+  const base = PASSAGES.filter(p => !p.ctx || ctxs.indexOf(p.ctx) >= 0);
+  const list = (app.S.customPassages || []).concat(base);
+  return list.length ? list : PASSAGES;
+}
+export function activeQuestions() {
+  const ctxs = app.S.contexts || ['work', 'phone'];
+  const base = QUESTIONS.filter(q => !q.ctx || ctxs.indexOf(q.ctx) >= 0);
+  const list = (app.S.customQuestions || []).concat(base);
+  return list.length ? list : QUESTIONS;
+}
 
 function techCheckHtml(kind) {
   const list = TECH_CHECKS[kind] || [], demo = TECH_DEMOS[kind] || '';
@@ -27,12 +41,15 @@ function selectedTicks(root) {
 
 export const QUSED = {};
 export function nextQuestion() {
-  if (Object.keys(QUSED).length >= QUESTIONS.length) Object.keys(QUSED).forEach(k => delete QUSED[k]);
-  let i, g = 0; do { i = rnd(QUESTIONS.length); g++; } while (QUSED[i] && g < 200);
-  QUSED[i] = 1; return QUESTIONS[i];
+  const pq = personalQuestion(app.S);
+  if (pq) return pq;
+  const pool = activeQuestions();
+  if (Object.keys(QUSED).length >= pool.length) Object.keys(QUSED).forEach(k => delete QUSED[k]);
+  let i, g = 0; do { i = rnd(pool.length); g++; } while (QUSED[i] && g < 200);
+  QUSED[i] = 1; return pool[i];
 }
 export function pickRaid(last) {
-  const hard = Array.from(new Set((app.S.hard || '').split('')));
+  const hard = hardLetterPool(app.S);
   const weak = Object.keys(app.S.weak);
   const pool = hard.concat(weak);
   const L = (pool.length && Math.random() < 0.5) ? pool[rnd(pool.length)] : LETTERS[rnd(LETTERS.length)];
@@ -52,17 +69,18 @@ let lastPassage = -1;
 export function runRead(o) {
   o = o || {};
   openRun('Read aloud');
+  const passages = activePassages();
   let sel = 0, wpm = WPM[app.S.rung];
   const readPartial = (say, P) => ({type:'read', opts:{pts:{pace:5, breath:2}, q:'read', meta:P.t + ' at ' + wpm + ' wpm'}, say, lead:'You read part of “' + P.t + '” aloud. It counts.'});
   const setup = () => {
     setPartial(null);
-    setRun('<h2 class="h-t">Read aloud</h2><p class="note">Words light up at your pace. Read aloud, breathe at each ▾ mark and start each phrase softly. Your pace target is ' + WPM[app.S.rung] + ' words a minute. Two smooth reads in a row at the target move it up.</p><div class="lab" id="psL">Passage</div><div class="group" role="group" aria-labelledby="psL">' + PASSAGES.map((p, i) => '<button type="button" class="li" data-ch="ps" data-v="' + i + '" aria-pressed="' + (i === sel) + '"><span class="grow"><span class="tt">' + esc(p.t) + '</span><span class="ds">' + p.x.split(/\s+/).length + ' words</span></span><svg class="ic ck" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg></button>').join('') + '</div><label class="lab" for="wpm">Pace: <span id="wv" class="num">' + wpm + '</span> words a minute</label><input type="range" id="wpm" min="60" max="150" step="5" value="' + wpm + '"><p class="note">Conversation runs near 150. Start slower than feels natural. A pace away from your target does not move the target.</p><button type="button" class="btn btn-p" id="go">Start reading</button>');
+    setRun('<h2 class="h-t">Read aloud</h2><p class="note">Breathe at each ▾ mark and start softly. Pace target: ' + WPM[app.S.rung] + ' wpm.</p><div class="lab" id="psL">Passage</div><div class="group" role="group" aria-labelledby="psL">' + passages.map((p, i) => '<button type="button" class="li" data-ch="ps" data-v="' + i + '" aria-pressed="' + (i === sel) + '"><span class="grow"><span class="tt">' + esc(p.t) + '</span><span class="ds">' + p.x.split(/\s+/).length + ' words</span></span><svg class="ic ck" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg></button>').join('') + '</div><label class="lab" for="wpm">Pace: <span id="wv" class="num">' + wpm + '</span> wpm</label><input type="range" id="wpm" min="60" max="150" step="5" value="' + wpm + '"><button type="button" class="btn btn-p" id="go">Start reading</button>');
     $('#wpm').oninput = function () { wpm = Number(this.value); $('#wv').textContent = wpm; };
     wireChoice('ps', v => { sel = Number(v); setup(); });
     $('#go').onclick = play;
   };
   const play = () => {
-    const P = PASSAGES[sel], words = P.x.split(/\s+/), t0 = performance.now();
+    const P = weavePassage(passages[sel] || passages[0], app.S), words = P.x.split(/\s+/), t0 = performance.now();
     let rec = null, recording = false, captured = null;
     setDarkCover(true);
     setRun('<h2 class="h-t">' + esc(P.t) + '</h2><p class="note num">' + wpm + ' words a minute</p>'
@@ -81,10 +99,13 @@ export function runRead(o) {
         recMsg.textContent = 'Saved for playback after reading.';
         return;
       }
+      recBtn.disabled = true; recBtn.textContent = 'Opening mic…';
       rec = createRecorder({canvas:waveCv});
       const r = await rec.start();
+      recBtn.disabled = false;
       if (!r.ok) {
         rec = null;
+        recBtn.textContent = 'Record voice';
         recMsg.textContent = r.reason === 'denied' ? 'Microphone blocked. You can still finish without recording.' : 'Recording is not available in this browser.';
         return;
       }
@@ -112,7 +133,7 @@ export function runRead(o) {
   };
   const rate = clip => {
     let sc = 0;
-    const P = PASSAGES[sel];
+    const P = passages[sel] || passages[0];
     setDarkCover(false);
     setPartial(() => readPartial('The passage you read still counts', P));
     const clipBlock = clip ? playerHtml('rdPlay', 'Your take', clip.measures.durationSec) + measuresHtml(clip.measures)
@@ -133,11 +154,12 @@ export function runRead(o) {
         else if (sc <= 2) { app.S.up = 0; app.S.down++; if (app.S.down >= 2 && app.S.rung > 0) { app.S.rung--; app.S.down = 0; note = 'Pace target eased to ' + WPM[app.S.rung] + ' words a minute. Slower is part of the plan.'; } }
         else { app.S.up = 0; app.S.down = 0; }
       }
+      const win = clip ? ['Your take: ' + (clip.measures.wpm != null ? clip.measures.wpm + ' wpm · ' : '') + clip.measures.pauses + ' pause' + (clip.measures.pauses === 1 ? '' : 's') + ' >1s.'] : [];
       const res = award('read', {pts:{pace:5 + sc * 2, breath:2}, q:'read', score:sc, meta:P.t + ' at ' + wpm + ' wpm', extra:{ticks}});
-      resultScreen({lead:'You read “' + P.t + '” aloud at ' + wpm + ' words a minute.', lines:['Fluency ' + sc + ' of 5.', coach].concat(note ? [note] : []), res, type:'read', actions:o.auto ? [] : [{id:'again', label:'Another passage', fn:() => { wpm = WPM[app.S.rung]; setup(); }}]});
+      resultScreen({lead:'You read “' + P.t + '” aloud at ' + wpm + ' words a minute.', lines:['Fluency ' + sc + ' of 5.'].concat(win, [coach], note ? [note] : []), res, type:'read', actions:o.auto ? [] : [{id:'again', label:'Another passage', fn:() => { wpm = WPM[app.S.rung]; setup(); }}]});
     };
   };
-  if (o.auto) { do { sel = rnd(PASSAGES.length); } while (sel === lastPassage && PASSAGES.length > 1); lastPassage = sel; play(); } else setup();
+  if (o.auto) { do { sel = rnd(passages.length); } while (sel === lastPassage && passages.length > 1); lastPassage = sel; play(); } else setup();
 }
 
 /* ---------- Word warm-up ---------- */
@@ -400,15 +422,20 @@ function recordBaselineStep(opts) {
 
 export function runProof() {
   openRun('Before & after check');
+  const pSteps = ['Cold', 'Breathe', 'Paced'];
   let coldClip = null, pacedClip = null;
-  const step1 = () => recordBaselineStep({
-    title:'1 of 3 · Cold read',
-    sub:'Read this short passage aloud once before breathing. This also becomes your weekly baseline.',
-    marks:false,
-    onSkip:() => { app.S.proofDone = true; save(); startRun(SESSION(), 'Daily session'); },
-    onDone:clip => { coldClip = clip; step2(); }
-  });
+  const step1 = () => {
+    setSteps(pSteps, 0);
+    recordBaselineStep({
+      title:'1 of 3 · Cold read',
+      sub:'Read this short passage aloud once before breathing. This also becomes your weekly baseline.',
+      marks:false,
+      onSkip:() => { app.S.proofDone = true; save(); startRun(SESSION(), 'Daily session'); },
+      onDone:clip => { coldClip = clip; step2(); }
+    });
+  };
   const step2 = () => {
+    setSteps(pSteps, 1);
     tidePacer({
       title:'2 of 3 · Breathe & settle',
       head:'<p class="note">Two minutes of cyclic sighing to drop tension before your second read.</p>',
@@ -417,12 +444,15 @@ export function runProof() {
       onDone:() => step3()
     });
   };
-  const step3 = () => recordBaselineStep({
-    title:'3 of 3 · Paced re-read',
-    sub:'Read the exact same passage aloud now. Start each phrase softly and pause at each ▾ mark.',
-    marks:true,
-    onDone:clip => { pacedClip = clip; compare(); }
-  });
+  const step3 = () => {
+    setSteps(pSteps, 2);
+    recordBaselineStep({
+      title:'3 of 3 · Paced re-read',
+      sub:'Read the exact same passage aloud now. Start each phrase softly and pause at each ▾ mark.',
+      marks:true,
+      onDone:clip => { pacedClip = clip; setSteps(null); compare(); }
+    });
+  };
   const compare = () => {
     let r1 = 0, r2 = 0;
     setDarkCover(false);
@@ -491,5 +521,9 @@ export const DRILLS = {breath:runBreath, read:runRead, raid:runRaid, raid30:o =>
 export const sessionDrill = () => ['read', 'raid', 'cold'][dayNum(dstr()) % 3];
 export const SESSION = () => ['breath', sessionDrill(), 'cold'];
 export const SHORT = () => ['breath', 'raid30'];
-export function startRun(list, label) { RUN.active = true; RUN.label = label; RUN.q = list.slice(); RUN.n = list.length; RUN.i = 0; nextRun(); }
+export function startRun(list, label) {
+  RUN.active = true; RUN.label = label; RUN.q = list.slice(); RUN.n = list.length; RUN.i = 0;
+  RUN.steps = list.map(k => DRILL_N[k.replace(/\d+$/, '')] || 'Step');
+  nextRun();
+}
 export function nextRun() { if (!RUN.q.length) return; const k = RUN.q.shift(); RUN.i++; DRILLS[k]({auto:true}); }
