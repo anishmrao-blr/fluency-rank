@@ -8,6 +8,32 @@ import {runBreath, runRead, runRaid, runCold, runRitual, runField, runProof, run
 import {clearClips, pruneExpiredClips} from './recorder.js';
 import {renderAll, renderSheet} from './views.js';
 
+export function buildIcs(r) {
+  const byday = ['MO', 'TU', 'WE', 'TH', 'FR', 'SA', 'SU'];
+  const days = (r.days && r.days.length ? r.days : [0,1,2,3,4]).map(i => byday[i]).join(',');
+  const pad = n => String(n).padStart(2, '0');
+  const now = new Date();
+  const dt = now.getFullYear() + pad(now.getMonth() + 1) + pad(now.getDate()) + 'T' + pad(r.hour) + pad(r.min) + '00';
+  return [
+    'BEGIN:VCALENDAR',
+    'VERSION:2.0',
+    'PRODID:-//Fluency Rank//Daily Practice//EN',
+    'BEGIN:VEVENT',
+    'UID:fluency-rank-daily@local',
+    'SUMMARY:5-min speaking & breath practice',
+    'DESCRIPTION:One breathing session and one short speaking drill.',
+    'DTSTART:' + dt,
+    'DURATION:PT5M',
+    'RRULE:FREQ=WEEKLY;BYDAY=' + days,
+    'BEGIN:VALARM',
+    'ACTION:DISPLAY',
+    'DESCRIPTION:Time for your 5-min practice',
+    'TRIGGER:PT0M',
+    'END:VALARM',
+    'END:VEVENT',
+    'END:VCALENDAR'
+  ].join('\r\n');
+}
 function selectText(el) { el.removeAttribute('readonly'); el.focus(); el.select(); }
 function loadBackupText(raw) {
   const msg = $('#bkmsg');
@@ -58,6 +84,48 @@ const ACT = {
   boss() { if (rankOf(app.S.xp) >= 1) runCold(true); },
   /* choosing a practice time no longer pays XP: all progress goes through award() */
   plan(t) { app.S.plan.anchor = t.getAttribute('data-v'); save(); renderSheet(); },
+  remStep(t) {
+    const delta = Number(t.getAttribute('data-v')) || 0;
+    const total = (app.S.reminder.hour * 60 + app.S.reminder.min + delta + 1440) % 1440;
+    app.S.reminder.hour = Math.floor(total / 60); app.S.reminder.min = total % 60;
+    app.S.reminder.on = true; save(); renderSheet();
+  },
+  remAp(t) {
+    const ap = t.getAttribute('data-v'), h = app.S.reminder.hour;
+    if (ap === 'AM' && h >= 12) app.S.reminder.hour = h - 12;
+    else if (ap === 'PM' && h < 12) app.S.reminder.hour = h + 12;
+    app.S.reminder.on = true; save(); renderSheet();
+  },
+  remPre(t) {
+    const [h, m] = t.getAttribute('data-v').split(':').map(Number);
+    app.S.reminder.hour = h; app.S.reminder.min = m; app.S.reminder.on = true;
+    save(); renderSheet();
+  },
+  remDay(t) {
+    const i = Number(t.getAttribute('data-v'));
+    let d = (app.S.reminder.days || []).slice();
+    const k = d.indexOf(i);
+    if (k >= 0 && d.length > 1) d.splice(k, 1);
+    else if (k < 0) d.push(i);
+    app.S.reminder.days = d.sort(); app.S.reminder.on = true;
+    save(); renderSheet();
+  },
+  ics() {
+    app.S.reminder.on = true; save();
+    const content = buildIcs(app.S.reminder);
+    try {
+      if (typeof Blob !== 'undefined' && typeof URL !== 'undefined' && URL.createObjectURL) {
+        const url = URL.createObjectURL(new Blob([content], {type:'text/calendar;charset=utf-8'}));
+        const a = document.createElement('a');
+        a.href = url; a.download = 'daily-voice-practice.ics';
+        document.body.appendChild(a); a.click(); a.remove();
+        setTimeout(() => { try { URL.revokeObjectURL(url); } catch (e) {} }, 1000);
+        toast('Calendar alert downloaded');
+        return;
+      }
+    } catch (e) { /* fall through */ }
+    toast('Calendar file ready');
+  },
   copysum() { const el = $('#sum'); selectText(el); let ok = false; try { ok = document.execCommand && document.execCommand('copy'); } catch (e) { ok = false; } el.setAttribute('readonly', ''); $('#summsg').textContent = ok ? 'Copied.' : 'Selected. Copy it with your keyboard.'; },
   copy() { const el = $('#bk'); selectText(el); let ok = false; try { ok = document.execCommand && document.execCommand('copy'); } catch (e) { ok = false; } $('#bkmsg').textContent = ok ? 'Copied.' : 'Selected. Copy it with your keyboard.'; },
   export() {
@@ -140,6 +208,7 @@ document.addEventListener('change', e => {
   else if (id === 'hclk') { app.S.hideClock = e.target.checked; save(); }
   else if (id === 'snds') { app.S.sound = e.target.checked; save(); primeAudio(); }
   else if (id === 'voice') { app.S.voice = e.target.checked; save(); }
+  else if (id === 'remOn') { app.S.reminder.on = e.target.checked; save(); renderAll(); }
   else if (id === 'bkfile') {
     const file = e.target.files && e.target.files[0];
     if (!file) return;

@@ -199,6 +199,27 @@ input[type=range]{width:100%;min-height:44px;accent-color:var(--tint)}
 .ss-head{display:flex;justify-content:space-between;align-items:center}
 .step-summary .btn{align-self:flex-start}
 
+/* ---------- Step 6: Reminder Picker & Accordion Help Cards ---------- */
+.rem-box{gap:12px}
+.rem-time{display:flex;align-items:center;justify-content:space-between;gap:10px;background:var(--fill);border-radius:14px;padding:10px 12px}
+.rem-step{width:40px;height:40px;border:0;border-radius:50%;background:var(--bg-group);color:var(--label);font-size:20px;font-weight:600;display:grid;place-items:center;cursor:pointer}
+.rem-val{font-size:1.65rem;font-weight:700;letter-spacing:.03em;color:var(--label)}
+.rem-ap{display:flex;flex-direction:column;gap:3px}
+.rem-ap button{min-height:24px;padding:2px 8px;border:0;border-radius:6px;background:transparent;color:var(--label-2);font-size:11px;font-weight:700;cursor:pointer}
+.rem-ap button[aria-pressed="true"]{background:var(--tint);color:var(--on-tint)}
+.rem-presets{display:flex;gap:6px;flex-wrap:wrap}
+.rem-pre{flex:1 1 auto;min-height:36px;padding:6px 10px;border:0;border-radius:999px;background:var(--fill);color:var(--label-2);font-size:var(--t-cap);font-weight:600;cursor:pointer}
+.rem-days{display:grid;grid-template-columns:repeat(7,1fr);gap:6px}
+.rem-day{min-height:40px;border:1px solid var(--sep);border-radius:50%;background:transparent;color:var(--label-2);font-size:var(--t-cap);font-weight:700;cursor:pointer;transition:background-color .16s,color .16s}
+.rem-day[aria-pressed="true"]{background:var(--tint);color:var(--on-tint);border-color:var(--tint)}
+.help-stack{display:flex;flex-direction:column;gap:10px}
+.help-acc{background:var(--bg-group);border-radius:16px;overflow:hidden;box-shadow:0 4px 14px rgba(17,25,22,.04)}
+.help-acc>summary{list-style:none;display:flex;align-items:center;justify-content:space-between;min-height:52px;padding:12px 16px;font-size:var(--t-body);font-weight:600;color:var(--label);cursor:pointer}
+.help-acc>summary::-webkit-details-marker{display:none}
+.help-acc>summary::after{content:"›";font-size:20px;color:var(--label-2);transition:transform .2s ease}
+.help-acc[open]>summary::after{transform:rotate(90deg)}
+.help-acc>p{padding:0 16px 14px;line-height:1.45}
+
 .week{display:grid;grid-template-columns:repeat(7,1fr);gap:8px}
 .wd{display:flex;flex-direction:column;align-items:center;gap:5px}
 .wd .trk{position:relative;width:100%;max-width:22px;height:36px;border-radius:999px;background:var(--fill);overflow:hidden}

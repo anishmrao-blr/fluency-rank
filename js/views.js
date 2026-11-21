@@ -22,14 +22,25 @@ export function weekHtml() {
   }
   return '<ul class="week" aria-label="This week">' + h + '</ul>';
 }
+export function isReminderDue(now) {
+  const r = app.S.reminder;
+  if (!r || !r.on) return false;
+  if (questProgress().done >= 2) return false;
+  const d = now || new Date();
+  const monIdx = (d.getDay() + 6) % 7; // 0=Mon..6=Sun
+  if ((r.days || []).indexOf(monIdx) < 0) return false;
+  const minsNow = d.getHours() * 60 + d.getMinutes();
+  return minsNow >= (r.hour * 60 + r.min);
+}
 export function viewHome() {
   const qp = questProgress();
-  const hint = qp.done === 2 ? 'Both done today.' : qp.items[0].ok ? '1 drill left today · +40 XP' : qp.items[1].ok ? '1 breath left today · +40 XP' : '1 min breath + 1 drill.';
+  const due = isReminderDue();
+  const hint = qp.done === 2 ? 'Both done today.' : qp.items[0].ok ? '1 drill left today · +40 XP' : qp.items[1].ok ? '1 breath left today · +40 XP' : (due ? 'Time for today’s 5-min session.' : '1 min breath + 1 drill.');
   return '<div class="home">' + titleBar('Today', '<button type="button" class="icb" data-act="settings" aria-label="Settings">' + ICON.gear + '</button>')
     + '<section class="tide-inline" aria-label="This week"><p class="nums">This week ' + practicedThisWeek() + ' of 5' + (app.S.best > 0 ? ' · Best run ' + app.S.best : '') + '</p>' + weekHtml() + '</section>'
     + '<section class="pcard hero-card" aria-label="Daily session">'
     + '<img src="assets/card-morning-home.jpg" alt="" aria-hidden="true">'
-    + '<span class="pc-pill">Today ' + qp.done + ' of ' + qp.total + ' · 5 min</span>'
+    + '<span class="pc-pill' + (due ? ' mint' : '') + '">' + (due ? 'Due today · ' : '') + 'Today ' + qp.done + ' of ' + qp.total + ' · 5 min</span>'
     + '<h2 class="pc-title">Daily voice session</h2>'
     + '<p class="pc-sub">' + hint + '</p>'
     + '<div class="goal-bar" aria-hidden="true"><i class="' + (qp.done >= 1 ? 'on' : '') + '"></i><i class="' + (qp.done >= 2 ? 'on' : '') + '"></i></div>'
@@ -181,11 +192,39 @@ export function summaryText() {
   return lines.join('\n');
 }
 
-/* ---------- Settings sheet (absorbs the old Guide) ---------- */
+/* ---------- Settings sheet (absorbs the old Guide + Step 6 Reminders & Help Accordions) ---------- */
 const toggle = (id, label, on) => '<label class="li tg"><span class="grow">' + esc(label) + '</span><input type="checkbox" id="' + id + '"' + (on ? ' checked' : '') + '></label>';
+function fmtRemTime(r) {
+  const h12 = (r.hour % 12) || 12, ap = r.hour < 12 ? 'AM' : 'PM';
+  return {hm: String(h12).padStart(2, '0') + ' : ' + String(r.min).padStart(2, '0'), ap};
+}
 export function settingsHtml() {
+  const r = app.S.reminder || {on:false, hour:8, min:30, days:[0,1,2,3,4]};
+  const tm = fmtRemTime(r), dL = ['M', 'T', 'W', 'T', 'F', 'S', 'S'], dF = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
+  const remCard = '<div class="group">'
+    + toggle('remOn', 'Daily practice reminder', r.on)
+    + '<div class="field rem-box">'
+    + '<div class="rem-time">'
+    + '<button type="button" class="rem-step" data-act="remStep" data-v="-15" aria-label="15 minutes earlier">−</button>'
+    + '<span class="rem-val num">' + tm.hm + '</span>'
+    + '<button type="button" class="rem-step" data-act="remStep" data-v="15" aria-label="15 minutes later">+</button>'
+    + '<div class="rem-ap"><button type="button" data-act="remAp" data-v="AM" aria-pressed="' + (tm.ap === 'AM') + '">AM</button><button type="button" data-act="remAp" data-v="PM" aria-pressed="' + (tm.ap === 'PM') + '">PM</button></div>'
+    + '</div>'
+    + '<div class="rem-presets" role="group" aria-label="Quick time presets">'
+    + '<button type="button" class="rem-pre" data-act="remPre" data-v="8:0">Morning 8:00</button>'
+    + '<button type="button" class="rem-pre" data-act="remPre" data-v="13:0">Midday 1:00</button>'
+    + '<button type="button" class="rem-pre" data-act="remPre" data-v="20:30">Evening 8:30</button>'
+    + '</div>'
+    + '<div class="rem-days" role="group" aria-label="Repeat days">'
+    + dL.map((l, i) => '<button type="button" class="rem-day" data-act="remDay" data-v="' + i + '" aria-pressed="' + (r.days.indexOf(i) >= 0) + '" aria-label="' + dF[i] + '">' + l + '</button>').join('')
+    + '</div>'
+    + '<button type="button" class="btn btn-p btn-sm" data-act="ics">Add to calendar</button>'
+    + '</div></div>'
+    + '<p class="gf">iOS web apps cannot schedule their own alarm yet. Add to Calendar gives you an offline alert, and Home shows a gentle due nudge.</p>';
+
   return '<div class="rhythm-banner"><img src="assets/banner-rhythm.jpg" alt=""><span class="rb-k">Consistency</span><strong class="rb-t">Small steps, every day.</strong></div>'
-    + gh('Practice time', 'ptH') + '<div class="group" role="group" aria-labelledby="ptH">' + ANCHORS.map(a => '<button type="button" class="li" data-act="plan" data-v="' + esc(a) + '" aria-pressed="' + (app.S.plan.anchor === a) + '"><span class="grow tt">' + esc(cap(a)) + '</span><svg class="ic ck" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg></button>').join('') + '</div><p class="gf">Tie practice to something you already do each day. This app cannot send reminders yet, so set a phone alarm for the same moment.</p>'
+    + gh('Daily reminder') + remCard
+    + gh('Practice time', 'ptH') + '<div class="group" role="group" aria-labelledby="ptH">' + ANCHORS.map(a => '<button type="button" class="li" data-act="plan" data-v="' + esc(a) + '" aria-pressed="' + (app.S.plan.anchor === a) + '"><span class="grow tt">' + esc(cap(a)) + '</span><svg class="ic ck" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg></button>').join('') + '</div><p class="gf">Tie practice to something you already do each day.</p>'
     + gh('Situations') + '<div class="group">' + CONTEXTS.map(c => toggle('ctx-' + c.id, c.n, (app.S.contexts || []).indexOf(c.id) >= 0)).join('') + '</div>'
     + gh('Your words') + '<div class="group">'
     + '<div class="field"><label for="uname">Your name (optional)</label><input type="text" id="uname" maxlength="40" placeholder="Used in phone &amp; intro prompts" value="' + esc(app.S.userName || '') + '" autocomplete="off"></div>'
@@ -203,11 +242,11 @@ export function settingsHtml() {
     + gh('Recordings') + '<div class="group"><div class="field"><p class="ds" id="recStat" role="status">Checking on-device clips…</p><button type="button" class="btn btn-s btn-sm" data-act="delClips">Delete all recordings</button></div></div><p class="gf">Recordings stay on this device and are never uploaded. Drill clips delete after 14 days; baseline proof clips stay until you delete them.</p>'
     + gh('Backup') + '<div class="group"><div class="field"><p class="ds" id="sync" role="status"></p><div class="row"><button type="button" class="btn btn-s btn-sm" data-act="export">Export backup</button><button type="button" class="btn btn-s btn-sm" data-act="importFile">Import backup</button></div><input type="file" id="bkfile" accept="application/json,.json" hidden><p class="ds" id="bkmsg" role="status"></p></div><details class="bk-raw"><summary>Paste or copy backup text</summary><div class="field"><label for="bk">Backup text</label><textarea id="bk"></textarea><div class="row"><button type="button" class="btn btn-s btn-sm" data-act="copy">Copy text</button><button type="button" class="btn btn-s btn-sm" data-act="import">Load pasted backup</button></div></div></details></div><p class="gf">Progress stays on this device. Export a file to move it to another device, or import a saved backup.</p>'
     + '<div class="group" style="margin-top:16px"><button type="button" class="li" data-act="reset" id="rst"><span class="grow tt" style="color:var(--tint)">Reset progress</span></button></div>'
-    + gh('Help') + '<div class="group help">'
-    + '<div class="li"><span class="grow"><span class="tt">Practice, not therapy</span><span class="ds">This app gives you somewhere to practise breathing and speaking techniques every day. It does not treat stammering or anxiety, and it cannot promise your stammer will go away. A speech therapist can assess you and tell you which techniques fit you.</span></span></div>'
-    + '<div class="li"><span class="grow"><span class="tt">Finding a speech therapist</span><span class="ds">Ask your doctor for a referral to a speech and language therapist (in the US, a speech-language pathologist). National stammering organisations keep directories and support groups: STAMMA in the UK (<a href="https://stamma.org" target="_blank" rel="noopener">stamma.org</a>), the National Stuttering Association (<a href="https://westutter.org" target="_blank" rel="noopener">westutter.org</a>) and ASHA ProFind (<a href="https://www.asha.org/profind/" target="_blank" rel="noopener">asha.org/profind</a>) in the US, and The Indian Stammering Association in India.</span></span></div>'
-    + '<div class="li"><span class="grow"><span class="tt">Techniques in short</span><span class="ds">Speak on a breath: breathe in quietly and begin as you breathe out. Easy onset: start the first sound softly, like a sigh turning into a word. Slow rate: stretch syllables a little. Phrase and pause: speak in short chunks. Pause, do not dodge: a silent pause is fine, and you do not need to swap a word to avoid a sound.</span></span></div>'
-    + '<div class="li"><span class="grow"><span class="tt">Answering on the spot</span><span class="ds">Position first (“My recommendation is…”), then one reason, then what would change your mind. To buy a moment honestly: ' + STALL.slice(0, 3).map(s => '“' + esc(s) + '”').join(', ') + '.</span></span></div>'
+    + gh('Help') + '<div class="help-stack">'
+    + '<details class="help-acc" open><summary>Practice, not therapy</summary><p class="ds">This app gives you somewhere to practise breathing and speaking techniques every day. It does not treat stammering or anxiety, and it cannot promise your stammer will go away. A speech therapist can assess you and tell you which techniques fit you.</p></details>'
+    + '<details class="help-acc"><summary>Finding a speech therapist</summary><p class="ds">Ask your doctor for a referral to a speech and language therapist (in the US, a speech-language pathologist). Directories and support groups: STAMMA in the UK (<a href="https://stamma.org" target="_blank" rel="noopener">stamma.org</a>), the National Stuttering Association (<a href="https://westutter.org" target="_blank" rel="noopener">westutter.org</a>), ASHA ProFind (<a href="https://www.asha.org/profind/" target="_blank" rel="noopener">asha.org/profind</a>) in the US, and The Indian Stammering Association in India.</p></details>'
+    + '<details class="help-acc"><summary>Techniques in short</summary><p class="ds">Speak on a breath: breathe in quietly and begin as you breathe out. Easy onset: start the first sound softly, like a sigh turning into a word. Slow rate: stretch syllables a little. Phrase and pause: speak in short chunks. Pause, do not dodge: a silent pause is fine. To buy a moment: ' + STALL.slice(0, 3).map(s => '“' + esc(s) + '”').join(', ') + '.</p></details>'
+    + '<details class="help-acc"><summary>Known limits &amp; privacy</summary><p class="ds">Everything stays on this device and works offline. Pace and pause measures are indicators of change, not a diagnosis. iOS web apps do not support native alarms or haptics yet; use Add to calendar for offline reminders.</p></details>'
     + '</div>';
 }
 export function renderSheet() {

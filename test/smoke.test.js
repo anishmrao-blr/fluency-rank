@@ -406,6 +406,18 @@ const dayIdx=()=>{const p=ds(new Date()).split('-').map(Number);return Math.roun
     assert(st().customPassages.length===1,'custom passage added');
     click($('[data-act="delQ"]'));click($('[data-act="delP"]'));
     assert(st().customQuestions.length===0&&st().customPassages.length===0,'custom question and passage removed');
+
+    // Step 6: Reminder time picker, presets, weekday pills, .ics generator & Help accordions
+    const M=w.__mod('js/main.js'), V=w.__mod('js/views.js');
+    click($('[data-act="remPre"][data-v="8:0"]'));
+    click($('[data-act="remStep"][data-v="15"]'));
+    assert(st().reminder.on===true&&st().reminder.hour===8&&st().reminder.min===15,'reminder preset and 15-min stepper save');
+    click($('[data-act="remDay"][data-v="5"]'));
+    assert(st().reminder.days.includes(5),'weekday pill toggles Saturday');
+    const ics=M.buildIcs(st().reminder);
+    assert(ics.includes('BEGIN:VCALENDAR')&&ics.includes('RRULE:FREQ=WEEKLY;BYDAY=')&&ics.includes('BEGIN:VALARM'),'buildIcs outputs valid recurring calendar alert');
+    assert(V.isReminderDue(new Date(2026,10,23,9,0))===true&&V.isReminderDue(new Date(2026,10,23,7,0))===false,'isReminderDue triggers gently after chosen time on active days');
+    assert($$('.help-acc').length===4,'Help renders as 4 clean accordion cards');
   }
 
   /* ---------- End control: partial credit, and nothing done ---------- */

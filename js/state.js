@@ -16,7 +16,7 @@ export const fresh = () => ({
   proofDone:false, proofColdId:'', proofPacedId:'', proofColdRate:null, proofPacedRate:null,
   proofColdMeta:null, proofPacedMeta:null, lastReeval:'', reevalId:'', reevalRate:null, reevalMeta:null,
   rung:2, up:0, down:0, coldSecs:60, bosses:0,
-  plan:{anchor:'', mins:10}, planBonus:false, started:'', days:{},
+  plan:{anchor:'', mins:10}, reminder:{on:false, hour:8, min:30, days:[0,1,2,3,4]}, planBonus:false, started:'', days:{},
   weekAward:'', weak:{}, comeback:false, titles:[],
   daily:blankDaily(), log:[], updatedAt:0
 });
@@ -69,6 +69,9 @@ export function sanitize(o) {
   s.bosses = int(o.bosses, 0, 0, 1e4);
   const p = o.plan || {};
   s.plan = {anchor: ANCHORS.indexOf(p.anchor) >= 0 ? p.anchor : '', mins: p.mins === 3 ? 3 : 10};
+  const rm = o.reminder || {};
+  const rdays = Array.isArray(rm.days) ? [...new Set(rm.days.map(Number).filter(n => Number.isInteger(n) && n >= 0 && n <= 6))].sort() : [0,1,2,3,4];
+  s.reminder = {on: rm.on === true, hour: int(rm.hour, 8, 0, 23), min: int(rm.min, 30, 0, 59), days: rdays.length ? rdays : [0,1,2,3,4]};
   s.planBonus = o.planBonus === true;
   s.started = isDate(o.started) ? o.started : '';
   if (o.days && typeof o.days === 'object') {
