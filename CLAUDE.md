@@ -19,8 +19,9 @@ current implementation plan is in `docs/superpowers/plans/`.
 
 ## Architecture (native ES modules in js/, no build step, no runtime dependencies)
 - `util` helpers, `content` (RANKS, QUESTIONS, PASSAGES, MISSIONS...), `state` (the `app` object,
-  `fresh/sanitize/save`), `rules` (`rollDay/award/questProgress`), `ui` (toast, modal, the drill cover,
-  the Settings sheet, the End control, result screens, timers), `drills` (drills and the tide pacer),
+  `fresh/sanitize/save`), `rules` (`rollDay/award/questProgress`), `ui` (toast, modal, confirmModal,
+  the drill cover, the Settings sheet, the End control, result screens, timers), `breath` (techniques,
+  custom patterns, tide pacer, voice guide, wake lock), `drills` (speaking drills and sessions),
   `views`, and `main` (events and boot). All CSS is in `css/app.css`; DESIGN.md is the visual
   contract. Shared mutable state lives on `app`: `app.S`, `app.tab`, `app.running`,
   `app.storageOk`, `app.noticeText`.

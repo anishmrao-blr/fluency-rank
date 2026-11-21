@@ -78,7 +78,10 @@ const dayIdx=()=>{const p=ds(new Date()).split('-').map(Number);return Math.roun
     assert($$('.course li.next').length===1,'one next buoy is marked');
     assert(!/Gate|Raid|Gauntlet|Field mission|Cold Question|Paced Reading/.test(view()),'no old game names on Speak');
     tab('breathe');
-    assert(!!named('Open Gentle breathing')&&!!named('Open Long exhale')&&!!named('Open Breathe and speak'),'Breathe lists the three patterns');
+    assert($$('[data-act="bmins"]').map(b=>b.textContent.trim()).join()==='1 min,3 min,5 min','Breathe shows 1, 3 and 5 min chips');
+    assert(!!named('Start Calm now: Cyclic sighing')&&!!named('Start Before speaking: Breathe and speak')&&!!named('Start Focus: Box breathing')&&!!named('Start Wind down: Extended exhale'),'Breathe lists the four goal rows');
+    assert(!!named('Open Cyclic sighing')&&!!named('Open Box breathing')&&!!named('Open Extended exhale')&&!!named('Open Resonance breathing')&&!!named('Open Custom pattern'),'All techniques lists named techniques and Custom pattern');
+    assert(view().includes('Stanford')&&view().includes('HRV-biofeedback'),'All techniques includes carefully worded evidence lines');
     tab('home');
     assert(d.activeElement===$('#view h1'),'focus moves to the new large title on a tab switch');
 
@@ -124,8 +127,8 @@ const dayIdx=()=>{const p=ds(new Date()).split('-').map(Number);return Math.roun
     assert(t1!==$('#tpW').style.transform&&/translateY/.test(t1),'water level moves with transform');
     adv(3000);
     assert(live.textContent==='Out, slowly','pacer announces the exhale');
-    adv(116000);
-    assert(body().includes('You breathed for 2 min.'),'result leads with a plain line');
+    adv(176000);
+    assert(body().includes('You breathed for 3 min.'),'result leads with a plain line');
     assert(body().includes('[Logged] Breathe · +20 XP'),'breath +20 XP as a System notice');
     assert(!$('#end'),'End is replaced by Done on the result screen');
     done();
@@ -202,6 +205,7 @@ const dayIdx=()=>{const p=ds(new Date()).split('-').map(Number);return Math.roun
     assert(body().includes('Your opening line')&&$('#tpSay').textContent===st().opener,'opening line shown on the exhale');
     adv(20500);
     assert(body().includes('Say your first sentence'),'then say your first sentence');
+    assert(!!$('#runBody .thumb #done'),'I said it sits in the thumb-reach container');
     click($('#done'));
     assert(body().includes('You are ready to speak.')&&body().includes('+20 XP'),'I am about to speak completes');
     done();
@@ -226,7 +230,8 @@ const dayIdx=()=>{const p=ds(new Date()).split('-').map(Number);return Math.roun
     assert($('#opener').value.includes('<b>')&&!$('#sheetBody').innerHTML.includes('<b>team</b>'),'opener escaped in the DOM');
     change('#hclk',true);assert(st().hideClock===true,'hide countdown toggle saves');
 
-    // backup and import
+    // backup and import (Export/Import buttons + collapsible text fallback)
+    assert(!!$('[data-act="export"]')&&!!$('[data-act="importFile"]')&&!!$('.bk-raw'),'Backup shows Export/Import buttons and collapsible text box');
     const bk=$('#bk').value;
     $('#bk').value='not json';click($('[data-act="import"]'));
     assert($('#bkmsg').textContent.includes('not a valid backup'),'bad import rejected');
@@ -237,9 +242,57 @@ const dayIdx=()=>{const p=ds(new Date()).split('-').map(Number);return Math.roun
     s=st();assert(s.xp===5000&&s.stats.pace===0&&s.energy===5&&s.streak===9,'import validates and clamps values');
     assert($('#bkmsg').textContent==='Backup loaded.','import confirms in place');
 
-    // reset needs two presses
-    click($('#rst'));assert(st().xp===5000&&$('#rst').textContent.includes('Press again'),'reset needs confirmation');
-    click($('#rst'));assert(st().xp===0,'second press resets');
+    // reset opens iPhone-style confirmation sheet
+    click($('#rst'));
+    assert(!$('#modal').hidden&&$('#modal').classList.contains('sheet-modal')&&!!$('#mconfirm')&&!!$('#mclose'),'reset opens confirmation sheet');
+    click($('#mclose'));
+    assert($('#modal').hidden&&st().xp===5000,'Cancel keeps progress intact');
+    click($('#rst'));click($('#mconfirm'));
+    assert($('#modal').hidden&&st().xp===0,'confirming reset clears progress');
+  }
+
+  /* ---------- Goal-first Breathe: one-tap start, Box holds, Custom, Voice guide, Wake Lock ---------- */
+  {
+    const w=await boot();const k=kit(w);await sleep(50);
+    const {$,click,adv,st,body,tab,done,settings,change}=k;
+    // mock speechSynthesis and wakeLock
+    const spoken=[];let cancelled=0,wakeReq=0,wakeRel=0;
+    w.SpeechSynthesisUtterance=function(t){this.text=t;this.rate=1;};
+    w.speechSynthesis={speak(u){spoken.push(u.text)},cancel(){cancelled++}};
+    w.navigator.wakeLock={request:async()=>{wakeReq++;return {release:async()=>{wakeRel++},addEventListener(){}}}};
+
+    settings();change('#voice',true);assert(st().voice===true,'voice guide toggle saves');
+    click($('[data-act="sheetDone"]'));adv(400);
+
+    tab('breathe');
+    click($('[data-act="bmins"][data-v="1"]'));
+    assert(st().breathMins===1,'1 min chip saves');
+    // one tap on Focus starts Box breathing immediately (no setup screen)
+    click($('[data-act="goal"][data-v="box"]'));
+    await sleep(0);
+    assert(!!$('#tpLive')&&!$('#go'),'tapping a goal starts the tide pacer in one tap');
+    assert(wakeReq===1,'Wake Lock requested when pacer starts');
+    adv(500);assert($('#tpLive').textContent==='Breathe in'&&spoken.includes('Breathe in'),'Box breathing announces and speaks Breathe in');
+    adv(4000);assert($('#tpLive').textContent==='Hold'&&spoken.includes('Hold'),'Box breathing announces and speaks Hold');
+    adv(4000);assert($('#tpLive').textContent==='Out, slowly','Box breathing announces Out, slowly');
+    adv(4000);assert($('#tpLive').textContent==='Hold','Box breathing announces second Hold');
+    adv(48000);
+    assert(body().includes('You breathed for 1 min.')&&body().includes('+20 XP'),'1 min goal session finishes and logs');
+    assert(wakeRel>=1,'Wake Lock released when pacer finishes');
+    done();
+
+    // Custom pattern
+    tab('breathe');click($('[data-act="breath"][data-v="custom"]'));
+    $('#cbIn').value='5';$('#cbIn').oninput.call($('#cbIn'));
+    $('#cbH1').value='2';$('#cbH1').oninput.call($('#cbH1'));
+    $('#cbOut').value='7';$('#cbOut').oninput.call($('#cbOut'));
+    assert(st().customBreath.inS===5&&st().customBreath.hold1===2&&st().customBreath.outS===7,'custom pattern timings save');
+    click($('#go'));
+    adv(500);assert($('#tpLive').textContent==='Breathe in','custom pattern starts inhale');
+    adv(5000);assert($('#tpLive').textContent==='Hold','custom pattern honours hold');
+    adv(2000);assert($('#tpLive').textContent==='Out, slowly','custom pattern moves to exhale');
+    click($('#end'));click($('#endYes'));adv(400);
+    assert(cancelled>=1,'ending cancels speechSynthesis');
   }
 
   /* ---------- End control: partial credit, and nothing done ---------- */
@@ -342,12 +395,12 @@ const dayIdx=()=>{const p=ds(new Date()).split('-').map(Number);return Math.roun
   {
     const w=await boot({v:2,xp:100,streak:5,best:5,shields:1,lastDay:ago(2),updatedAt:1});const k=kit(w);await sleep(50);
     assert(k.view().includes('Best run 5'),'Home shows the best run');
-    k.tab('breathe');k.click(k.$('[data-act="breath"]'));k.click(k.$('#go'));k.adv(121000);k.done();
+    k.tab('breathe');k.click(k.$('[data-act="breath"]'));k.click(k.$('#go'));k.adv(181000);k.done();
     const s=k.st();assert(s.streak===6&&s.shields===0,'one-day gap bridged by a shield; streak continues');
   }
   {
     const w=await boot({v:2,xp:100,streak:5,best:5,shields:0,lastDay:ago(4),updatedAt:1});const k=kit(w);await sleep(50);
-    k.tab('breathe');k.click(k.$('[data-act="breath"]'));k.click(k.$('#go'));k.adv(121000);
+    k.tab('breathe');k.click(k.$('[data-act="breath"]'));k.click(k.$('#go'));k.adv(181000);
     assert(k.body().includes('[Comeback bonus] +25 XP')&&k.body().includes('+20 XP'),'comeback bonus added after a gap');
     k.done();
     const s=k.st();assert(s.streak===1&&s.best===5&&s.comeback===false,'run restarts quietly, best kept, comeback used');
@@ -360,7 +413,7 @@ const dayIdx=()=>{const p=ds(new Date()).split('-').map(Number);return Math.roun
     const days={};for(let i=0;i<7&&Object.keys(days).length<4;i++){const x=new Date(mon);x.setDate(mon.getDate()+i);if(ds(x)!==ds(now))days[ds(x)]={n:1,e:3};}
     const w=await boot({v:3,xp:100,days,updatedAt:1});const k=kit(w);await sleep(50);
     assert(k.view().includes('This week 4 of 5'),'Home counts this week');
-    k.tab('breathe');k.click(k.$('[data-act="breath"]'));k.click(k.$('#go'));k.adv(121000);
+    k.tab('breathe');k.click(k.$('[data-act="breath"]'));k.click(k.$('#go'));k.adv(181000);
     assert(k.body().includes('[Weekly goal met] +60 XP and a shield'),'fifth practice day this week shows the weekly notice');
     k.done();
     const s=k.st();assert(s.shields===1&&s.weekAward!=='','fifth practice day this week earns a shield');
@@ -371,7 +424,7 @@ const dayIdx=()=>{const p=ds(new Date()).split('-').map(Number);return Math.roun
     const w=await boot(null,'{not json');const k=kit(w);await sleep(50);
     assert(!k.$('#notice').hidden&&k.$('#notice').textContent.includes('fresh start'),'corrupt storage shows a notice');
     assert(w.localStorage.getItem(KEY+':corrupt')==='{not json','corrupt data is kept aside');
-    k.tab('breathe');k.click(k.$('[data-act="breath"]'));k.click(k.$('#go'));k.adv(121000);
+    k.tab('breathe');k.click(k.$('[data-act="breath"]'));k.click(k.$('#go'));k.adv(181000);
     assert(k.body().includes('+20 XP'),'app works after corrupt recovery');
   }
   {
@@ -390,7 +443,7 @@ const dayIdx=()=>{const p=ds(new Date()).split('-').map(Number);return Math.roun
   {
     const w=await boot();const k=kit(w);await sleep(50);
     w.Storage.prototype.setItem=()=>{throw new Error('quota')};
-    k.tab('breathe');k.click(k.$('[data-act="breath"]'));k.click(k.$('#go'));k.adv(121000);
+    k.tab('breathe');k.click(k.$('[data-act="breath"]'));k.click(k.$('#go'));k.adv(181000);
     assert(k.body().includes('+20 XP'),'drill still works when storage fails');
     k.done();
     assert(!k.$('#notice').hidden&&k.$('#notice').textContent.includes('Settings'),'storage failure shows a visible notice pointing to Settings');

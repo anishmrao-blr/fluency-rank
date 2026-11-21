@@ -1,8 +1,10 @@
-import {$, $$, esc, rnd, clamp, reduceMotion, shuffle, fmt, dstr, dayNum} from './util.js';
-import {FLU, PATTERNS, PHRASES, WPM, PASSAGES, QUESTIONS, STALL, LETTERS, CATS, MISSIONS} from './content.js';
+import {$, $$, esc, rnd, clamp, shuffle, fmt, dstr, dayNum} from './util.js';
+import {FLU, WPM, PASSAGES, QUESTIONS, STALL, LETTERS, CATS, MISSIONS} from './content.js';
 import {app, save} from './state.js';
 import {award} from './rules.js';
 import {toast, bar, T, cue, runBody, RUN, openRun, setRun, setPartial, minsDone, choiceRow, wireChoice, rateHtml, wireRate, resultScreen, ICON} from './ui.js';
+import {LOW, BREATH_IN, SIGH, tidePacer, runBreath} from './breath.js';
+export {runBreath, tidePacer, SIGH, LOW};
 
 export const QUSED = {};
 export function nextQuestion() {
@@ -20,104 +22,6 @@ export function pickRaid(last) {
 }
 const barId = id => bar(0).replace('<i ', '<i id="' + id + '" ');
 const setBar = (id, p) => { const el = $('#' + id); if (el) el.style.transform = 'scaleX(' + (clamp(p, 0, 100) / 100).toFixed(3) + ')'; };
-
-/* ---------- the tide pacer ----------
-   Water fills the cover from the bottom. Its surface is two layered sine waves drifting at different
-   speeds; the level eases sinusoidally through each phase, so it slows at the top and bottom of a
-   breath. Only transform is animated. Reduced motion: no wave and no slide; the word changes and a
-   thin bar steps once a second. Phase words are announced through a polite live region. */
-export const LOW = 0.22, HIGH = 0.72;
-const BREATH_IN = s => ({w:'Breathe in', s, to:HIGH, cue:'in'});
-const BREATH_OUT = s => ({w:'Out, slowly', s, to:LOW, cue:'out'});
-export const SIGH = [{w:'Breathe in', s:2, to:0.6, cue:'in'}, {w:'In again, a little more', s:1, to:HIGH, cue:'in'}, {w:'Out, slowly', s:6, to:LOW, cue:'out'}];
-/* one sine surface across 400 units; the SVG is 200% wide and drifts by half, so whole periods loop seamlessly */
-function wavePath(periods, amp) {
-  let d = 'M0 14';
-  for (let x = 4; x <= 400; x += 4) d += ' L' + x + ' ' + (14 + amp * Math.sin(x / 400 * periods * 2 * Math.PI)).toFixed(2);
-  return d + ' L400 28 L0 28 Z';
-}
-const WAVES = '<svg class="tp-wave back" viewBox="0 0 400 28" preserveAspectRatio="none"><path d="' + wavePath(4, 7) + '"/></svg><svg class="tp-wave front" viewBox="0 0 400 28" preserveAspectRatio="none"><path d="' + wavePath(6, 5) + '"/></svg>';
-const SOUNDINGS = [1, 2, 3, 4, 5, 6, 7, 8, 9].map(i => '<i style="top:' + (i * 10) + '%"' + (i === 5 ? ' class="mid"' : '') + '></i>').join('');
-/* o: {title, head, phases:[{w, s, to, cue}], cycles | totalS, say(cycle, phase) -> text, onDone(cycles)}.
-   Returns {elapsed()} in seconds. */
-export function tidePacer(o) {
-  const ph = o.phases, cycS = ph.reduce((a, p) => a + p.s, 0), totalS = o.totalS || cycS * o.cycles;
-  setRun('<div class="tp-ui"><h2 class="h-t">' + esc(o.title) + '</h2>' + (o.head || '') + '<div class="tp-meta"><span id="tpCy"></span><span id="tpRem"></span></div><p class="tp-say" id="tpSay"></p></div>'
-    + '<p class="sr" aria-live="polite" id="tpLive"></p>'
-    + '<div class="tp' + (reduceMotion ? ' rm' : '') + '" id="tp" aria-hidden="true"><div class="tp-water" id="tpW">' + WAVES + '</div><div class="tp-snd">' + SOUNDINGS + '</div><div class="tp-surf" id="tpS"><div class="tp-word" id="tpWord">Get ready</div><div class="tp-count" id="tpCount"></div></div><div class="tp-bar"><i id="tpBar"></i></div></div>');
-  const W = $('#tpW'), S = $('#tpS'), word = $('#tpWord'), count = $('#tpCount'), live = $('#tpLive'), cy = $('#tpCy'), rem = $('#tpRem'), say = $('#tpSay'), tb = $('#tpBar');
-  const start = performance.now();
-  const elapsed = () => (performance.now() - start) / 1000;
-  /* the gauge starts below the text block, so high water and the phase word never run under the copy */
-  const tp = $('#tp'), ui = $('.tp-ui', runBody), snd = $('.tp-snd', tp);
-  /* ...and it ends above the End control, so low water and the count never run under it. The water
-     body still reaches the bottom of the screen. Measured once, before any End confirmation opens. */
-  const footH = ($('#runFoot') || {}).offsetHeight || 0;
-  let span = 1;
-  const fit = () => {
-    const b = ui.getBoundingClientRect().bottom - $('#run').getBoundingClientRect().top; if (b > 0) tp.style.top = Math.round(b + 64) + 'px';
-    const H = tp.clientHeight; if (H > 0 && footH) { span = clamp((H - footH - 8) / H, 0.5, 1); snd.style.bottom = Math.round(H * (1 - span)) + 'px'; }
-  };
-  fit();
-  const place = lvl => { const t = 'translateY(' + (span * (1 - lvl) * 100).toFixed(2) + '%)'; W.style.transform = t; S.style.transform = t; };
-  let last = '';
-  const frame = () => {
-    const el = elapsed();
-    if (el >= totalS) { if (!reduceMotion) place(LOW); cue('end'); o.onDone(Math.round(totalS / cycS)); return; }
-    const idx = Math.floor(el / cycS), pos = el - idx * cycS;
-    let k = 0, acc = 0;
-    while (k < ph.length - 1 && pos >= acc + ph[k].s) { acc += ph[k].s; k++; }
-    const P = ph[k], p = clamp((pos - acc) / P.s, 0, 1), from = ph[(k + ph.length - 1) % ph.length].to;
-    if (reduceMotion) {
-      const stepped = from + (P.to - from) * Math.min(1, Math.floor(p * P.s + 1e-6) / P.s);
-      tb.style.transform = 'scaleX(' + ((stepped - LOW) / (HIGH - LOW)).toFixed(3) + ')';
-    } else place(from + (P.to - from) * (1 - Math.cos(Math.PI * p)) / 2);
-    const key = idx + ':' + k;
-    if (key !== last) {
-      last = key; cue(P.cue);
-      word.textContent = P.w; live.textContent = P.w;
-      cy.textContent = 'Breath ' + (idx + 1) + (o.cycles ? ' of ' + o.cycles : '');
-      say.textContent = o.say ? o.say(idx, k) || '' : '';
-      fit();
-    }
-    count.textContent = app.S.hideClock ? '' : String(Math.max(1, Math.ceil(P.s - (pos - acc))));
-    rem.textContent = app.S.hideClock ? '' : fmt(Math.ceil(totalS - el)) + ' left';
-    T.raf = requestAnimationFrame(frame);
-  };
-  T.raf = requestAnimationFrame(frame);
-  return {elapsed};
-}
-
-/* ---------- Breathe ---------- */
-const PAT_HOW = {gentle:'In through the nose, out slowly through the mouth.', slow:'Let the out-breath run longer than the in-breath.', speak:'Breathe in, then say the phrase softly on one easy out-breath.'};
-export function runBreath(o) {
-  o = o || {};
-  let pat = PATTERNS[o.pat] ? o.pat : 'gentle', mins = 2;
-  openRun('Breathe');
-  const setup = () => {
-    const P = PATTERNS[pat];
-    setPartial(null);
-    setRun('<h2 class="h-t">' + esc(P.n) + '</h2><p class="note">' + esc(P.d) + '. ' + PAT_HOW[pat] + '</p><div class="lab" id="lenL">Length</div>' + choiceRow('mins', [1, 2, 3, 5], mins, v => v + ' min', 'Length') + '<button type="button" class="btn btn-p" id="go">Begin</button>');
-    wireChoice('mins', v => { mins = Number(v); setup(); });
-    $('#go').onclick = begin;
-  };
-  const begin = () => {
-    const P = PATTERNS[pat], phrases = P.speak ? shuffle(PHRASES) : null;
-    const pc = tidePacer({title:P.n, totalS:mins * 60,
-      phases:[BREATH_IN(P.inS), P.speak ? {w:'Say it on the out-breath', s:P.outS, to:LOW, cue:'out'} : BREATH_OUT(P.outS)],
-      say: phrases ? (i, k) => (k === 0 ? 'Next: ' : 'Say: ') + phrases[i % phrases.length] : null,
-      onDone: cycles => {
-        const res = award('breath', {pts:{breath:6 * mins}, q:'breath', meta:P.n + ', ' + mins + ' min'});
-        resultScreen({lead:'You breathed for ' + mins + ' min.', lines:[cycles + ' breaths, ' + P.d.toLowerCase() + '.', 'Carry this pace into your first sentence.'], res, type:'breath', actions:o.auto ? [] : [{id:'again', label:'Go again', fn:setup}]});
-      }});
-    setPartial(() => {
-      const el = pc.elapsed(); if (el < 60) return null;
-      const m = Math.floor(el / 60);
-      return {type:'breath', opts:{pts:{breath:6 * m}, q:'breath', meta:P.n + ', ' + m + ' min'}, say:'The ' + m + ' min you did still counts', lead:'You breathed for ' + m + ' min. It counts.'};
-    });
-  };
-  if (o.auto) { mins = 1; begin(); } else setup();
-}
 
 /* ---------- Read aloud ---------- */
 export function coachRead(sc, wpm) {
@@ -289,7 +193,7 @@ export function runRitual() {
   const s2 = () => { step = 2; tidePacer({title:'Your opening line', head:'<p class="note">Breathe in, then say it softly on the out-breath. Twice.</p>', phases:[BREATH_IN(3), {w:'Say it now', s:7, to:LOW, cue:'out'}], cycles:2, say:() => app.S.opener, onDone:s3}); };
   const s3 = () => {
     step = 3;
-    setRun('<h2 class="h-t">Say your first sentence</h2><p class="note">Breathe in, then start softly as you breathe out. Say, out loud, the first thing you will say on the call or in the meeting.</p><button type="button" class="btn btn-p" id="done">I said it</button>');
+    setRun('<h2 class="h-t">Say your first sentence</h2><p class="note">Breathe in, then start softly as you breathe out. Say, out loud, the first thing you will say on the call or in the meeting.</p><div class="stack thumb"><button type="button" class="btn btn-p" id="done">I said it</button></div>');
     $('#done').onclick = () => {
       const res = award('ritual', {pts:{breath:3, composure:3}, q:'ritual', meta:'I’m about to speak'});
       resultScreen({lead:'You are ready to speak.', lines:['Go in with your opening line. A pause is fine.', 'You can change the opening line in Settings.'], res, type:'ritual'});

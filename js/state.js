@@ -9,7 +9,8 @@ export const blankDaily = () => ({date:'', breath:0, read:0, raid:0, cold:0, rit
 export const fresh = () => ({
   v:3, xp:0, stats:{breath:0, pace:0, retrieval:0, composure:0, resilience:0},
   streak:0, best:0, shields:0, lastDay:null, energy:3,
-  hard:'', opener:DEFAULT_OPENER, showSkeleton:true, hideClock:false, sound:false,
+  hard:'', opener:DEFAULT_OPENER, showSkeleton:true, hideClock:false, sound:false, voice:false,
+  breathMins:3, customBreath:{inS:4, hold1:0, outS:6, hold2:0},
   rung:2, up:0, down:0, coldSecs:60, bosses:0,
   plan:{anchor:'', mins:10}, planBonus:false, started:'', days:{},
   weekAward:'', weak:{}, comeback:false, titles:[],
@@ -34,6 +35,10 @@ export function sanitize(o) {
   s.showSkeleton = o.showSkeleton !== false;
   s.hideClock = o.hideClock === true;
   s.sound = o.sound === true;
+  s.voice = o.voice === true;
+  s.breathMins = [1, 3, 5].indexOf(Number(o.breathMins)) >= 0 ? Number(o.breathMins) : 3;
+  const cb = o.customBreath || {};
+  s.customBreath = {inS:int(cb.inS, 4, 2, 8), hold1:int(cb.hold1, 0, 0, 8), outS:int(cb.outS, 6, 2, 12), hold2:int(cb.hold2, 0, 0, 8)};
   s.rung = int(o.rung, 2, 0, WPM.length - 1);
   s.up = int(o.up, 0, 0, 5); s.down = int(o.down, 0, 0, 5);
   s.coldSecs = [45, 60, 90].indexOf(Number(o.coldSecs)) >= 0 ? Number(o.coldSecs) : 60;

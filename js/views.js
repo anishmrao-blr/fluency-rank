@@ -1,9 +1,10 @@
 import {$, $$, esc, dstr, dayNum, numStr, weekStartNum} from './util.js';
-import {RANKS, rankOf, levelOf, STAT_KEYS, STAT_N, TYPE_N, WPM, STALL, ANCHORS, PATTERNS, MISSIONS, TITLES} from './content.js';
+import {RANKS, rankOf, levelOf, STAT_KEYS, STAT_N, TYPE_N, WPM, STALL, ANCHORS, PATTERNS, BREATH_GOALS, BREATH_ALL, MISSIONS, TITLES} from './content.js';
 import {app, updateSync} from './state.js';
 import {practicedThisWeek, rollDay, questProgress} from './rules.js';
 import {toast, bar, emblem, ICON, sheetOpen} from './ui.js';
 import {missionStats, recommendedMission} from './drills.js';
+import {customDesc} from './breath.js';
 
 const cap = s => s.charAt(0).toUpperCase() + s.slice(1);
 const titleBar = (t, extra) => '<header class="lt"><h1 tabindex="-1">' + esc(t) + '</h1>' + (extra || '') + '</header>';
@@ -29,11 +30,20 @@ export function viewHome() {
     + '<div class="acts"><button type="button" class="btn btn-p" data-act="session">Start daily session · 5 min</button><button type="button" class="btn btn-s" data-act="speak">I’m about to speak</button><button type="button" class="lnk" data-act="short">Low energy? Short version</button></div></div>';
 }
 
-/* ---------- Breathe (rebuilt goal-first in step 3) ---------- */
+/* ---------- Breathe (goal-first, step 3) ---------- */
 export function viewBreathe() {
+  const mins = app.S.breathMins || 3;
+  const chips = '<div class="seg b-len" role="group" aria-label="Session length">' + [1, 3, 5].map(m => '<button type="button" class="segb" data-act="bmins" data-v="' + m + '" aria-pressed="' + (m === mins) + '"><b>' + m + ' min</b></button>').join('') + '</div>';
+  const goals = BREATH_GOALS.map(g => rowBtn('goal', g.pat, g.n, g.d, 'Start ' + g.n + ': ' + PATTERNS[g.pat].n)).join('');
+  const all = BREATH_ALL.map(k => {
+    const P = PATTERNS[k];
+    return '<button type="button" class="li" data-act="breath" data-v="' + k + '" aria-label="Open ' + esc(P.n) + '"><span class="grow"><span class="tt">' + esc(P.n) + '</span><span class="ds">' + esc(P.d) + '</span>' + (P.ev ? '<span class="ev">' + esc(P.ev) + '</span>' : '') + '</span>' + ICON.chev + '</button>';
+  }).join('') + rowBtn('breath', 'custom', 'Custom pattern', customDesc(app.S.customBreath) + ' seconds', 'Open Custom pattern');
   return titleBar('Breathe')
-    + gh('Breathing patterns', 'bpH') + '<div class="group" role="group" aria-labelledby="bpH">' + Object.keys(PATTERNS).map(k => rowBtn('breath', k, PATTERNS[k].n, PATTERNS[k].d)).join('') + '</div>'
-    + '<p class="gf">Choose 1, 2, 3 or 5 minutes on the next screen. Sound cues let you practise with your eyes closed.</p>';
+    + chips
+    + gh('Start by goal', 'bgH') + '<div class="group" role="group" aria-labelledby="bgH">' + goals + '</div>'
+    + '<p class="gf">One tap starts right away for ' + mins + ' min. Turn on sound cues or the voice guide in Settings to practise with your eyes closed.</p>'
+    + gh('All techniques', 'baH') + '<div class="group" role="group" aria-labelledby="baH">' + all + '</div>';
 }
 
 /* ---------- Speak ---------- */
@@ -111,8 +121,8 @@ const toggle = (id, label, on) => '<label class="li tg"><span class="grow">' + e
 export function settingsHtml() {
   return gh('Practice time', 'ptH') + '<div class="group" role="group" aria-labelledby="ptH">' + ANCHORS.map(a => '<button type="button" class="li" data-act="plan" data-v="' + esc(a) + '" aria-pressed="' + (app.S.plan.anchor === a) + '"><span class="grow tt">' + esc(cap(a)) + '</span><svg class="ic ck" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg></button>').join('') + '</div><p class="gf">Tie practice to something you already do each day. This app cannot send reminders yet, so set a phone alarm for the same moment.</p>'
     + gh('Your words') + '<div class="group"><div class="field"><label for="hard">Sounds you find hard (letters)</label><input type="text" id="hard" maxlength="12" placeholder="For example B P S T M" value="' + esc(app.S.hard) + '" autocomplete="off"></div><div class="field"><label for="opener">Your opening line</label><textarea id="opener" maxlength="200">' + esc(app.S.opener) + '</textarea></div></div><p class="gf">Word warm-up picks your hard sounds about half the time. I’m about to speak uses your opening line.</p>'
-    + gh('Practice options') + '<div class="group">' + toggle('skel', 'Show the answer outline in practice questions', app.S.showSkeleton) + toggle('hclk', 'Hide countdown numbers', app.S.hideClock) + toggle('snds', 'Sound cues for breathing and timers', app.S.sound) + '</div>'
-    + gh('Backup') + '<div class="group"><div class="field"><label for="bk">Backup text</label><textarea id="bk"></textarea></div><div class="field"><p class="ds" id="sync" role="status"></p><div class="row"><button type="button" class="btn btn-s btn-sm" data-act="copy">Select backup</button><button type="button" class="btn btn-s btn-sm" data-act="import">Load pasted backup</button></div><p class="ds" id="bkmsg" role="status"></p></div></div><p class="gf">Progress stays on this device. To move it, copy this text, or paste a saved copy over it and load it.</p>'
+    + gh('Practice options') + '<div class="group">' + toggle('skel', 'Show the answer outline in practice questions', app.S.showSkeleton) + toggle('hclk', 'Hide countdown numbers', app.S.hideClock) + toggle('snds', 'Sound cues for breathing and timers', app.S.sound) + toggle('voice', 'Voice guide for breathing', app.S.voice) + '</div>'
+    + gh('Backup') + '<div class="group"><div class="field"><p class="ds" id="sync" role="status"></p><div class="row"><button type="button" class="btn btn-s btn-sm" data-act="export">Export backup</button><button type="button" class="btn btn-s btn-sm" data-act="importFile">Import backup</button></div><input type="file" id="bkfile" accept="application/json,.json" hidden><p class="ds" id="bkmsg" role="status"></p></div><details class="bk-raw"><summary>Paste or copy backup text</summary><div class="field"><label for="bk">Backup text</label><textarea id="bk"></textarea><div class="row"><button type="button" class="btn btn-s btn-sm" data-act="copy">Copy text</button><button type="button" class="btn btn-s btn-sm" data-act="import">Load pasted backup</button></div></div></details></div><p class="gf">Progress stays on this device. Export a file to move it to another device, or import a saved backup.</p>'
     + '<div class="group" style="margin-top:16px"><button type="button" class="li" data-act="reset" id="rst"><span class="grow tt" style="color:var(--tint)">Reset progress</span></button></div>'
     + gh('Help') + '<div class="group help">'
     + '<div class="li"><span class="grow"><span class="tt">Practice, not therapy</span><span class="ds">This app gives you somewhere to practise breathing and speaking techniques every day. It does not treat stammering or anxiety, and it cannot promise your stammer will go away. A speech therapist can assess you and tell you which techniques fit you.</span></span></div>'

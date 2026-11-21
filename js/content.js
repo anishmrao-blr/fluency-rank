@@ -20,10 +20,20 @@ export const TITLES = [
 export const TYPE_N = {breath:'Breathe', read:'Read aloud', raid:'Word warm-up', cold:'Practice question', boss:'Challenge round', ritual:'I’m about to speak', debrief:'Debrief', field:'Real-world step', reeval:'Weekly re-record'};
 export const DRILL_N = {breath:'Breathe', read:'Read aloud', raid:'Word warm-up', cold:'Practice question'};
 export const PATTERNS = {
-  gentle:{n:'Gentle breathing', inS:4, outS:6, speak:false, d:'4 seconds in, 6 out'},
-  slow:{n:'Long exhale', inS:4, outS:8, speak:false, d:'4 seconds in, 8 out'},
-  speak:{n:'Breathe and speak', inS:3, outS:7, speak:true, d:'3 seconds in, a phrase on the 7 second exhale'}
+  sigh:{n:'Cyclic sighing', inS:3, outS:6, speak:false, d:'Two nasal inhales, then a long mouth exhale', ev:'In a 2023 Stanford trial (Balban et al.), five minutes of cyclic sighing lowered anxiety more than mindfulness.'},
+  speak:{n:'Breathe and speak', inS:3, outS:7, speak:true, d:'3 seconds in, a phrase on a 7 second exhale', ev:'Practises starting your voice softly on an easy out-breath, a core speech-therapy skill.'},
+  box:{n:'Box breathing', inS:4, hold1:4, outS:4, hold2:4, speak:false, d:'4 in, 4 hold, 4 out, 4 hold', ev:'Even four-part pacing anchors attention when your mind is racing.'},
+  slow:{n:'Extended exhale', inS:4, outS:8, speak:false, d:'4 seconds in, 8 out', ev:'A longer out-breath slows heart rate and settles tension before rest.'},
+  resonance:{n:'Resonance breathing', inS:5, outS:5, speak:false, d:'About 6 light breaths a minute (5 in, 5 out)', ev:'HRV-biofeedback meta-analyses find slow breathing near 6 breaths a minute steadily reduces stress.'},
+  gentle:{n:'Gentle breathing', inS:4, outS:6, speak:false, d:'4 seconds in, 6 out', ev:'An easy, unhurried pace for a short daily reset.'}
 };
+export const BREATH_GOALS = [
+  {id:'calm', n:'Calm now', pat:'sigh', d:'Cyclic sighing · two nasal inhales, long exhale'},
+  {id:'speak', n:'Before speaking', pat:'speak', d:'Breathe and speak · a phrase on the exhale'},
+  {id:'focus', n:'Focus', pat:'box', d:'Box breathing · 4 in, 4 hold, 4 out, 4 hold'},
+  {id:'wind', n:'Wind down', pat:'slow', d:'Extended exhale · 4 in, 8 out'}
+];
+export const BREATH_ALL = ['sigh', 'speak', 'box', 'slow', 'resonance', 'gentle'];
 export const PHRASES = ['Let me start with the headline.', 'Here is what changed since last week.', 'My recommendation is to hold steady.', 'The main risk is timing.', 'I will confirm the numbers by Thursday.', 'Thanks for joining, everyone.', 'There are three things to cover.', 'I prefer the second option.', 'That depends on two things.', 'The short answer is yes.'];
 export const WPM = [70, 80, 90, 100, 115, 130, 145];
 export const PASSAGES = [

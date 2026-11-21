@@ -1,13 +1,23 @@
-import {$} from './util.js';
+import {$, dstr} from './util.js';
 import {rankOf, DEFAULT_OPENER} from './content.js';
 import {app, fresh, sanitize, save, initDb} from './state.js';
 import {rollDay} from './rules.js';
-import {toast, closeModal, primeAudio, openSheet, closeSheet, sheetOpen, dismissEnd} from './ui.js';
+import {toast, confirmModal, closeModal, primeAudio, openSheet, closeSheet, sheetOpen, dismissEnd} from './ui.js';
 import {runBreath, runRead, runRaid, runCold, runRitual, runField, startRun, SESSION, SHORT} from './drills.js';
 import {renderAll, renderSheet} from './views.js';
 
-let resetArmed = false;
 function selectText(el) { el.removeAttribute('readonly'); el.focus(); el.select(); }
+function loadBackupText(raw) {
+  const msg = $('#bkmsg');
+  try {
+    const o = JSON.parse(raw);
+    if (!o || typeof o !== 'object' || typeof o.xp !== 'number') throw new Error('shape');
+    if (JSON.stringify(sanitize(o)) === JSON.stringify(app.S)) { if (msg) msg.textContent = 'That is the data you already have. Choose or paste a different backup.'; return; }
+    app.S = sanitize(o); rollDay(); save(); renderAll();
+    const m = $('#bkmsg'); if (m) m.textContent = 'Backup loaded.';
+    toast('Backup loaded');
+  } catch (e) { if (msg) msg.textContent = 'That file or text is not a valid backup. Nothing was changed.'; }
+}
 const ACT = {
   tab(t) {
     app.tab = t.getAttribute('data-v'); renderAll(); window.scrollTo(0, 0);
@@ -18,7 +28,12 @@ const ACT = {
   session() { startRun(SESSION(), 'Daily session'); },
   short() { startRun(SHORT(), 'Short version'); },
   speak() { runRitual(); },
-  breath(t) { runBreath({pat:t.getAttribute('data-v')}); },
+  bmins(t) {
+    const m = Number(t.getAttribute('data-v'));
+    if ([1, 3, 5].indexOf(m) >= 0) { app.S.breathMins = m; save(); renderAll(); }
+  },
+  goal(t) { runBreath({pat:t.getAttribute('data-v'), mins:app.S.breathMins, instant:true}); },
+  breath(t) { runBreath({pat:t.getAttribute('data-v'), mins:app.S.breathMins}); },
   read() { runRead(); }, raid() { runRaid(); }, cold() { runCold(false); },
   field() { runField(); },
   /* the Challenge round only appears from Rank D; a stale button does nothing */
@@ -27,19 +42,34 @@ const ACT = {
   plan(t) { app.S.plan.anchor = t.getAttribute('data-v'); save(); renderSheet(); },
   copysum() { const el = $('#sum'); selectText(el); let ok = false; try { ok = document.execCommand && document.execCommand('copy'); } catch (e) { ok = false; } el.setAttribute('readonly', ''); $('#summsg').textContent = ok ? 'Copied.' : 'Selected. Copy it with your keyboard.'; },
   copy() { const el = $('#bk'); selectText(el); let ok = false; try { ok = document.execCommand && document.execCommand('copy'); } catch (e) { ok = false; } $('#bkmsg').textContent = ok ? 'Copied.' : 'Selected. Copy it with your keyboard.'; },
-  import() {
-    const bk = $('#bk'), msg = $('#bkmsg');
+  export() {
+    const msg = $('#bkmsg'), data = JSON.stringify(app.S, null, 2);
     try {
-      const o = JSON.parse(bk.value);
-      if (!o || typeof o !== 'object' || typeof o.xp !== 'number') throw new Error('shape');
-      if (JSON.stringify(sanitize(o)) === JSON.stringify(app.S)) { msg.textContent = 'That is the data you already have. Paste a saved backup over the text, then load it.'; return; }
-      app.S = sanitize(o); rollDay(); save(); renderAll(); $('#bkmsg').textContent = 'Backup loaded.'; toast('Backup loaded');
-    } catch (e) { msg.textContent = 'That text is not a valid backup. Nothing was changed.'; }
+      if (typeof Blob !== 'undefined' && typeof URL !== 'undefined' && URL.createObjectURL) {
+        const url = URL.createObjectURL(new Blob([data], {type:'application/json'}));
+        const a = document.createElement('a');
+        a.href = url; a.download = 'fluency-rank-backup-' + dstr() + '.json';
+        document.body.appendChild(a); a.click(); a.remove();
+        setTimeout(() => { try { URL.revokeObjectURL(url); } catch (e) {} }, 1000);
+        if (msg) msg.textContent = 'Backup exported.';
+        toast('Backup exported');
+        return;
+      }
+    } catch (e) { /* fall through */ }
+    const det = document.querySelector('.bk-raw'); if (det) det.open = true;
+    const el = $('#bk'); if (el) selectText(el);
+    if (msg) msg.textContent = 'Backup text selected below. Copy it to save.';
   },
-  reset(t) {
-    const label = t.querySelector('.tt') || t;
-    if (!resetArmed) { resetArmed = true; label.textContent = 'Press again to reset everything'; setTimeout(() => { resetArmed = false; const b = $('#rst .tt'); if (b) b.textContent = 'Reset progress'; }, 4000); return; }
-    resetArmed = false; app.S = fresh(); rollDay(); save(); renderAll(); toast('Progress reset');
+  importFile() { const f = $('#bkfile'); if (f) { f.value = ''; f.click(); } },
+  import() { const bk = $('#bk'); loadBackupText(bk ? bk.value : ''); },
+  reset() {
+    confirmModal({
+      title:'Reset all progress?',
+      body:'This clears your log, streak, stats and settings on this device. Export a backup first if you want a copy.',
+      confirmLabel:'Reset everything',
+      cancelLabel:'Cancel',
+      onConfirm() { app.S = fresh(); rollDay(); save(); renderAll(); toast('Progress reset'); }
+    });
   }
 };
 document.addEventListener('click', e => {
@@ -50,6 +80,7 @@ document.addEventListener('click', e => {
   try { fn(t); } catch (err) { toast('Something went wrong. Your progress is saved.'); }
 });
 $('#scrim').addEventListener('click', () => closeSheet());
+$('#modal').addEventListener('click', e => { if (e.target === $('#modal')) closeModal(); });
 document.addEventListener('change', e => {
   const id = e.target && e.target.id;
   if (id === 'hard') { app.S.hard = e.target.value.toUpperCase().replace(/[^A-Z]/g, '').slice(0, 12); e.target.value = app.S.hard; save(); }
@@ -57,12 +88,31 @@ document.addEventListener('change', e => {
   else if (id === 'skel') { app.S.showSkeleton = e.target.checked; save(); }
   else if (id === 'hclk') { app.S.hideClock = e.target.checked; save(); }
   else if (id === 'snds') { app.S.sound = e.target.checked; save(); primeAudio(); }
+  else if (id === 'voice') { app.S.voice = e.target.checked; save(); }
+  else if (id === 'bkfile') {
+    const file = e.target.files && e.target.files[0];
+    if (!file) return;
+    if (file.text) file.text().then(loadBackupText).catch(() => { const m = $('#bkmsg'); if (m) m.textContent = 'Could not read that file.'; });
+    else {
+      const r = new FileReader();
+      r.onload = () => loadBackupText(String(r.result || ''));
+      r.onerror = () => { const m = $('#bkmsg'); if (m) m.textContent = 'Could not read that file.'; };
+      r.readAsText(file);
+    }
+  }
 });
 document.addEventListener('keydown', e => {
   const m = $('#modal');
   if (!m.hidden) {
     if (e.key === 'Escape') { closeModal(); return; }
-    if (e.key === 'Tab') { e.preventDefault(); const b = $('#mclose'); if (b) b.focus(); }
+    if (e.key === 'Tab') {
+      const btns = [...m.querySelectorAll('button')];
+      if (btns.length) {
+        e.preventDefault();
+        const idx = btns.indexOf(document.activeElement);
+        btns[(idx + (e.shiftKey ? btns.length - 1 : 1)) % btns.length].focus();
+      }
+    }
     return;
   }
   if (e.key !== 'Escape') return;

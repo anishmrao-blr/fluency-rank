@@ -18,11 +18,26 @@ let modalReturn = null;
 export function modal(title, body, rank) {
   const m = $('#modal');
   modalReturn = document.activeElement;
+  m.classList.remove('sheet-modal');
   m.innerHTML = '<div class="modal-in" role="alertdialog" aria-modal="true" aria-labelledby="mt" aria-describedby="mb">' + (rank ? emblem(rank, true) : '') + '<div class="sys"><p id="mt">' + esc(title) + '</p></div><p id="mb">' + esc(body) + '</p><button type="button" class="btn btn-p" id="mclose">Continue</button></div>';
   m.hidden = false;
   $('#mclose').onclick = closeModal; $('#mclose').focus();
 }
-export function closeModal() { const m = $('#modal'); if (m.hidden) return; m.hidden = true; if (modalReturn && modalReturn.focus) { try { modalReturn.focus(); } catch (e) { /* element gone */ } } }
+/* iPhone-style confirmation sheet for destructive actions (e.g. Reset progress). */
+export function confirmModal(o) {
+  const m = $('#modal');
+  modalReturn = document.activeElement;
+  m.classList.add('sheet-modal');
+  m.innerHTML = '<div class="modal-in confirm-in" role="alertdialog" aria-modal="true" aria-labelledby="mt" aria-describedby="mb">'
+    + '<div class="confirm-card"><h2 id="mt">' + esc(o.title) + '</h2><p id="mb" class="note">' + esc(o.body) + '</p>'
+    + '<button type="button" class="confirm-act" id="mconfirm">' + esc(o.confirmLabel || 'Confirm') + '</button></div>'
+    + '<button type="button" class="confirm-cancel" id="mclose">' + esc(o.cancelLabel || 'Cancel') + '</button></div>';
+  m.hidden = false;
+  $('#mclose').onclick = closeModal;
+  $('#mconfirm').onclick = () => { closeModal(); if (o.onConfirm) o.onConfirm(); };
+  $('#mclose').focus();
+}
+export function closeModal() { const m = $('#modal'); if (m.hidden) return; m.hidden = true; m.classList.remove('sheet-modal'); if (modalReturn && modalReturn.focus) { try { modalReturn.focus(); } catch (e) { /* element gone */ } } }
 export const emblem = (r, lg) => '<div class="emblem' + (lg ? ' lg' : '') + '" role="img" aria-label="Rank ' + r + '"><i aria-hidden="true">' + r + '</i></div>';
 export const bar = p => '<div class="bar" aria-hidden="true"><i style="transform:scaleX(' + (clamp(p, 0, 100) / 100).toFixed(3) + ')"></i></div>';
 export const ICON = {
@@ -30,11 +45,13 @@ export const ICON = {
   gear: '<svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M19.04 10.05L21.38 10.47L21.38 13.53L19.04 13.95L18.35 15.6L19.71 17.55L17.55 19.71L15.6 18.35L13.95 19.04L13.53 21.38L10.47 21.38L10.05 19.04L8.4 18.35L6.45 19.71L4.29 17.55L5.65 15.6L4.96 13.95L2.62 13.53L2.62 10.47L4.96 10.05L5.65 8.4L4.29 6.45L6.45 4.29L8.4 5.65L10.05 4.96L10.47 2.62L13.53 2.62L13.95 4.96L15.6 5.65L17.55 4.29L19.71 6.45L18.35 8.4Z"/><circle cx="12" cy="12" r="3"/></svg>'
 };
 
+const cleanups = new Set();
 export const T = {
   ids: [], raf: 0,
   after(ms, fn) { const id = setTimeout(fn, ms); this.ids.push(['t', id]); return id; },
   every(ms, fn) { const id = setInterval(fn, ms); this.ids.push(['i', id]); return id; },
-  clear() { this.ids.forEach(p => { if (p[0] === 't') clearTimeout(p[1]); else clearInterval(p[1]); }); this.ids = []; cancelAnimationFrame(this.raf); }
+  onClear(fn) { cleanups.add(fn); },
+  clear() { this.ids.forEach(p => { if (p[0] === 't') clearTimeout(p[1]); else clearInterval(p[1]); }); this.ids = []; cancelAnimationFrame(this.raf); cleanups.forEach(fn => { try { fn(); } catch (e) { /* ignore */ } }); }
 };
 
 /* optional audio cues so practice can be done eyes-off-screen */
@@ -46,9 +63,10 @@ export function primeAudio() {
 export function cue(kind) {
   if (!app.S.sound || !ac) return;
   try {
-    const f = {in:520, out:390, go:660, end:440}[kind] || 440, o = ac.createOscillator(), g = ac.createGain(), t = ac.currentTime;
+    const f = {in:520, hold:460, out:390, go:660, end:440}[kind] || 440, o = ac.createOscillator(), g = ac.createGain(), t = ac.currentTime;
+    const peak = kind === 'hold' ? 0.07 : 0.12;
     o.type = 'sine'; o.frequency.value = f;
-    g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(0.12, t + 0.02); g.gain.exponentialRampToValueAtTime(0.0001, t + (kind === 'end' ? 0.5 : 0.22));
+    g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(peak, t + 0.02); g.gain.exponentialRampToValueAtTime(0.0001, t + (kind === 'end' ? 0.5 : 0.22));
     o.connect(g); g.connect(ac.destination); o.start(t); o.stop(t + 0.55);
   } catch (e) { /* audio is optional */ }
 }
