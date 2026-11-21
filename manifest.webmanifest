@@ -1,12 +1,12 @@
 {
-  "name": "Fluency Rank",
-  "short_name": "Fluency",
+  "name": "Finetune",
+  "short_name": "Finetune",
   "description": "Daily speaking and breathing practice.",
   "start_url": "./",
   "scope": "./",
   "display": "standalone",
-  "background_color": "#0B1A24",
-  "theme_color": "#0B1A24",
+  "background_color": "#F7F9F7",
+  "theme_color": "#F7F9F7",
   "icons": [
     {"src": "icons/icon-192.png", "sizes": "192x192", "type": "image/png"},
     {"src": "icons/icon-512.png", "sizes": "512x512", "type": "image/png"},

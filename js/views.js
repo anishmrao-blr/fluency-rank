@@ -206,7 +206,7 @@ export function viewProgress() {
 export function summaryText() {
   const since = Date.now() - 14 * 86400000, L = app.S.log.filter(e => e.t >= since), sess = L.filter(e => e.type !== 'debrief');
   const days = Object.keys(app.S.days).filter(d => dayNum(d) >= dayNum(dstr()) - 13).length;
-  const lines = ['Fluency Rank: last 14 days', 'Practice days: ' + days + ' of 14. Sessions: ' + sess.length + '.'];
+  const lines = ['Finetune: last 14 days', 'Practice days: ' + days + ' of 14. Sessions: ' + sess.length + '.'];
   const sc = L.filter(e => e.score != null);
   lines.push('Self-rated fluency out of 5: ' + (sc.length ? (sc.reduce((s, e) => s + e.score, 0) / sc.length).toFixed(1) + ' average, n=' + sc.length : 'not enough data') + '.');
   lines.push('Reading pace target: ' + WPM[app.S.rung] + ' wpm. Hard sounds set by me: ' + (app.S.hard || 'none') + '. Letters needing repeats: ' + (Object.keys(app.S.weak).join(', ') || 'none') + '.');

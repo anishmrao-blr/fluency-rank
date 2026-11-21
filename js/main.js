@@ -17,9 +17,9 @@ export function buildIcs(r) {
   return [
     'BEGIN:VCALENDAR',
     'VERSION:2.0',
-    'PRODID:-//Fluency Rank//Daily Practice//EN',
+    'PRODID:-//Finetune//Daily Practice//EN',
     'BEGIN:VEVENT',
-    'UID:fluency-rank-daily@local',
+    'UID:finetune-daily@local',
     'SUMMARY:5-min speaking & breath practice',
     'DESCRIPTION:One breathing session and one short speaking drill.',
     'DTSTART:' + dt,
@@ -121,7 +121,7 @@ const ACT = {
       if (typeof Blob !== 'undefined' && typeof URL !== 'undefined' && URL.createObjectURL) {
         const url = URL.createObjectURL(new Blob([content], {type:'text/calendar;charset=utf-8'}));
         const a = document.createElement('a');
-        a.href = url; a.download = 'daily-voice-practice.ics';
+        a.href = url; a.download = 'finetune-practice.ics';
         document.body.appendChild(a); a.click(); a.remove();
         setTimeout(() => { try { URL.revokeObjectURL(url); } catch (e) {} }, 1000);
         toast('Calendar alert downloaded');
@@ -138,7 +138,7 @@ const ACT = {
       if (typeof Blob !== 'undefined' && typeof URL !== 'undefined' && URL.createObjectURL) {
         const url = URL.createObjectURL(new Blob([data], {type:'application/json'}));
         const a = document.createElement('a');
-        a.href = url; a.download = 'fluency-rank-backup-' + dstr() + '.json';
+        a.href = url; a.download = 'finetune-backup-' + dstr() + '.json';
         document.body.appendChild(a); a.click(); a.remove();
         setTimeout(() => { try { URL.revokeObjectURL(url); } catch (e) {} }, 1000);
         if (msg) msg.textContent = 'Backup exported.';
