@@ -1,7 +1,7 @@
 // Offline support: precache every app file, serve cache-first, refresh the cache in the background.
 // Bump VERSION on every release. Every new file must be listed in PRECACHE (test/pwa.test.js checks this).
-const VERSION = 'v1';
-const PRECACHE = ["./","index.html","manifest.webmanifest","fonts/fonts.css","fonts/barlow-condensed-500.woff2","fonts/barlow-condensed-600.woff2","fonts/barlow-condensed-700.woff2","fonts/ibm-plex-mono-400.woff2","fonts/ibm-plex-mono-500.woff2","fonts/ibm-plex-sans-400.woff2","js/main.js","js/util.js","js/content.js","js/state.js","js/rules.js","js/ui.js","js/drills.js","js/views.js","icons/icon-180.png","icons/icon-192.png","icons/icon-512.png","icons/maskable-512.png"];
+const VERSION = 'v2';
+const PRECACHE = ["./","index.html","manifest.webmanifest","css/app.css","fonts/fonts.css","fonts/barlow-condensed-600.woff2","fonts/barlow-condensed-700.woff2","js/main.js","js/util.js","js/content.js","js/state.js","js/rules.js","js/ui.js","js/drills.js","js/views.js","icons/icon-180.png","icons/icon-192.png","icons/icon-512.png","icons/maskable-512.png"];
 const CACHE = 'fluency-' + VERSION;
 
 self.addEventListener('install', e => {

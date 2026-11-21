@@ -2,7 +2,7 @@ export const RANKS = [{r:'E',xp:0},{r:'D',xp:1200},{r:'C',xp:3600},{r:'B',xp:800
 export const rankOf = xp => RANKS.reduce((k, x, i) => xp >= x.xp ? i : k, 0);
 export const levelOf = xp => 1 + Math.floor(xp / 150);
 export const STAT_KEYS = ['breath', 'pace', 'retrieval', 'composure', 'resilience'];
-export const STAT_N = {breath:'Breath control', pace:'Pace', retrieval:'Word retrieval', composure:'Composure', resilience:'Courage'};
+export const STAT_N = {breath:'Breath', pace:'Pace', retrieval:'Word flow', composure:'Composure', resilience:'Courage'};
 export const ENERGY = ['Fresh', 'Good', 'Flat', 'Tired', 'Spent'];
 export const FLU = ['Blocked often', 'Bumpy', 'Mixed', 'Mostly smooth', 'Smooth'];
 /* Fixed XP per session type (spec 3). Ratings never change these amounts. */
@@ -16,12 +16,13 @@ export const TITLES = [
   {id:'first-step', n:'The One Who Spoke First'},
   {id:'week', n:'Seven Days'}
 ].concat(RANKS.slice(1).map(x => ({id:'rank-' + x.r, n:'Rank ' + x.r + ' Hunter'})));
-export const TYPE_N = {breath:'Breath Gate', read:'Paced Reading', raid:'Alphabet Raid', cold:'Cold Question', boss:'Boss Gauntlet', ritual:'Pre-call ritual', debrief:'Debrief', field:'Field mission', reeval:'Weekly re-record'};
-export const DRILL_N = {breath:'Breath Gate', read:'Paced Reading', raid:'Alphabet Raid', cold:'Cold Question'};
+/* Plain names used in UI copy and the log. Keys are the stored session types and never change. */
+export const TYPE_N = {breath:'Breathe', read:'Read aloud', raid:'Word warm-up', cold:'Practice question', boss:'Challenge round', ritual:'I’m about to speak', debrief:'Debrief', field:'Real-world step', reeval:'Weekly re-record'};
+export const DRILL_N = {breath:'Breathe', read:'Read aloud', raid:'Word warm-up', cold:'Practice question'};
 export const PATTERNS = {
-  gentle:{n:'Gentle', inS:4, outS:6, speak:false, d:'4 in, 6 out'},
-  slow:{n:'Slow', inS:4, outS:8, speak:false, d:'4 in, 8 out'},
-  speak:{n:'Breath and speak', inS:3, outS:7, speak:true, d:'3 in, say a phrase on the 7 second exhale'}
+  gentle:{n:'Gentle breathing', inS:4, outS:6, speak:false, d:'4 seconds in, 6 out'},
+  slow:{n:'Long exhale', inS:4, outS:8, speak:false, d:'4 seconds in, 8 out'},
+  speak:{n:'Breathe and speak', inS:3, outS:7, speak:true, d:'3 seconds in, a phrase on the 7 second exhale'}
 };
 export const PHRASES = ['Let me start with the headline.', 'Here is what changed since last week.', 'My recommendation is to hold steady.', 'The main risk is timing.', 'I will confirm the numbers by Thursday.', 'Thanks for joining, everyone.', 'There are three things to cover.', 'I prefer the second option.', 'That depends on two things.', 'The short answer is yes.'];
 export const WPM = [70, 80, 90, 100, 115, 130, 145];
@@ -72,9 +73,9 @@ export const MISSIONS = [
   {id:'m1', t:'Greet someone you pass, aloud, on one breath', d:'Low stakes. Soft start, slow pace.'},
   {id:'m2', t:'Make a small request: order, ask a price, or phone a shop', d:'Have your first words ready.'},
   {id:'m3', t:'Ask one question in a small meeting', d:'Write the question as one sentence first.'},
-  {id:'m4', t:'Give your update first on a team call', d:'Use your opening line from the Guide.'},
+  {id:'m4', t:'Give your update first on a team call', d:'Use your opening line from Settings.'},
   {id:'m5', t:'State a recommendation in the first five minutes of a meeting', d:'Position first, reason second.'},
-  {id:'m6', t:'Open a call with your prepared opening line', d:'Run the pre-call ritual before it.'},
+  {id:'m6', t:'Open a call with your prepared opening line', d:'Use I’m about to speak just before it.'},
   {id:'m7', t:'Answer pushback without deferring', d:'Hold your position, then say what would change it.'},
   {id:'m8', t:'Lead a segment for a senior audience', d:'Slow pace, planned pauses.'}
 ];

@@ -13,6 +13,9 @@ assert(/name="apple-mobile-web-app-capable" content="yes"/.test(html), 'iOS stan
 assert(/viewport-fit=cover/.test(html), 'viewport covers the notch area');
 assert(!/fonts\.googleapis|fonts\.gstatic/.test(html), 'no remote fonts');
 assert(/<link rel="stylesheet" href="fonts\/fonts.css">/.test(html), 'local font stylesheet linked');
+assert(/<link rel="stylesheet" href="css\/app.css">/.test(html), 'app stylesheet linked');
+assert(!/<style[\s>]/.test(html), 'no inline style block: CSS lives in css/app.css');
+assert(!/IBM Plex/i.test(html + fs.readFileSync(R('css/app.css'), 'utf8')), 'IBM Plex is retired');
 const m = JSON.parse(fs.readFileSync(R('manifest.webmanifest'), 'utf8'));
 assert(m.display === 'standalone' && m.start_url === './' && m.scope === './', 'manifest is standalone and relative');
 assert(m.icons.some(i => i.sizes === '512x512' && i.purpose === 'maskable'), 'maskable icon declared');
@@ -22,7 +25,7 @@ assert(JSON.stringify(pngSize('icons/icon-180.png')) === '[180,180]', 'apple ico
 /* fonts are local and complete */
 const fcss = fs.readFileSync(R('fonts/fonts.css'), 'utf8');
 const fontFiles = [...fcss.matchAll(/url\(([^)]+)\)/g)].map(x => x[1]);
-assert(fontFiles.length >= 6 && fontFiles.every(f => !/^https?:/.test(f) && fs.existsSync(R('fonts/' + f))), 'every @font-face points at a bundled file');
+assert(fontFiles.length >= 2 && fontFiles.every(f => !/^https?:/.test(f) && fs.existsSync(R('fonts/' + f))), 'every @font-face points at a bundled file');
 
 /* service worker precaches everything the app needs */
 const sw = fs.readFileSync(R('sw.js'), 'utf8');
@@ -31,6 +34,7 @@ for (const f of list) assert(f === './' || fs.existsSync(R(f)), 'precached file 
 const need = ['./', 'index.html', 'manifest.webmanifest', 'fonts/fonts.css',
   ...fs.readdirSync(R('js')).filter(f => f.endsWith('.js')).map(f => 'js/' + f),
   ...fs.readdirSync(R('fonts')).filter(f => f.endsWith('.woff2')).map(f => 'fonts/' + f),
+  ...fs.readdirSync(R('css')).filter(f => f.endsWith('.css')).map(f => 'css/' + f),
   ...m.icons.map(i => i.src), 'icons/icon-180.png'];
 for (const f of need) assert(list.includes(f), 'precache includes ' + f);
 assert(/const VERSION = '[^']+';/.test(sw), 'cache is versioned');

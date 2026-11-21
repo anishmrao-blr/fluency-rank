@@ -3,7 +3,7 @@ import {STAT_KEYS, TYPE_N, WPM, ANCHORS, DEFAULT_OPENER, TITLES} from './content
 import {rollDay, earnedTitles} from './rules.js';
 import {renderAll} from './views.js';
 
-export const app = {S: null, storageOk: true, noticeText: '', running: false, tab: 'status'};
+export const app = {S: null, storageOk: true, noticeText: '', running: false, tab: 'home'};
 export const KEY = 'fluency-rank:v2';
 export const blankDaily = () => ({date:'', breath:0, read:0, raid:0, cold:0, ritual:0, debrief:0, field:0, breathDone:false, speakDone:false, solid:false, cleared:false, twist:false});
 export const fresh = () => ({
@@ -95,9 +95,9 @@ app.S = fresh();
 let saveTimer = null, dbRef = null, writing = false, dirty = false;
 export function updateSync() {
   const el = $('#sync');
-  el.textContent = dbRef ? 'Synced to your account' : app.storageOk ? 'Saved on this device' : 'Not saved: use Backup in Guide';
+  if (el) el.textContent = dbRef ? 'Synced to your account' : app.storageOk ? 'Saved on this device' : 'Not saved: use Backup in Settings';
   const n = $('#notice');
-  const msg = app.noticeText || (!app.storageOk && !dbRef ? 'Progress cannot be saved in this view. Copy a backup from the Guide tab before you leave.' : '');
+  const msg = app.noticeText || (!app.storageOk && !dbRef ? 'Progress cannot be saved in this view. Copy a backup from Settings before you leave.' : '');
   n.hidden = !msg; n.textContent = msg;
 }
 export function save() {

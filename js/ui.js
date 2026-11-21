@@ -1,22 +1,34 @@
-import {$, $$, esc, clamp, fmt} from './util.js';
-import {ENERGY, DRILL_N} from './content.js';
+import {$, $$, esc, clamp, fmt, reduceMotion} from './util.js';
+import {DRILL_N, TYPE_N} from './content.js';
 import {app, save} from './state.js';
+import {award} from './rules.js';
 import {nextRun} from './drills.js';
 import {renderAll} from './views.js';
 
-export function toast(m) { const c = $('#toasts'), d = document.createElement('div'); d.className = 'toast'; d.textContent = m; c.appendChild(d); setTimeout(() => d.remove(), 3400); }
+const MOTION_MS = reduceMotion ? 0 : 380;
+const CLOSE = new Set(); // pending close timers for covers and sheets, kept outside T so stopRun's T.clear() cannot cancel them
+
+export function toast(m, sys) {
+  const c = $('#toasts'), d = document.createElement('div');
+  d.className = 'toast' + (sys ? ' sys-t' : ''); d.textContent = m; c.appendChild(d);
+  setTimeout(() => d.remove(), 3400);
+}
 let modalReturn = null;
-export function modal(title, body) {
+/* Used only for a rank up: the leveling layer's biggest reward moment. */
+export function modal(title, body, rank) {
   const m = $('#modal');
   modalReturn = document.activeElement;
-  m.innerHTML = '<div class="panel modal-in" role="alertdialog" aria-modal="true" aria-labelledby="mt"><div class="lbl">System</div><h2 class="t" id="mt">' + esc(title) + '</h2><p>' + esc(body) + '</p><button type="button" class="btn solid" id="mclose">Continue</button></div>';
+  m.innerHTML = '<div class="modal-in" role="alertdialog" aria-modal="true" aria-labelledby="mt" aria-describedby="mb">' + (rank ? emblem(rank, true) : '') + '<div class="sys"><p id="mt">' + esc(title) + '</p></div><p id="mb">' + esc(body) + '</p><button type="button" class="btn btn-p" id="mclose">Continue</button></div>';
   m.hidden = false;
   $('#mclose').onclick = closeModal; $('#mclose').focus();
 }
 export function closeModal() { const m = $('#modal'); if (m.hidden) return; m.hidden = true; if (modalReturn && modalReturn.focus) { try { modalReturn.focus(); } catch (e) { /* element gone */ } } }
-export const block = (label, inner, cls) => '<section class="blk ' + (cls || '') + '">' + (label ? '<h2 class="lbl">' + esc(label) + '</h2>' : '') + inner + '</section>';
-export const bar = (p, cls) => '<div class="bar ' + (cls || '') + '"><i style="width:' + clamp(p, 0, 100) + '%"></i></div>';
-export const energySeg = () => '<div class="seg" role="group" aria-label="Energy right now">' + ENERGY.map((n, i) => '<button type="button" class="segb" data-act="energy" data-v="' + (i + 1) + '" aria-pressed="' + (app.S.energy === i + 1) + '"><b>' + (i + 1) + '</b><span>' + n + '</span></button>').join('') + '</div>';
+export const emblem = (r, lg) => '<div class="emblem' + (lg ? ' lg' : '') + '" role="img" aria-label="Rank ' + r + '"><i aria-hidden="true">' + r + '</i></div>';
+export const bar = p => '<div class="bar" aria-hidden="true"><i style="transform:scaleX(' + (clamp(p, 0, 100) / 100).toFixed(3) + ')"></i></div>';
+export const ICON = {
+  chev: '<svg class="ic chev" viewBox="0 0 24 24" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg>',
+  gear: '<svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M19.04 10.05L21.38 10.47L21.38 13.53L19.04 13.95L18.35 15.6L19.71 17.55L17.55 19.71L15.6 18.35L13.95 19.04L13.53 21.38L10.47 21.38L10.05 19.04L8.4 18.35L6.45 19.71L4.29 17.55L5.65 15.6L4.96 13.95L2.62 13.53L2.62 10.47L4.96 10.05L5.65 8.4L4.29 6.45L6.45 4.29L8.4 5.65L10.05 4.96L10.47 2.62L13.53 2.62L13.95 4.96L15.6 5.65L17.55 4.29L19.71 6.45L18.35 8.4Z"/><circle cx="12" cy="12" r="3"/></svg>'
+};
 
 export const T = {
   ids: [], raf: 0,
@@ -41,35 +53,99 @@ export function cue(kind) {
   } catch (e) { /* audio is optional */ }
 }
 
-/* ---------- run overlay ---------- */
-let runReturn = null;
-export const runEl = $('#run'), runBody = $('#runBody'), runTitle = $('#runTitle');
-export const RUN = {active:false, q:[], i:0, n:0};
+/* ---------- background inertness, shared by covers and sheets ---------- */
 export function setInert(on) { ['#app', '#tabs'].forEach(s => { const el = $(s); el.inert = on; if (on) el.setAttribute('aria-hidden', 'true'); else el.removeAttribute('aria-hidden'); }); }
-export function syncSoundBtn() { const b = $('#snd'); b.textContent = app.S.sound ? 'Sound on' : 'Sound off'; b.setAttribute('aria-pressed', String(app.S.sound)); }
+function closeLater(el, done) {
+  if (!MOTION_MS) { done(); return; }
+  el.classList.add('sink');
+  const id = setTimeout(() => { CLOSE.delete(id); el.classList.remove('sink'); done(); }, MOTION_MS);
+  CLOSE.add(id); el._closeId = id;
+}
+function cancelClose(el) { if (el._closeId) { clearTimeout(el._closeId); CLOSE.delete(el._closeId); el._closeId = 0; el.classList.remove('sink'); } }
+
+/* ---------- settings sheet ---------- */
+let sheetReturn = null;
+export const sheetOpen = () => !$('#sheet').hidden && !$('#sheet').classList.contains('sink');
+export function openSheet(render) {
+  const sh = $('#sheet'), sc = $('#scrim');
+  cancelClose(sh); sc.classList.remove('fadeout');
+  sheetReturn = document.activeElement;
+  render();
+  sh.hidden = false; sc.hidden = false; setInert(true);
+  $('#sheetBody').scrollTop = 0;
+  try { $('#sheetTitle').focus({preventScroll:true}); } catch (e) { /* ignore */ }
+}
+export function closeSheet() {
+  const sh = $('#sheet'), sc = $('#scrim');
+  if (sh.hidden) return;
+  if (!app.running) setInert(false);
+  sc.classList.add('fadeout');
+  closeLater(sh, () => { sh.hidden = true; sc.hidden = true; sc.classList.remove('fadeout'); });
+  if (sheetReturn && sheetReturn.isConnected && sheetReturn.focus) { try { sheetReturn.focus(); } catch (e) { /* ignore */ } }
+}
+
+/* ---------- full-screen cover for drills ---------- */
+let runReturn = null;
+export const runEl = $('#run'), runBody = $('#runBody'), runTitle = $('#runTitle'), runFoot = $('#runFoot');
+/* q: drills still to come in a session; i of n: the current step. partial: see setPartial. */
+export const RUN = {active:false, label:'', q:[], i:0, n:0, partial:null};
+export function syncSoundBtn() { const b = $('#snd'); b.textContent = app.S.sound ? 'Sound on' : 'Sound off'; b.setAttribute('aria-pressed', String(app.S.sound)); b.setAttribute('aria-label', 'Sound cues, ' + (app.S.sound ? 'on' : 'off')); }
 export function openRun(title) {
-  T.clear(); if (!app.running) runReturn = document.activeElement;
-  app.running = true;
-  runTitle.textContent = RUN.active ? 'Run ' + RUN.i + ' of ' + RUN.n + ': ' + title : title;
-  runBody.innerHTML = ''; runEl.style.display = 'block'; runEl.scrollTop = 0;
+  T.clear(); cancelClose(runEl);
+  if (!app.running) runReturn = document.activeElement;
+  app.running = true; RUN.partial = null;
+  runTitle.textContent = RUN.active ? RUN.label + ' · ' + RUN.i + ' of ' + RUN.n : title;
+  runBody.innerHTML = ''; runEl.hidden = false; runBody.scrollTop = 0;
   document.body.style.overflow = 'hidden'; setInert(true); syncSoundBtn(); primeAudio();
+  showEnd();
 }
 export function stopRun() {
-  T.clear(); app.running = false; RUN.active = false; RUN.q = [];
-  runEl.style.display = 'none'; document.body.style.overflow = ''; setInert(false);
+  T.clear(); app.running = false; RUN.active = false; RUN.q = []; RUN.partial = null;
+  document.body.style.overflow = ''; setInert(false);
+  closeLater(runEl, () => { runEl.hidden = true; runBody.innerHTML = ''; runFoot.innerHTML = ''; });
   renderAll();
   if (runReturn && runReturn.isConnected && runReturn.focus) { try { runReturn.focus(); } catch (e) { /* ignore */ } }
 }
-export function setRun(html) {
-  runBody.innerHTML = html; runEl.scrollTop = 0;
+/* Replaces the cover's content and moves focus to its heading. The End control comes back unless the
+   screen draws its own footer (result screens do). */
+export function setRun(html, foot) {
+  runBody.innerHTML = html; runBody.scrollTop = 0;
+  if (foot != null) runFoot.innerHTML = foot; else showEnd();
   const h = $('h2', runBody);
   if (h) { h.setAttribute('tabindex', '-1'); try { h.focus({preventScroll:true}); } catch (e) { /* ignore */ } }
 }
-$('#abort').onclick = stopRun;
+
+/* ---------- the End control ----------
+   fn() returns null when nothing counts yet, or {type, opts, say, lead}: what award() should credit,
+   how to describe it in the confirmation ("The 1 min you did") and the plain lead line afterwards. */
+export function setPartial(fn) { RUN.partial = fn || null; }
+export function showEnd() {
+  runFoot.innerHTML = '<button type="button" class="btn btn-s" id="end">End</button>';
+  $('#end').onclick = askEnd;
+}
+export const minsDone = s => Math.max(1, Math.floor(s / 60)) + ' min';
+function askEnd() {
+  const p = RUN.partial ? RUN.partial() : null;
+  const msg = p ? 'End now? ' + p.say + '.'
+    : (RUN.active && RUN.i > 1 ? 'End now? What you finished earlier is saved.' : 'End now? Less than a minute so far, so nothing is logged.');
+  runFoot.innerHTML = '<div class="endq" role="group" aria-labelledby="endMsg"><p id="endMsg">' + esc(msg) + '</p><div class="row"><button type="button" class="btn btn-s" id="endYes">End</button><button type="button" class="btn btn-p" id="endNo">Keep going</button></div></div>';
+  $('#endNo').onclick = () => { showEnd(); try { $('#end').focus(); } catch (e) { /* ignore */ } };
+  $('#endYes').onclick = () => endNow();
+  try { $('#endNo').focus(); } catch (e) { /* ignore */ }
+}
+export function dismissEnd() { if ($('#endYes', runFoot)) { showEnd(); return true; } return false; }
+function endNow() {
+  const p = RUN.partial ? RUN.partial() : null;
+  T.clear();
+  if (!p) { stopRun(); return; }
+  RUN.q = [];
+  const res = award(p.type, Object.assign({}, p.opts, {partial:true}));
+  resultScreen({lead:p.lead, lines:[], res, type:p.type});
+}
 $('#snd').onclick = () => { app.S.sound = !app.S.sound; save(); syncSoundBtn(); primeAudio(); cue('go'); };
 
-export function choiceRow(name, opts, sel, lab) {
-  return '<div class="seg" role="group">' + opts.map(v => '<button type="button" class="segb" data-ch="' + name + '" data-v="' + esc(v) + '" aria-pressed="' + (String(v) === String(sel)) + '"><b>' + esc(lab ? lab(v) : v) + '</b></button>').join('') + '</div>';
+export function choiceRow(name, opts, sel, lab, label) {
+  return '<div class="seg" role="group"' + (label ? ' aria-label="' + esc(label) + '"' : '') + '>' + opts.map(v => '<button type="button" class="segb" data-ch="' + name + '" data-v="' + esc(v) + '" aria-pressed="' + (String(v) === String(sel)) + '"><b>' + esc(lab ? lab(v) : v) + '</b></button>').join('') + '</div>';
 }
 export function wireChoice(name, fn) { $$('[data-ch="' + name + '"]', runBody).forEach(b => { b.onclick = () => fn(b.getAttribute('data-v')); }); }
 export function rateHtml(id, label, hints) {
@@ -79,18 +155,28 @@ export function wireRate(id, fn) {
   const root = $('#' + id, runBody);
   $$('.segb', root).forEach(b => { b.onclick = () => { $$('.segb', root).forEach(x => x.setAttribute('aria-pressed', 'false')); b.setAttribute('aria-pressed', 'true'); fn(Number(b.getAttribute('data-n'))); }; });
 }
-export function afterAward(res) {
-  if (res.rankUp) modal('Rank up', 'You reached Rank ' + res.rankUp + '. Your log, stats and mosaic carry over.');
-  else if (res.levelUp) toast('Level ' + res.levelUp + ' reached');
-  res.notes.slice(0, 3).forEach(n => toast(n));
+
+/* System notices for a result: the session's own XP first, then each bonus or title award() reported. */
+export function notices(res, type) {
+  const bonus = res.notes.reduce((s, n) => { const m = n.match(/\+(\d+) XP/); return s + (m ? Number(m[1]) : 0); }, 0);
+  const base = res.xp - bonus, out = ['[Logged] ' + (TYPE_N[type] || 'Session') + (base > 0 ? ' · +' + base + ' XP' : '')];
+  res.notes.forEach(n => out.push(n.charAt(0) === '[' ? n : '[' + n.replace(/: /, '] ')));
+  if (res.rankUp) out.push('[Rank up] Rank ' + res.rankUp);
+  else if (res.levelUp) out.push('[Level up] Level ' + res.levelUp);
+  return out;
 }
-export function resultScreen(title, lines, res, again) {
-  afterAward(res);
-  const inRun = RUN.active && RUN.q.length > 0;
-  const lastOne = RUN.active && RUN.q.length === 0;
-  const all = lastOne ? lines.concat(['Run complete.']) : lines;
-  setRun(block(title, '<div class="xp mono">+' + res.xp + ' XP</div>' + '<ul class="plain">' + all.map(l => '<li>' + esc(l) + '</li>').join('') + '</ul><div class="row">' + (inRun ? '<button type="button" class="btn solid" id="nextb">Next: ' + DRILL_N[RUN.q[0]] + '</button>' : (again ? '<button type="button" class="btn solid" id="again">' + esc(again.label) + '</button>' : '')) + '<button type="button" class="btn" id="back">' + (inRun ? 'End run' : 'Done') + '</button></div>'));
-  if (inRun) $('#nextb').onclick = nextRun; else if (again) $('#again').onclick = again.fn;
+/* o: {lead, lines, res, type, actions:[{id, label, fn}]}. Leads with a plain line about what was done;
+   XP and System notices sit below it. */
+export function resultScreen(o) {
+  const res = o.res, inRun = RUN.active && RUN.q.length > 0, lastOne = RUN.active && RUN.q.length === 0;
+  RUN.partial = null;
+  if (res.rankUp) modal('[Rank up] Rank ' + res.rankUp, 'Your log, stats and mosaic carry over.', res.rankUp);
+  const lines = (o.lines || []).concat(lastOne ? ['That is today’s session done.'] : []);
+  const acts = inRun ? [{id:'nextb', label:'Next: ' + DRILL_N[RUN.q[0].replace(/\d+$/, '')], fn:nextRun}] : (o.actions || []);
+  setRun('<h2 class="lead">' + esc(o.lead) + '</h2>' + (lines.length ? '<div class="stack">' + lines.map(l => '<p class="note">' + esc(l) + '</p>').join('') + '</div>' : '')
+    + '<div class="sys" role="status">' + notices(res, o.type).map(n => '<p>' + esc(n) + '</p>').join('') + '</div>',
+    '<div class="stack">' + acts.map((a, i) => '<button type="button" class="btn ' + (i === 0 ? 'btn-p' : 'btn-s') + '" id="' + a.id + '">' + esc(a.label) + '</button>').join('') + '<button type="button" class="btn ' + (acts.length ? 'btn-s' : 'btn-p') + '" id="back">Done</button></div>');
+  acts.forEach(a => { $('#' + a.id).onclick = a.fn; });
   $('#back').onclick = stopRun;
 }
 export const clockText = sec => app.S.hideClock ? '' : fmt(sec);
