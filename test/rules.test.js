@@ -208,6 +208,14 @@ const ago = n => { const d = new Date(); d.setDate(d.getDate() - n); return ds(d
       {type:'read', score:4}, {type:'cold', score:4}, {type:'read', score:5}, {type:'cold', score:4}
     ], lastReview:{easyOnsetPct:80}});
     assert(p3.stage === 3 && p3.next.act === 'field', 'consistent >=4/5 sessions advance to Live conversation stage');
+
+    /* Phonetic hard-sound coaching */
+    const Per = k.w.__mod('js/personal.js');
+    assert(Per.phoneticCue('b').group === 'Bilabial stop' && Per.phoneticCue('b').title === 'Light lip touch', 'B maps to bilabial stop cue');
+    assert(Per.phoneticCue('s').group === 'Fricative' && Per.phoneticCue('s').title === 'Steady gentle airflow', 'S maps to fricative airflow cue');
+    assert(Per.phoneticCue('a').group === 'Vowel start' && Per.phoneticCue('a').title === 'Easy onset', 'A maps to vowel easy onset cue');
+    const guide = Per.phoneticGuideFor({hard:'BPST', fearedWords:['schedule', 'budget'], weak:{M:2}});
+    assert(guide.length === 2 && guide[0].group === 'Bilabial stop' && guide[1].group === 'Fricative', 'phoneticGuideFor deduplicates by manner and caps at 2 focus cues');
   }
 
   console.log('\n' + (fails ? fails + ' FAILED' : 'ALL PASSED'));

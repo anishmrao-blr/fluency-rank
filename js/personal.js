@@ -74,3 +74,31 @@ export function weavePhrases(basePhrases, state) {
   }
   return out;
 }
+
+/* ---------- Phonetic hard-sound coaching (manner & place of articulation) ----------
+   Maps any letter A-Z to a plain-English physical technique cue so drills coach
+   light contact on stops, continuous airflow on fricatives, and easy onset on vowels. */
+export function phoneticCue(letter) {
+  const L = String(letter || '').trim().toUpperCase().replace(/[^A-Z]/g, '').charAt(0);
+  if (!L) return null;
+  if ('PB'.indexOf(L) >= 0) return {letter:L, group:'Bilabial stop', title:'Light lip touch', cue:'Touch your lips lightly for ' + L + ' instead of pressing, then release smoothly into the vowel.'};
+  if ('TD'.indexOf(L) >= 0) return {letter:L, group:'Alveolar stop', title:'Light tongue tap', cue:'Tap your tongue lightly behind your top teeth for ' + L + ' and glide straight into the vowel.'};
+  if ('KGCQ'.indexOf(L) >= 0) return {letter:L, group:'Velar stop', title:'Soft back-tongue release', cue:'Keep the back of your tongue light for ' + L + ' and let breath carry the sound forward.'};
+  if ('FVSZHJX'.indexOf(L) >= 0) return {letter:L, group:'Fricative', title:'Steady gentle airflow', cue:'Let a quiet stream of air move first on ' + L + ', then ease smoothly into the rest of the word.'};
+  if ('MNLRWY'.indexOf(L) >= 0) return {letter:L, group:'Continuous sound', title:'Soft resonant slide', cue:'Stretch ' + L + ' gently for a beat and slide straight into the vowel without stopping.'};
+  return {letter:L, group:'Vowel start', title:'Easy onset', cue:'Begin ' + L + ' like a soft sigh turning gently into voice.'};
+}
+
+/* Returns up to 2 deduplicated phonetic cues for the user's hardest sounds (never overwhelms targets). */
+export function phoneticGuideFor(state) {
+  const pool = hardLetterPool(state).concat(Object.keys((state && state.weak) || {}));
+  const out = [], seenGroups = new Set();
+  for (let i = 0; i < pool.length; i++) {
+    const info = phoneticCue(pool[i]);
+    if (!info || seenGroups.has(info.group)) continue;
+    seenGroups.add(info.group);
+    out.push(info);
+    if (out.length >= 2) break;
+  }
+  return out;
+}

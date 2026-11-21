@@ -393,6 +393,10 @@ input[type=range]{width:100%;min-height:44px;accent-color:var(--tint)}
 .j-ladder li.done i{background:var(--sounding);color:var(--on-tint)}
 .j-ladder li.now i{background:var(--tint);color:var(--on-tint);box-shadow:0 0 0 3px color-mix(in srgb,var(--tint) 18%,transparent)}
 .j-ladder li.now{color:var(--tint)}
+.ph-card{background:color-mix(in srgb,var(--tint) 6%,var(--bg-group));border:1px solid color-mix(in srgb,var(--tint) 16%,var(--sep));border-radius:12px;padding:12px 14px;display:flex;flex-direction:column;gap:6px}
+.ph-k{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--tint)}
+.ph-item{display:flex;flex-direction:column;gap:2px}
+.ph-item b{font-size:var(--t-sub);font-weight:600;color:var(--label)}
 .m-cell{background:var(--bg-group);border-radius:12px;padding:10px 12px;display:flex;flex-direction:column;gap:2px}
 .m-k{font-size:var(--t-cap);color:var(--label-2)}
 .m-v{font-size:var(--t-body);font-weight:700}

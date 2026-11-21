@@ -1,6 +1,6 @@
 import {$, $$, esc, rnd, clamp, shuffle, fmt, dstr, dayNum} from './util.js';
 import {FLU, WPM, PASSAGES, QUESTIONS, STALL, LETTERS, CATS, MISSIONS, BASELINE_PASSAGE, TECH_CHECKS, TECH_DEMOS, DRILL_N} from './content.js';
-import {hardLetterPool, personalQuestion, weavePassage} from './personal.js';
+import {hardLetterPool, personalQuestion, weavePassage, phoneticCue, phoneticGuideFor} from './personal.js';
 import {app, save} from './state.js';
 import {award} from './rules.js';
 import {toast, bar, T, cue, runBody, RUN, openRun, setRun, setPartial, setDarkCover, setSteps, minsDone, choiceRow, wireChoice, rateHtml, wireRate, resultScreen, ICON} from './ui.js';
@@ -83,7 +83,9 @@ export function runRead(o) {
   const readPartial = (say, P) => ({type:'read', opts:{pts:{pace:5, breath:2}, q:'read', meta:P.t + ' at ' + wpm + ' wpm'}, say, lead:'You read part of “' + P.t + '” aloud. It counts.'});
   const setup = () => {
     setPartial(null);
-    setRun('<h2 class="h-t">Read aloud</h2><p class="note">Breathe at each ▾ mark and start softly. Pace target: ' + WPM[app.S.rung] + ' wpm.</p><div class="lab" id="psL">Passage</div><div class="group" role="group" aria-labelledby="psL">' + passages.map((p, i) => '<button type="button" class="li" data-ch="ps" data-v="' + i + '" aria-pressed="' + (i === sel) + '"><span class="grow"><span class="tt">' + esc(p.t) + '</span><span class="ds">' + p.x.split(/\s+/).length + ' words</span></span><svg class="ic ck" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg></button>').join('') + '</div><label class="lab" for="wpm">Pace: <span id="wv" class="num">' + wpm + '</span> wpm</label><input type="range" id="wpm" min="60" max="150" step="5" value="' + wpm + '"><button type="button" class="btn btn-p" id="go">Start reading</button>');
+    const cues = phoneticGuideFor(app.S);
+    const cueHtml = cues.length ? '<div class="ph-card"><span class="ph-k">Focus cue for your hard sounds</span>' + cues.map(c => '<div class="ph-item"><b>' + esc(c.letter) + ' · ' + esc(c.title) + '</b><span class="ds">' + esc(c.cue) + '</span></div>').join('') + '</div>' : '';
+    setRun('<h2 class="h-t">Read aloud</h2><p class="note">Breathe at each ▾ mark and start softly. Pace target: ' + WPM[app.S.rung] + ' wpm.</p>' + cueHtml + '<div class="lab" id="psL">Passage</div><div class="group" role="group" aria-labelledby="psL">' + passages.map((p, i) => '<button type="button" class="li" data-ch="ps" data-v="' + i + '" aria-pressed="' + (i === sel) + '"><span class="grow"><span class="tt">' + esc(p.t) + '</span><span class="ds">' + p.x.split(/\s+/).length + ' words</span></span><svg class="ic ck" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg></button>').join('') + '</div><label class="lab" for="wpm">Pace: <span id="wv" class="num">' + wpm + '</span> wpm</label><input type="range" id="wpm" min="60" max="150" step="5" value="' + wpm + '"><button type="button" class="btn btn-p" id="go">Start reading</button>');
     $('#wpm').oninput = function () { wpm = Number(this.value); $('#wv').textContent = wpm; };
     wireChoice('ps', v => { sel = Number(v); setup(); });
     $('#go').onclick = play;
@@ -185,7 +187,9 @@ export function runRaid(o) {
   const prep = () => { const q = pickRaid(last); last = q.C; show(q); };
   const show = q => {
     setPartial(null);
-    setRun('<div class="letter" aria-hidden="true">' + q.L + '</div><h2 class="h-t center">Words that start with ' + q.L + ': ' + esc(q.C.toLowerCase()) + '</h2><p class="note center">Say each word aloud and tap +1 as you go. Breathe in first and begin on the out-breath.</p>' + (o.secs ? '' : '<div class="lab" id="secL">Round length</div>' + choiceRow('secs', [30, 45, 60], secs, v => v + ' s', 'Round length')) + '<button type="button" class="btn btn-p" id="go">Start the clock</button>');
+    const pc = phoneticCue(q.L);
+    const cueBox = pc ? '<div class="ph-card"><span class="ph-k">' + esc(pc.group) + ' · ' + esc(pc.title) + '</span><p class="ds">' + esc(pc.cue) + '</p></div>' : '';
+    setRun('<div class="letter" aria-hidden="true">' + q.L + '</div><h2 class="h-t center">Words that start with ' + q.L + ': ' + esc(q.C.toLowerCase()) + '</h2><p class="note center">Say each word aloud and tap +1 as you go. Breathe in first and begin on the out-breath.</p>' + cueBox + (o.secs ? '' : '<div class="lab" id="secL">Round length</div>' + choiceRow('secs', [30, 45, 60], secs, v => v + ' s', 'Round length')) + '<button type="button" class="btn btn-p" id="go">Start the clock</button>');
     wireChoice('secs', v => { secs = Number(v); show(q); });
     $('#go').onclick = () => play(q);
   };
