@@ -223,14 +223,44 @@ input[type=range]{width:100%;min-height:44px;accent-color:var(--tint)}
 .help-acc[open]>summary::after{transform:rotate(90deg)}
 .help-acc>p{padding:0 16px 14px;line-height:1.45}
 
-.week{display:grid;grid-template-columns:repeat(7,1fr);gap:8px}
+.week{display:grid;grid-template-columns:repeat(7,1fr);gap:6px}
 .wd{display:flex;flex-direction:column;align-items:center;gap:5px}
-.wd .trk{position:relative;width:100%;max-width:22px;height:36px;border-radius:999px;background:var(--fill);overflow:hidden}
-.wd .trk i{position:absolute;left:0;right:0;bottom:0;height:100%;background:var(--sounding);border-radius:999px;transform-origin:bottom;transform:scaleY(0)}
-.wd.n1 .trk i{transform:scaleY(.5)}
+.wd .trk{position:relative;width:32px;height:32px;border-radius:50%;background:var(--bg-group);border:1.5px solid rgba(26,33,30,.15);display:grid;place-items:center;overflow:hidden;color:var(--label-2);transition:transform .2s var(--ease-out),border-color .2s ease}
+.wd .trk i{position:absolute;inset:0;background:var(--sounding);border-radius:50%;transform-origin:bottom;transform:scaleY(0);transition:transform .35s var(--ease-out)}
+.wd .wd-ic{position:relative;z-index:2;width:15px;height:15px;fill:none;stroke:currentColor;stroke-width:2.1;stroke-linecap:round;stroke-linejoin:round;opacity:.45}
+.wd.n1 .trk{border-color:var(--sounding);color:var(--sounding)}
+.wd.n1 .trk i{transform:scaleY(.5);opacity:.22}
+.wd.n1 .wd-ic{opacity:1}
+.wd.n2 .trk{border-color:var(--sounding);color:#FFFFFF}
 .wd.n2 .trk i{transform:scaleY(1)}
+.wd.n2 .wd-ic{opacity:1}
+.wd.today .trk{border:2px solid var(--tint);color:var(--tint);box-shadow:0 0 0 3px color-mix(in srgb,var(--tint) 12%,transparent)}
+.wd.today.n2 .trk{color:#FFFFFF}
+.wd.today .wd-ic{opacity:1}
 .wd .dl{font-size:var(--t-cap);line-height:1.385;color:var(--label-2);padding-bottom:2px;border-bottom:2px solid transparent;min-width:18px;text-align:center}
 .wd.today .dl{color:var(--label);font-weight:700;border-bottom-color:var(--tint)}
+
+/* ---------- calm GPU-only animations (gated by prefers-reduced-motion) ---------- */
+@media (prefers-reduced-motion:no-preference){
+  #view .home>*,#view .goal-grid>*,#view .speak-grid>*,#view .kpi-grid>*,#view .rank-banner,#view .insight-card,#view .step-summary{
+    animation:viewIn .32s cubic-bezier(.16,1,.3,1) backwards;
+  }
+  #view .home>*:nth-child(2),#view .goal-grid>*:nth-child(2),#view .kpi-grid>*:nth-child(2){animation-delay:45ms}
+  #view .home>*:nth-child(3),#view .goal-grid>*:nth-child(3),#view .kpi-grid>*:nth-child(3){animation-delay:90ms}
+  #view .home>*:nth-child(4),#view .goal-grid>*:nth-child(4),#view .kpi-grid>*:nth-child(4){animation-delay:135ms}
+  #view .home>*:nth-child(5){animation-delay:170ms}
+  .wd.today:not(.n2) .trk{animation:todayPulse 3.2s ease-in-out infinite}
+  .wave-mini i{transform-origin:center;animation:waveIdle 1.8s ease-in-out infinite alternate}
+  .wave-mini i:nth-child(2n){animation-delay:.22s}
+  .wave-mini i:nth-child(3n){animation-delay:.45s}
+  .wave-mini i:nth-child(5n){animation-delay:.68s}
+  .pc-cta,.btn-p{position:relative;overflow:hidden}
+  .pc-cta::after,.btn-p::after{content:"";position:absolute;top:0;left:-100%;width:60%;height:100%;background:linear-gradient(90deg,transparent,rgba(255,255,255,.26),transparent);transition:transform .55s cubic-bezier(.16,1,.3,1);pointer-events:none}
+  .pc-cta:hover::after,.btn-p:hover::after{transform:translateX(300%)}
+}
+@keyframes viewIn{from{opacity:0;transform:translateY(10px)}}
+@keyframes todayPulse{0%,100%{box-shadow:0 0 0 2px color-mix(in srgb,var(--tint) 12%,transparent)}50%{box-shadow:0 0 0 6px color-mix(in srgb,var(--tint) 18%,transparent)}}
+@keyframes waveIdle{0%{transform:scaleY(.45)}100%{transform:scaleY(1)}}
 
 /* ---------- speak: course of real-world steps ---------- */
 .course{position:relative;padding:4px 0}

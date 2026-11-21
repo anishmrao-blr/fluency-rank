@@ -1,0 +1,269 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Fluency Rank · Premium Utilitarian Minimalism Preview</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500&family=Newsreader:ital,opsz,wght@0,6..72,400;0,6..72,500;1,6..72,400&display=swap" rel="stylesheet">
+<style>
+  *,*::before,*::after{box-sizing:border-box}
+  :root{
+    --canvas:#F7F6F3;
+    --surface:#FFFFFF;
+    --surface-2:#FBFBFA;
+    --border:#EAEAEA;
+    --ink:#111111;
+    --body:#2F3437;
+    --muted:#787774;
+    --p-green-bg:#EDF3EC; --p-green:#346538;
+    --p-blue-bg:#E1F3FE; --p-blue:#1F6C9F;
+    --p-yellow-bg:#FBF3DB; --p-yellow:#956400;
+    --p-red-bg:#FDEBEC; --p-red:#9F2F2D;
+    --f-sans:'SF Pro Display','Helvetica Neue',-apple-system,BlinkMacSystemFont,sans-serif;
+    --f-serif:'Newsreader',Georgia,serif;
+    --f-mono:'JetBrains Mono','SF Mono',monospace;
+  }
+  body{margin:0;background:var(--canvas);color:var(--body);font-family:var(--f-sans);font-size:15px;line-height:1.6;-webkit-font-smoothing:antialiased}
+  button{font:inherit;color:inherit;cursor:pointer}
+  h1,h2,h3,p{margin:0}
+  .serif{font-family:var(--f-serif);letter-spacing:-0.025em;line-height:1.1;color:var(--ink)}
+  .mono{font-family:var(--f-mono)}
+
+  /* Ambient subtle radial background */
+  .ambient{position:fixed;inset:0;pointer-events:none;z-index:0;background:radial-gradient(circle at 18% 12%,rgba(149,100,0,.03),transparent 42%),radial-gradient(circle at 82% 76%,rgba(52,101,56,.03),transparent 46%)}
+
+  /* Page shell */
+  .page{position:relative;z-index:1;max-width:1080px;margin:0 auto;padding:48px 24px 80px;display:flex;flex-direction:column;gap:56px}
+
+  /* Header */
+  .hero{display:flex;flex-direction:column;gap:16px;max-width:680px}
+  .tag{display:inline-flex;align-items:center;padding:3px 10px;border-radius:9999px;font-family:var(--f-mono);font-size:11px;font-weight:500;letter-spacing:.05em;text-transform:uppercase;width:fit-content}
+  .tag.green{background:var(--p-green-bg);color:var(--p-green)}
+  .tag.blue{background:var(--p-blue-bg);color:var(--p-blue)}
+  .tag.yellow{background:var(--p-yellow-bg);color:var(--p-yellow)}
+  .tag.red{background:var(--p-red-bg);color:var(--p-red)}
+  .hero h1{font-size:44px;font-weight:400}
+  .hero p{font-size:16px;color:var(--muted);max-width:560px}
+
+  /* Faux-OS Window Chrome holding the interactive app preview */
+  .os-win{background:var(--surface);border:1px solid var(--border);border-radius:12px;overflow:hidden}
+  .os-bar{height:40px;padding:0 16px;border-bottom:1px solid var(--border);background:var(--surface);display:flex;align-items:center;justify-content:space-between}
+  .os-dots{display:flex;gap:7px}
+  .os-dots i{width:10px;height:10px;border-radius:50%;background:#E3E3E1;display:block}
+  .os-tabs{display:flex;gap:4px}
+  .os-tabs button{border:1px solid transparent;background:transparent;color:var(--muted);padding:4px 12px;border-radius:6px;font-size:12.5px;font-weight:500;transition:background .15s,color .15s}
+  .os-tabs button.on{background:var(--canvas);border-color:var(--border);color:var(--ink)}
+  .os-keys{display:flex;align-items:center;gap:6px;font-size:12px;color:var(--muted)}
+  kbd{font-family:var(--f-mono);font-size:11px;padding:2px 6px;border-radius:4px;border:1px solid var(--border);background:var(--canvas);color:var(--ink)}
+
+  /* Interactive Workspace Grid inside Window */
+  .os-body{padding:32px;display:none;flex-direction:column;gap:24px}
+  .os-body.on{display:flex}
+
+  /* Bento Grid */
+  .bento{display:grid;grid-template-columns:1.4fr 1fr;gap:16px}
+  @media (max-width:780px){.bento{grid-template-columns:1fr}}
+  .card{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:28px;display:flex;flex-direction:column;gap:14px;transition:box-shadow .2s ease}
+  .card:hover{box-shadow:0 2px 8px rgba(0,0,0,.04)}
+  .card.soft{background:var(--surface-2)}
+
+  /* Primary & Secondary Utilitarian Buttons (NO pill shapes, 6px radius) */
+  .btn-p{border:0;border-radius:6px;background:var(--ink);color:#FFFFFF;padding:11px 18px;font-size:14px;font-weight:500;width:fit-content;transition:background .15s,transform .12s}
+  .btn-p:hover{background:#333333}
+  .btn-p:active{transform:scale(.98)}
+  .btn-s{border:1px solid var(--border);border-radius:6px;background:var(--surface);color:var(--ink);padding:10px 16px;font-size:14px;font-weight:500;width:fit-content;transition:background .15s,transform .12s}
+  .btn-s:hover{background:var(--canvas)}
+  .btn-s:active{transform:scale(.98)}
+
+  /* Desaturated warm photography */
+  .photo-strip{height:148px;border-radius:8px;overflow:hidden;border:1px solid var(--border);position:relative;background:var(--canvas)}
+  .photo-strip img{width:100%;height:100%;object-fit:cover;filter:saturate(.32) sepia(.10) contrast(.96);display:block}
+  .photo-strip::after{content:'';position:absolute;inset:0;background:rgba(247,246,243,.14);pointer-events:none}
+
+  /* 7-day monochrome ledger strip */
+  .week-row{display:grid;grid-template-columns:repeat(7,1fr);gap:8px}
+  .wcell{border:1px solid var(--border);border-radius:6px;padding:10px 6px;text-align:center;display:flex;flex-direction:column;gap:6px;background:var(--surface)}
+  .wcell span{font-family:var(--f-mono);font-size:11px;color:var(--muted)}
+  .wcell i{height:4px;border-radius:2px;background:#EAEAEA;display:block}
+  .wcell.done i{background:#346538}
+  .wcell.half i{background:#956400}
+  .wcell.today{border-color:var(--ink)}
+
+  /* 2x2 Goal Grid */
+  .g4{display:grid;grid-template-columns:repeat(2,1fr);gap:14px}
+  @media (max-width:640px){.g4{grid-template-columns:1fr}}
+
+  /* Minimalist Audio & Pacer Strip */
+  .pacer-line{display:flex;align-items:center;justify-content:space-between;padding:24px;border:1px solid var(--border);border-radius:8px;background:var(--surface-2)}
+  .pacer-dot{width:56px;height:56px;border-radius:50%;border:1.5px solid var(--ink);display:grid;place-items:center;font-family:var(--f-mono);font-size:18px;color:var(--ink);transition:transform 2s cubic-bezier(.37,0,.63,1)}
+  .pacer-dot.exp{transform:scale(1.18);background:var(--p-green-bg);border-color:var(--p-green);color:var(--p-green)}
+
+  /* Borderless FAQ Accordions (+ / - only) */
+  .acc-list{border-top:1px solid var(--border)}
+  .acc{border-bottom:1px solid var(--border)}
+  .acc>summary{list-style:none;display:flex;align-items:center;justify-content:space-between;padding:18px 0;font-size:15px;font-weight:500;color:var(--ink);cursor:pointer}
+  .acc>summary::-webkit-details-marker{display:none}
+  .acc>summary::after{content:'+';font-family:var(--f-mono);font-size:16px;color:var(--muted)}
+  .acc[open]>summary::after{content:'−'}
+  .acc>p{padding:0 0 18px;font-size:14px;color:var(--muted);max-width:680px}
+
+  /* Staggered reveal */
+  @media (prefers-reduced-motion:no-preference){
+    .reveal{opacity:0;transform:translateY(12px);animation:fadeUp .6s cubic-bezier(.16,1,.3,1) forwards;animation-delay:calc(var(--i,0) * 80ms)}
+  }
+  @keyframes fadeUp{to{opacity:1;transform:none}}
+  @media (prefers-reduced-motion:reduce){
+    .reveal{opacity:1;transform:none;animation:none}
+  }
+</style>
+</head>
+<body>
+<div class="ambient"></div>
+
+<main class="page">
+  <header class="hero reveal" style="--i:0">
+    <span class="tag green">Protocol Preview · Editorial Utilitarian</span>
+    <h1 class="serif">Steady speaking, designed like a quiet instrument.</h1>
+    <p>Warm monochrome bone canvas, crisp 1px borders, Newsreader editorial typography, muted semantic pastels, and zero visual noise.</p>
+  </header>
+
+  <section class="os-win reveal" style="--i:1" aria-label="Interactive Fluency Rank editorial preview">
+    <div class="os-bar">
+      <div class="os-dots" aria-hidden="true"><i></i><i></i><i></i></div>
+      <div class="os-tabs" role="tablist">
+        <button class="on" data-t="home">Today</button>
+        <button data-t="breathe">Breathe</button>
+        <button data-t="speak">Speak</button>
+        <button data-t="progress">Progress</button>
+      </div>
+      <div class="os-keys"><kbd>Space</kbd><span>Start</span></div>
+    </div>
+
+    <!-- TAB 1: TODAY -->
+    <div class="os-body on" data-p="home">
+      <div class="bento">
+        <div class="card">
+          <span class="tag green">Today · 0 of 2</span>
+          <h2 class="serif" style="font-size:30px">Daily voice session</h2>
+          <p style="color:var(--muted);font-size:14px">One minute of cyclic sighing followed by one short speaking drill. Local and offline.</p>
+          <div class="photo-strip"><img src="../assets/card-morning-home.jpg" alt="Warm morning desk light"></div>
+          <div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:4px">
+            <button class="btn-p" data-t="breathe">Start daily session · 5 min</button>
+            <button class="btn-s" data-t="breathe">Short version · 2 min</button>
+          </div>
+        </div>
+        <div style="display:flex;flex-direction:column;gap:16px">
+          <div class="card soft">
+            <span class="tag yellow">90 seconds · Pre-call</span>
+            <h3 class="serif" style="font-size:22px">I’m about to speak</h3>
+            <p style="color:var(--muted);font-size:13.5px">Three slow sighs, then say your opening line aloud twice before dialing.</p>
+            <button class="btn-s" data-t="breathe">Open pre-call reset</button>
+          </div>
+          <div class="card">
+            <div style="display:flex;justify-content:space-between;align-items:center">
+              <span class="mono" style="font-size:11px;color:var(--muted)">THIS WEEK · 3 OF 5</span>
+              <span class="tag blue">2 Shields</span>
+            </div>
+            <div class="week-row">
+              <div class="wcell done"><span>M</span><i></i></div>
+              <div class="wcell half"><span>T</span><i></i></div>
+              <div class="wcell done"><span>W</span><i></i></div>
+              <div class="wcell today"><span>T</span><i></i></div>
+              <div class="wcell"><span>F</span><i></i></div>
+              <div class="wcell"><span>S</span><i></i></div>
+              <div class="wcell"><span>S</span><i></i></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- TAB 2: BREATHE -->
+    <div class="os-body" data-p="breathe">
+      <div class="pacer-line">
+        <div>
+          <span class="tag green">Cyclic sighing · 3 min</span>
+          <h2 class="serif" id="edWord" style="font-size:28px;margin-top:8px">Breathe in</h2>
+          <p class="mono" style="font-size:12px;color:var(--muted);margin-top:4px">Two nasal inhales, then a long mouth exhale.</p>
+        </div>
+        <div class="pacer-dot exp" id="edDot">2</div>
+      </div>
+      <div class="g4">
+        <div class="card"><span class="tag green">Calm now</span><h3 class="serif" style="font-size:21px">Cyclic sighing</h3><p style="font-size:13px;color:var(--muted)">2023 Stanford trial: 5 min lowered anxiety faster than mindfulness.</p></div>
+        <div class="card"><span class="tag blue">Before speaking</span><h3 class="serif" style="font-size:21px">Breathe and speak</h3><p style="font-size:13px;color:var(--muted)">3 s inhale, then start a short phrase softly on a 7 s exhale.</p></div>
+        <div class="card"><span class="tag yellow">Focus</span><h3 class="serif" style="font-size:21px">Box breathing</h3><p style="font-size:13px;color:var(--muted)">4 in, 4 hold, 4 out, 4 hold. Steady count under pressure.</p></div>
+        <div class="card"><span class="tag red">Wind down</span><h3 class="serif" style="font-size:21px">Extended exhale</h3><p style="font-size:13px;color:var(--muted)">4 in, 8 out. Longer exhales slow heart rate before rest.</p></div>
+      </div>
+    </div>
+
+    <!-- TAB 3: SPEAK -->
+    <div class="os-body" data-p="speak">
+      <div class="bento">
+        <div class="card">
+          <span class="tag blue">Pace target · 100 wpm</span>
+          <h2 class="serif" style="font-size:28px">Read aloud</h2>
+          <p style="font-size:14px;color:var(--muted)">Soft starts at each pause mark with optional on-device recording and live pace measures.</p>
+          <div class="photo-strip"><img src="../assets/card-speak-studio.jpg" alt="Studio microphone"></div>
+          <div style="display:flex;align-items:center;gap:12px">
+            <button class="btn-p">Start reading</button>
+            <span class="mono" style="font-size:12px;color:var(--muted)"><kbd>R</kbd> Record voice</span>
+          </div>
+        </div>
+        <div style="display:flex;flex-direction:column;gap:16px">
+          <div class="card soft"><span class="tag yellow">45 seconds</span><h3 class="serif" style="font-size:21px">Word warm-up</h3><p style="font-size:13px;color:var(--muted)">Weaves in your hard sounds and feared words at roughly 1 in 3 prompts.</p></div>
+          <div class="card soft"><span class="tag green">60 seconds</span><h3 class="serif" style="font-size:21px">Practice questions</h3><p style="font-size:13px;color:var(--muted)">Work meetings and phone calls. Position first, one reason, one check.</p></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- TAB 4: PROGRESS -->
+    <div class="os-body" data-p="progress">
+      <div class="bento">
+        <div class="card">
+          <span class="tag green">Top insight</span>
+          <h2 class="serif" style="font-size:26px">Baseline fluency rose from 2 to 4 of 5 after two minutes of breathing.</h2>
+          <p class="mono" style="font-size:12px;color:var(--muted)">Rank D Speaker · Level 9 · 1,340 XP · 14 practice days</p>
+        </div>
+        <div class="card soft">
+          <span class="tag blue">On-device proof</span>
+          <h3 class="serif" style="font-size:21px">Then and now</h3>
+          <p style="font-size:13px;color:var(--muted)">Compare your cold baseline read against this week’s take. Recordings never leave your phone.</p>
+          <button class="btn-s">Weekly re-record · +50 XP</button>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Borderless Editorial FAQ Accordions -->
+  <section class="reveal" style="--i:2">
+    <h2 class="serif" style="font-size:28px;margin-bottom:16px">Principles &amp; transparency</h2>
+    <div class="acc-list">
+      <details class="acc" open><summary>Practice, not therapy</summary><p>This app gives you a quiet place to practise breathing and speaking techniques every day. It does not treat stammering or anxiety, and makes no cure promises.</p></details>
+      <details class="acc"><summary>100% private and offline</summary><p>Recordings stay in IndexedDB on your device and never leave your phone. Drill clips expire automatically after 14 days while baseline proof clips stay until you delete them.</p></details>
+      <details class="acc"><summary>Zero streak guilt</summary><p>Five practice days in a week earns a shield that quietly covers a missed day. A broken streak resets silently without red warnings.</p></details>
+    </div>
+  </section>
+</main>
+
+<script>
+  function openTab(id) {
+    document.querySelectorAll('.os-tabs button').forEach(b => b.classList.toggle('on', b.dataset.t === id));
+    document.querySelectorAll('.os-body').forEach(p => p.classList.toggle('on', p.dataset.p === id));
+  }
+  document.addEventListener('click', e => {
+    const b = e.target.closest('[data-t]');
+    if (b) openTab(b.dataset.t);
+  });
+  const ph = [{w:'Breathe in', s:2, e:true}, {w:'In again', s:1, e:true}, {w:'Out, slowly', s:6, e:false}];
+  let pi = 0, rem = 2;
+  setInterval(() => {
+    rem--; if (rem <= 0) { pi = (pi + 1) % ph.length; rem = ph[pi].s; }
+    document.getElementById('edWord').textContent = ph[pi].w;
+    document.getElementById('edDot').textContent = rem;
+    document.getElementById('edDot').classList.toggle('exp', ph[pi].e);
+  }, 1000);
+</script>
+</body>
+</html>

@@ -15,10 +15,14 @@ const rowBtn = (act, v, name, desc, label) => '<button type="button" class="li" 
 /* ---------- Home ---------- */
 export function weekHtml() {
   const w = weekStartNum(dayNum(dstr())), today = dayNum(dstr()), L = ['M', 'T', 'W', 'T', 'F', 'S', 'S'], F = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
+  const chk = '<svg class="wd-ic" viewBox="0 0 16 16" aria-hidden="true"><path d="M3.5 8.5 6.5 11.5 12.5 4.5"/></svg>';
+  const half = '<svg class="wd-ic" viewBox="0 0 16 16" aria-hidden="true"><path d="M8 3a5 5 0 0 1 0 10z" fill="currentColor" stroke="none"/></svg>';
+  const dot = '<svg class="wd-ic" viewBox="0 0 16 16" aria-hidden="true"><circle cx="8" cy="8" r="2.2" fill="currentColor" stroke="none"/></svg>';
   let h = '';
   for (let i = 0; i < 7; i++) {
-    const d = numStr(w + i), rec = app.S.days[d], n = rec ? Math.min(2, rec.n) : 0;
-    h += '<li class="wd' + (n ? ' n' + n : '') + (w + i === today ? ' today' : '') + '"><span class="trk" aria-hidden="true"><i></i></span><span class="dl" aria-hidden="true">' + L[i] + '</span><span class="sr">' + F[i] + (w + i === today ? ', today' : '') + ': ' + (n === 2 ? 'both items done' : n === 1 ? 'one item done' : 'no practice') + '</span></li>';
+    const d = numStr(w + i), rec = app.S.days[d], n = rec ? Math.min(2, rec.n) : 0, isToday = w + i === today;
+    const icon = n === 2 ? chk : n === 1 ? half : dot;
+    h += '<li class="wd' + (n ? ' n' + n : '') + (isToday ? ' today' : '') + '"><span class="trk" aria-hidden="true"><i></i>' + icon + '</span><span class="dl" aria-hidden="true">' + L[i] + '</span><span class="sr">' + F[i] + (isToday ? ', today' : '') + ': ' + (n === 2 ? 'both items done' : n === 1 ? 'one item done' : 'no practice') + '</span></li>';
   }
   return '<ul class="week" aria-label="This week">' + h + '</ul>';
 }
