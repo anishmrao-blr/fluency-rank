@@ -31,9 +31,10 @@
 | `--label-2` | #9FB6C0 | #4A6270 | secondary text (at least 4.5:1) |
 | `--water` | #17414F | #CFE5EA | pacer water body, tide fills |
 | `--sounding` | #7FD1C7 | #2E8C88 | soundings, tide marks, the "done" state |
-| `--tint` | #F28C38 | #C4580F | the one interactive tint: buttons, links, selection |
+| `--tint` | #F28C38 | #B4500C | the one interactive tint: buttons, links, selection |
 | `--on-tint` | #1A0E04 | #FFFFFF | text on the tint |
 
+- The light `--tint` was #C4580F. It measured 4.06:1 on `--bg` and 4.42:1 under white text, so step 2 darkened it to #B4500C (4.72:1 and 5.13:1).
 - The scheme follows `prefers-color-scheme`. Both schemes are first-class and both get tested.
 - The tint is for interaction only, never decoration. Seafoam means "done". There is no red error colour for missed days, because the app has no miss states.
 

@@ -14,14 +14,16 @@ current implementation plan is in `docs/superpowers/plans/`.
   `test/pwa.test.js` (manifest, icons, fonts, precache list). It must exit 0.
 - Live at https://anishmrao-blr.github.io/fluency-rank/ (GitHub Pages, deployed from `main` at `/`).
 - Release rule: bump `VERSION` in `sw.js` on every release, and add every new file to `PRECACHE`.
-  The PWA test fails if a file under `js/` or `fonts/` is missing from the list.
+  The PWA test fails if a file under `js/`, `css/` or `fonts/` is missing from the list.
 - `tools/make-icons.js` regenerates the icons; `tools/fetch-fonts.js` re-downloads the fonts.
 
 ## Architecture (native ES modules in js/, no build step, no runtime dependencies)
 - `util` helpers, `content` (RANKS, QUESTIONS, PASSAGES, MISSIONS...), `state` (the `app` object,
-  `fresh/sanitize/save`), `rules` (`rollDay/award`), `ui` (toast, modal, run overlay, timers),
-  `drills`, `views`, and `main` (events and boot). Shared mutable state lives on `app`:
-  `app.S`, `app.tab`, `app.running`, `app.storageOk`, `app.noticeText`.
+  `fresh/sanitize/save`), `rules` (`rollDay/award/questProgress`), `ui` (toast, modal, the drill cover,
+  the Settings sheet, the End control, result screens, timers), `drills` (drills and the tide pacer),
+  `views`, and `main` (events and boot). All CSS is in `css/app.css`; DESIGN.md is the visual
+  contract. Shared mutable state lives on `app`: `app.S`, `app.tab`, `app.running`,
+  `app.storageOk`, `app.noticeText`.
 - State is a single object, `app.S`, stored under the localStorage key `fluency-rank:v2`. `sanitize()`
   validates and clamps everything read from storage, an account DB, or a pasted backup. Add any new
   field to it.
@@ -29,7 +31,11 @@ current implementation plan is in `docs/superpowers/plans/`.
 - `rollDay()` handles day rollover, shields and the comeback flag. The streak counts practice days.
 - Drills (`runBreath/runRead/runRaid/runCold/runRitual/runDebrief/runField`) all render into
   `#runBody` through `setRun()`. All timers go through the `T` registry, so `stopRun()` cleans up.
-- Views are string-templated (`viewStatus/Gates/Log/Guide`). User text goes through `esc()`.
+  `runRitual` is "I'm about to speak". Each drill tells the End control what counts so far through
+  `setPartial()`; End credits it with `award(type, {partial:true})`.
+- Views are string-templated: `viewHome`, `viewBreathe`, `viewGates` (the Speak tab, whose internal
+  id stays `gates`), `viewProgress`, and `settingsHtml` for the Settings sheet. User text goes
+  through `esc()`.
 
 ## Rules
 - Keep old saved data loading correctly. Every new saved field goes through `sanitize()`.
