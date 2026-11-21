@@ -112,8 +112,8 @@ input[type=range]{width:100%;min-height:44px;accent-color:var(--tint)}
 .rate .seg .segb{min-height:60px}
 .rlabel{font-size:var(--t-sub);line-height:1.333;color:var(--label-2);margin-bottom:8px}
 
-/* ---------- animated breath-bloom intro ---------- */
-#intro{position:fixed;inset:0;z-index:60;background:linear-gradient(180deg,rgba(12,18,15,.82),rgba(17,25,22,.62) 50%,rgba(12,18,15,.92)),url("../assets/bg-forest-pacer.jpg") center/cover no-repeat,#111916;color:#F4F7F5;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:22px;padding:24px;cursor:pointer;transition:opacity .45s ease}
+/* ---------- animated breath-bloom intro (deep pine aurora mesh, zero photo distraction) ---------- */
+#intro{position:fixed;inset:0;z-index:60;background:radial-gradient(ellipse 85% 65% at 22% 24%,rgba(46,122,114,.32),transparent 62%),radial-gradient(ellipse 75% 60% at 80% 78%,rgba(29,77,69,.38),transparent 60%),linear-gradient(180deg,#0E1815 0%,#0A1210 100%);color:#F4F7F5;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:22px;padding:24px;cursor:pointer;transition:opacity .45s ease}
 #intro.out{opacity:0;pointer-events:none}
 .intro-orb{width:170px;height:170px;border-radius:50%;border:1px solid rgba(156,216,208,.24);display:grid;place-items:center;position:relative;transform:scale(.82);transition:transform 1.7s cubic-bezier(.37,0,.63,1)}
 #intro.in .intro-orb{transform:scale(1.16)}
@@ -321,9 +321,14 @@ input[type=range]{width:100%;min-height:44px;accent-color:var(--tint)}
 .help p{font-size:var(--t-sub);line-height:1.333}
 .help .li{align-items:flex-start}
 
-/* ---------- full-screen cover (drills) & Dark Pine Forest Active Mode ---------- */
+/* ---------- full-screen cover (drills) & Deep Pine Aurora Active Mode ---------- */
 #run{position:fixed;inset:0;z-index:20;background:var(--bg);display:flex;flex-direction:column;animation:rise .38s var(--ease-out)}
-#run.dark-cover{--bg:#111916;--bg-group:rgba(24,36,32,.78);--fill:rgba(255,255,255,.10);--sep:rgba(156,216,208,.16);--label:#F4F7F5;--label-2:#9AA6A0;--water:#1D3B35;--sounding:#9CD8D0;--tint:#9CD8D0;--on-tint:#0E1B18;background:linear-gradient(180deg,rgba(12,18,15,.84) 0%,rgba(17,25,22,.56) 48%,rgba(12,18,15,.94) 100%),url("../assets/bg-forest-pacer.jpg") center/cover no-repeat,#111916;color:var(--label)}
+#run.dark-cover{--bg:#0D1614;--bg-group:rgba(22,34,30,.72);--fill:rgba(255,255,255,.09);--sep:rgba(156,216,208,.15);--label:#F4F7F5;--label-2:#9AA6A0;--water:#1B3D37;--sounding:#9CD8D0;--tint:#9CD8D0;--on-tint:#0E1B18;background:linear-gradient(180deg,#0F1A17 0%,#0B1311 100%);color:var(--label);overflow:hidden}
+#run.dark-cover::before{content:"";position:absolute;inset:-25%;z-index:0;pointer-events:none;background:radial-gradient(ellipse 55% 45% at 28% 28%,rgba(46,122,114,.34),transparent 65%),radial-gradient(ellipse 50% 45% at 74% 68%,rgba(156,216,208,.16),transparent 62%),radial-gradient(ellipse 45% 40% at 50% 85%,rgba(23,65,79,.32),transparent 60%);will-change:transform}
+@media (prefers-reduced-motion:no-preference){
+  #run.dark-cover::before{animation:auroraDrift 18s ease-in-out infinite alternate}
+}
+@keyframes auroraDrift{0%{transform:translate3d(-3%,-2%,0) scale(1)}100%{transform:translate3d(4%,3%,0) scale(1.08)}}
 .glass-panel{background:var(--bg-group);border:1px solid var(--sep);border-radius:18px;padding:16px;backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);display:flex;flex-direction:column;gap:12px}
 .med-wrap{position:relative;width:140px;height:140px;margin:6px auto 0;display:grid;place-items:center}
 .med-glow{position:absolute;inset:-18px;border-radius:50%;background:radial-gradient(circle,color-mix(in srgb,var(--sounding) 32%,transparent) 0%,transparent 70%)}
@@ -340,7 +345,7 @@ input[type=range]{width:100%;min-height:44px;accent-color:var(--tint)}
 .mode-chip{border:1px solid var(--sep);background:var(--fill);color:var(--sounding);padding:4px 10px;border-radius:999px;font-size:var(--t-cap);font-weight:600;cursor:pointer}
 .tp-bloom{display:none;position:absolute;left:50%;top:42%;width:210px;height:210px;margin:-105px 0 0 -105px;border-radius:50%;border:1px solid color-mix(in srgb,var(--sounding) 26%,transparent);place-items:center;will-change:transform}
 .tp.bloom-on .tp-bloom{display:grid}
-.tp.bloom-on .tp-water,.tp.bloom-on .tp-snd{opacity:.14}
+.tp.bloom-on .tp-water,.tp.bloom-on .tp-snd{opacity:0;transition:opacity .25s ease}
 .tp.rm .tp-bloom{display:none}
 .tp-petals{position:absolute;inset:0;display:grid;place-items:center;animation:bloomSpin 18s linear infinite}
 .tp-petals span{position:absolute;width:96px;height:96px;border-radius:50%;background:radial-gradient(circle,color-mix(in srgb,var(--sounding) 30%,transparent),transparent 72%);border:1px solid color-mix(in srgb,var(--sounding) 22%,transparent)}
