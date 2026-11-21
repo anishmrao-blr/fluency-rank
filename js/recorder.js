@@ -128,12 +128,25 @@ export function fmtBytes(b) {
   return (b / (1024 * 1024)).toFixed(1) + ' MB';
 }
 
-/* ---------- On-device pace & pause measures (pure, unit-testable) ----------
-   Computes durationSec, speakingSec, pauses (>= 1.0s silent gap between speech), and WPM.
-   Always shown with: "These measure pace and pauses, not stammering." */
+/* ---------- On-device pace, pause & Easy Onset measures (pure, unit-testable) ----------
+   Computes durationSec, speakingSec, pauses (>= 1.0s silent gap between speech), WPM,
+   and easyOnsetPct (% of speech starts with a gradual volume ramp vs abrupt spike).
+   Always shown with: "These measure pace, pauses and soft starts, not stammering." */
+export const rmsToDb = rms => 20 * Math.log10(Math.max(rms || 0, 1e-6));
+
+export function isSoftOnset(onsetSlice) {
+  if (!onsetSlice || !onsetSlice.length) return true;
+  const first = onsetSlice[0];
+  let peak = first;
+  for (let i = 1; i < onsetSlice.length; i++) if (onsetSlice[i] > peak) peak = onsetSlice[i];
+  /* Abrupt / hard glottal attack: jumps high immediately (>= -22 dB) at >= 78% of local peak */
+  if (first >= 0.08 && peak > 0 && first >= peak * 0.78) return false;
+  return true;
+}
+
 export function analyzeSamples(samples, sampleRate, wordCount) {
   if (!samples || !samples.length || !sampleRate) {
-    return {durationSec:0, speakingSec:0, pauses:0, wpm:null};
+    return {durationSec:0, speakingSec:0, pauses:0, wpm:null, onsets:0, easyOnsetPct:null};
   }
   const win = Math.max(1, Math.floor(sampleRate * 0.05)); // 50 ms frame
   const frames = [];
@@ -150,33 +163,49 @@ export function analyzeFrames(rmsFrames, frameSec, wordCount) {
   const dt = frameSec || 0.05;
   const n = (rmsFrames && rmsFrames.length) || 0;
   const durationSec = +(n * dt).toFixed(1);
-  if (!n) return {durationSec:0, speakingSec:0, pauses:0, wpm:null};
+  if (!n) return {durationSec:0, speakingSec:0, pauses:0, wpm:null, onsets:0, easyOnsetPct:null};
   const thresh = 0.02;
-  let speakingFrames = 0, pauses = 0, seenSpeech = false, silentRun = 0;
+  const onsetGapFrames = Math.max(1, Math.round(0.15 / dt));
+  const onsetWin = Math.max(2, Math.min(5, Math.round(0.15 / dt)));
+  let speakingFrames = 0, pauses = 0, seenSpeech = false, silentRun = onsetGapFrames;
+  let onsets = 0, softOnsets = 0;
   for (let i = 0; i < n; i++) {
     if (rmsFrames[i] >= thresh) {
       if (seenSpeech && silentRun * dt >= 1.0) pauses++;
+      if (silentRun >= onsetGapFrames) {
+        onsets++;
+        if (isSoftOnset(rmsFrames.slice(i, i + onsetWin))) softOnsets++;
+      }
       seenSpeech = true;
       silentRun = 0;
       speakingFrames++;
-    } else if (seenSpeech) {
+    } else {
       silentRun++;
     }
   }
   const speakingSec = +(speakingFrames * dt).toFixed(1);
   const wpm = wordCount > 0 && durationSec >= 2 ? Math.round(wordCount / (durationSec / 60)) : null;
-  return {durationSec, speakingSec, pauses, wpm};
+  const easyOnsetPct = onsets > 0 ? Math.round((softOnsets / onsets) * 100) : null;
+  return {durationSec, speakingSec, pauses, wpm, onsets, easyOnsetPct};
+}
+
+export function onsetMeterHtml(id, hidden) {
+  return '<div class="onset-box" id="' + esc(id || 'onsetBox') + '"' + (hidden === false ? '' : ' hidden') + '>'
+    + '<div class="onset-head"><span class="onset-k">Easy onset</span><span class="onset-tag" data-onset-tag>Ready</span></div>'
+    + '<div class="onset-trk" aria-hidden="true"><i class="onset-fill" data-onset-fill style="transform:scaleX(0)"></i></div>'
+    + '</div>';
 }
 
 export function measuresHtml(m) {
   if (!m) return '';
   return '<div class="measures">'
-    + '<div class="m-grid">'
+    + '<div class="m-grid m4">'
     + '<div class="m-cell"><span class="m-k">Speaking time</span><b class="m-v num">' + esc(String(m.speakingSec)) + ' s</b></div>'
     + '<div class="m-cell"><span class="m-k">Pauses &gt; 1s</span><b class="m-v num">' + esc(String(m.pauses)) + '</b></div>'
     + '<div class="m-cell"><span class="m-k">Pace</span><b class="m-v num">' + (m.wpm != null ? m.wpm + ' wpm' : '—') + '</b></div>'
+    + '<div class="m-cell"><span class="m-k">Soft starts</span><b class="m-v num">' + (m.easyOnsetPct != null ? m.easyOnsetPct + '%' : '—') + '</b></div>'
     + '</div>'
-    + '<p class="cap">These measure pace and pauses, not stammering.</p>'
+    + '<p class="cap">These measure pace and pauses, not stammering. Soft starts track volume ramp only.</p>'
     + '</div>';
 }
 
@@ -197,12 +226,43 @@ export function createRecorder(opts) {
   opts = opts || {};
   wireRecCleanup();
   let stream = null, mr = null, ac = null, analyser = null, chunks = [], frames = [], raf = 0, t0 = 0, stopped = false;
+  let silentFrames = 10, onsetBuf = null, onsetState = '';
+  const onsetFill = opts.onsetEl ? opts.onsetEl.querySelector('[data-onset-fill]') : null;
+  const onsetTag = opts.onsetEl ? opts.onsetEl.querySelector('[data-onset-tag]') : null;
+
+  const updateOnsetMeter = level => {
+    if (!onsetFill || !onsetTag) return;
+    const norm = Math.min(1, Math.max(0, level * 5.2));
+    onsetFill.style.transform = 'scaleX(' + norm.toFixed(3) + ')';
+    if (level >= 0.02) {
+      if (silentFrames >= 8) onsetBuf = [level];
+      else if (onsetBuf) {
+        onsetBuf.push(level);
+        if (onsetBuf.length >= 4) {
+          const soft = isSoftOnset(onsetBuf);
+          onsetState = soft ? 'soft' : 'hard';
+          onsetTag.textContent = soft ? 'Soft start' : 'Abrupt start';
+          onsetTag.className = 'onset-tag ' + onsetState;
+          onsetFill.className = 'onset-fill ' + onsetState;
+          onsetBuf = null;
+        }
+      }
+      silentFrames = 0;
+    } else {
+      silentFrames++;
+      if (silentFrames === 16) {
+        onsetBuf = null;
+        onsetState = '';
+        onsetTag.textContent = 'Ready';
+        onsetTag.className = 'onset-tag';
+        onsetFill.className = 'onset-fill';
+      }
+    }
+  };
 
   const drawCanvas = () => {
     const cv = opts.canvas;
-    if (!cv || stopped) return;
-    const ctx = cv.getContext && cv.getContext('2d');
-    if (!ctx) return;
+    if ((!cv && !opts.onsetEl) || stopped) return;
     let level = 0.04;
     if (analyser) {
       const buf = new Float32Array(analyser.fftSize);
@@ -212,15 +272,21 @@ export function createRecorder(opts) {
       level = Math.sqrt(s / buf.length);
     }
     frames.push(level);
-    ctx.clearRect(0, 0, cv.width, cv.height);
-    const bars = 38, gap = 3, bw = (cv.width - gap * (bars - 1)) / bars, mid = cv.height / 2;
-    const slice = frames.slice(-bars);
-    for (let i = 0; i < bars; i++) {
-      const v = slice[i] != null ? slice[i] : 0.01;
-      const amp = Math.min(1, Math.max(0.08, v * 5.5));
-      const h = Math.max(4, amp * (cv.height - 6));
-      ctx.fillStyle = v >= 0.02 ? '#9CD8D0' : 'rgba(156,216,208,.35)';
-      ctx.fillRect(i * (bw + gap), mid - h / 2, bw, h);
+    updateOnsetMeter(level);
+    if (cv) {
+      const ctx = cv.getContext && cv.getContext('2d');
+      if (ctx) {
+        ctx.clearRect(0, 0, cv.width, cv.height);
+        const bars = 38, gap = 3, bw = (cv.width - gap * (bars - 1)) / bars, mid = cv.height / 2;
+        const slice = frames.slice(-bars);
+        for (let i = 0; i < bars; i++) {
+          const v = slice[i] != null ? slice[i] : 0.01;
+          const amp = Math.min(1, Math.max(0.08, v * 5.5));
+          const h = Math.max(4, amp * (cv.height - 6));
+          ctx.fillStyle = v >= 0.02 ? (onsetState === 'hard' && i === bars - 1 ? '#E8B86D' : '#9CD8D0') : 'rgba(156,216,208,.35)';
+          ctx.fillRect(i * (bw + gap), mid - h / 2, bw, h);
+        }
+      }
     }
     raf = requestAnimationFrame(drawCanvas);
   };
@@ -261,7 +327,7 @@ export function createRecorder(opts) {
         }
       } catch (e) { /* waveform falls back cleanly */ }
       activeRec = rec;
-      if (opts.canvas) raf = requestAnimationFrame(drawCanvas);
+      if (opts.canvas || opts.onsetEl) raf = requestAnimationFrame(drawCanvas);
       return {ok:true};
     },
     stop(wordCount) {

@@ -5,7 +5,7 @@ import {app, save} from './state.js';
 import {award} from './rules.js';
 import {toast, bar, T, cue, runBody, RUN, openRun, setRun, setPartial, setDarkCover, setSteps, minsDone, choiceRow, wireChoice, rateHtml, wireRate, resultScreen, ICON} from './ui.js';
 import {LOW, BREATH_IN, SIGH, tidePacer, runBreath} from './breath.js';
-import {createRecorder, saveClip, getClip, measuresHtml, playerHtml, wirePlayer} from './recorder.js';
+import {createRecorder, saveClip, getClip, measuresHtml, onsetMeterHtml, playerHtml, wirePlayer} from './recorder.js';
 export {runBreath, tidePacer, SIGH, LOW};
 
 export function activePassages() {
@@ -86,21 +86,22 @@ export function runRead(o) {
     setRun('<h2 class="h-t">' + esc(P.t) + '</h2><p class="note num">' + wpm + ' words a minute</p>'
       + '<div class="glass-panel"><div class="reader" id="rd">' + words.map(w => '<span class="w' + (/[,;:]$/.test(w) ? ' c' : '') + (/[.?!]$/.test(w) ? ' s' : '') + '">' + esc(w) + '</span>').join(' ') + '</div>'
       + '<canvas class="wave-cv" id="waveCv" width="300" height="48" hidden></canvas>'
+      + onsetMeterHtml('onsetBox', true)
       + '<div class="rec-row"><button type="button" class="btn btn-s btn-sm" id="recBtn" aria-pressed="false">Record voice</button><span class="cap" id="recMsg" role="status">Stays on this device</span></div></div>');
     setPartial(() => { const el = (performance.now() - t0) / 1000; return el >= 60 ? readPartial('The ' + minsDone(el) + ' you read still counts', P) : null; });
-    const recBtn = $('#recBtn'), recMsg = $('#recMsg'), waveCv = $('#waveCv');
+    const recBtn = $('#recBtn'), recMsg = $('#recMsg'), waveCv = $('#waveCv'), onsetBox = $('#onsetBox');
     recBtn.onclick = async () => {
       if (recording && rec) {
         recBtn.disabled = true;
         captured = await rec.stop(words.length);
         recording = false; rec = null;
-        waveCv.hidden = true;
+        waveCv.hidden = true; if (onsetBox) onsetBox.hidden = true;
         recBtn.disabled = false; recBtn.textContent = 'Recorded ✓'; recBtn.setAttribute('aria-pressed', 'false');
         recMsg.textContent = 'Saved for playback after reading.';
         return;
       }
       recBtn.disabled = true; recBtn.textContent = 'Opening mic…';
-      rec = createRecorder({canvas:waveCv});
+      rec = createRecorder({canvas:waveCv, onsetEl:onsetBox});
       const r = await rec.start();
       recBtn.disabled = false;
       if (!r.ok) {
@@ -109,7 +110,7 @@ export function runRead(o) {
         recMsg.textContent = r.reason === 'denied' ? 'Microphone blocked. You can still finish without recording.' : 'Recording is not available in this browser.';
         return;
       }
-      recording = true; waveCv.hidden = false;
+      recording = true; waveCv.hidden = false; if (onsetBox) onsetBox.hidden = false;
       recBtn.textContent = 'Stop recording'; recBtn.setAttribute('aria-pressed', 'true');
       recMsg.textContent = 'Recording on device…';
     };
@@ -227,21 +228,21 @@ export function runCold(boss, o) {
     setRun((boss ? '<p class="note num">Question ' + (idx + 1) + ' of 5</p>' : '') + '<h2 class="h-q">' + esc(q.t) + '</h2>' + (q.u ? '<p class="note">You may not know this one. Give a position, what you would check, and when you will confirm.</p>' : '')
       + (app.S.showSkeleton ? '<div class="group outline" aria-label="Answer outline"><div class="li"><span><b>Position.</b> My recommendation is…</span></div><div class="li"><span><b>Because.</b> One or two reasons, one number if you have it.</span></div><div class="li"><span><b>Change.</b> I would revisit if…</span></div></div>' : '')
       + '<div class="phaseline"><span id="phl">Breathe</span><span id="clk" class="num" role="timer" aria-live="off">' + (app.S.hideClock ? '' : breathS) + '</span></div>' + barId('tb')
-      + (!boss ? '<canvas class="wave-cv" id="waveCv" width="300" height="44" hidden></canvas><div class="rec-row"><button type="button" class="btn btn-s btn-sm" id="recBtn" aria-pressed="false">Record answer</button><span class="cap" id="recMsg" role="status">Optional · stays on device</span></div>' : '')
+      + (!boss ? '<canvas class="wave-cv" id="waveCv" width="300" height="44" hidden></canvas>' + onsetMeterHtml('onsetBox', true) + '<div class="rec-row"><button type="button" class="btn btn-s btn-sm" id="recBtn" aria-pressed="false">Record answer</button><span class="cap" id="recMsg" role="status">Optional · stays on device</span></div>' : '')
       + '<div class="chips" aria-label="Phrases that buy a moment">' + stall.map(s => '<span class="chip">' + esc(s) + '</span>').join('') + '</div><div class="row"><button type="button" class="btn btn-p" id="done">' + (boss && idx < 4 ? 'Next question' : 'Done') + '</button><button type="button" class="btn btn-s" id="more" aria-label="Add 15 seconds">+15 s</button></div>');
     let t0 = performance.now(), phase = 'breath', finished = false;
     if (!boss && $('#recBtn')) {
-      const recBtn = $('#recBtn'), recMsg = $('#recMsg'), waveCv = $('#waveCv');
+      const recBtn = $('#recBtn'), recMsg = $('#recMsg'), waveCv = $('#waveCv'), onsetBox = $('#onsetBox');
       recBtn.onclick = async () => {
         if (recording && rec) {
-          recBtn.disabled = true; captured = await rec.stop(0); recording = false; rec = null; waveCv.hidden = true;
+          recBtn.disabled = true; captured = await rec.stop(0); recording = false; rec = null; waveCv.hidden = true; if (onsetBox) onsetBox.hidden = true;
           recBtn.disabled = false; recBtn.textContent = 'Recorded ✓'; recBtn.setAttribute('aria-pressed', 'false'); recMsg.textContent = 'Ready to play back.';
           return;
         }
-        rec = createRecorder({canvas:waveCv});
+        rec = createRecorder({canvas:waveCv, onsetEl:onsetBox});
         const r = await rec.start();
         if (!r.ok) { rec = null; recMsg.textContent = r.reason === 'denied' ? 'Microphone blocked. You can still answer without recording.' : 'Recording unavailable.'; return; }
-        recording = true; waveCv.hidden = false; recBtn.textContent = 'Stop recording'; recBtn.setAttribute('aria-pressed', 'true'); recMsg.textContent = 'Recording on device…';
+        recording = true; waveCv.hidden = false; if (onsetBox) onsetBox.hidden = false; recBtn.textContent = 'Stop recording'; recBtn.setAttribute('aria-pressed', 'true'); recMsg.textContent = 'Recording on device…';
       };
     }
     if (boss) setPartial(() => idx >= 1 ? coldPartial('The ' + idx + ' question' + (idx > 1 ? 's you answered still count' : ' you answered still counts'), 'You answered ' + idx + ' of 5 questions. ' + (idx > 1 ? 'They count.' : 'It counts.'), 'Challenge round, ' + idx + ' of 5') : null);
@@ -393,10 +394,11 @@ function recordBaselineStep(opts) {
   setRun('<h2 class="h-t">' + esc(opts.title) + '</h2><p class="note">' + esc(opts.sub) + '</p>'
     + '<div class="glass-panel"><div class="reader">' + textHtml + '</div>'
     + '<canvas class="wave-cv" id="waveCv" width="300" height="48"></canvas>'
+    + onsetMeterHtml('onsetBox', false)
     + '<p class="cap" id="recMsg" role="status">Tap Record when you are ready. Recordings never leave this device.</p></div>'
     + '<div class="stack thumb"><button type="button" class="btn btn-p" id="recGo">Record (~20 s)</button>'
     + (opts.onSkip ? '<button type="button" class="lnk" id="recSkip">Skip recording</button>' : '') + '</div>');
-  const btn = $('#recGo'), msg = $('#recMsg'), waveCv = $('#waveCv');
+  const btn = $('#recGo'), msg = $('#recMsg'), waveCv = $('#waveCv'), onsetBox = $('#onsetBox');
   if (opts.onSkip && $('#recSkip')) $('#recSkip').onclick = () => { if (rec) rec.cancel(); setDarkCover(false); opts.onSkip(); };
   btn.onclick = async () => {
     if (recording && rec) {
@@ -407,7 +409,7 @@ function recordBaselineStep(opts) {
       opts.onDone(clip);
       return;
     }
-    rec = createRecorder({canvas:waveCv});
+    rec = createRecorder({canvas:waveCv, onsetEl:onsetBox});
     const r = await rec.start();
     if (!r.ok) {
       rec = null;

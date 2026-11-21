@@ -355,6 +355,15 @@ input[type=range]{width:100%;min-height:44px;accent-color:var(--tint)}
 .tp-petals span:nth-child(4){transform:translate(0,-26px)}
 .tp-core{width:116px;height:116px;border-radius:50%;background:color-mix(in srgb,var(--water) 68%,transparent);border:1px solid color-mix(in srgb,var(--sounding) 36%,transparent);backdrop-filter:blur(10px)}
 .wave-cv{width:100%;height:48px;display:block;border-radius:8px;mask-image:linear-gradient(90deg,transparent 0%,#000 10%,#000 90%,transparent 100%);-webkit-mask-image:linear-gradient(90deg,transparent 0%,#000 10%,#000 90%,transparent 100%)}
+.onset-box{display:flex;flex-direction:column;gap:5px;padding:8px 12px;border-radius:10px;background:color-mix(in srgb,var(--bg-group) 82%,transparent);border:1px solid var(--sep)}
+.onset-head{display:flex;justify-content:space-between;align-items:center;font-size:var(--t-cap)}
+.onset-k{color:var(--label-2);font-weight:600;letter-spacing:.02em}
+.onset-tag{font-weight:700;color:var(--label-2);transition:color .2s ease}
+.onset-tag.soft{color:var(--sounding)}
+.onset-tag.hard{color:#E8B86D}
+.onset-trk{height:6px;border-radius:999px;background:var(--fill);overflow:hidden}
+.onset-fill{display:block;height:100%;width:100%;border-radius:999px;background:var(--sounding);transform-origin:left;transition:background-color .18s ease}
+.onset-fill.hard{background:#E8B86D}
 .rec-row{display:flex;align-items:center;gap:12px;flex-wrap:wrap}
 .ap-card{background:var(--bg-group);border:1px solid var(--sep);border-radius:14px;padding:12px 14px;display:flex;flex-direction:column;gap:8px}
 .ap-head{display:flex;justify-content:space-between;align-items:baseline;gap:8px}
@@ -365,6 +374,7 @@ input[type=range]{width:100%;min-height:44px;accent-color:var(--tint)}
 .ap-spd{min-height:44px;min-width:44px;padding:0 10px;border:1px solid var(--sep);border-radius:10px;background:transparent;color:var(--label-2);font-size:var(--t-cap);font-weight:600;font-variant-numeric:tabular-nums;cursor:pointer}
 .measures{display:flex;flex-direction:column;gap:6px}
 .m-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.m-grid.m4{grid-template-columns:repeat(2,1fr)}
 .m-cell{background:var(--bg-group);border-radius:12px;padding:10px 12px;display:flex;flex-direction:column;gap:2px}
 .m-k{font-size:var(--t-cap);color:var(--label-2)}
 .m-v{font-size:var(--t-body);font-weight:700}

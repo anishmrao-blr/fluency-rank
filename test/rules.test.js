@@ -180,6 +180,19 @@ const ago = n => { const d = new Date(); d.setDate(d.getDate() - n); return ds(d
     assert(J(v3.titles) === J([]), 'v3 data does not get titles back-filled');
   }
 
+  /* ---------- Easy Onset acoustic gentleness indicator ---------- */
+  {
+    const k = await boot();
+    const Rec = k.w.__mod('js/recorder.js');
+    assert(Rec.isSoftOnset([0.03, 0.06, 0.11, 0.14]) === true, 'gradual volume ramp classifies as soft onset');
+    assert(Rec.isSoftOnset([0.16, 0.14, 0.12, 0.10]) === false, 'abrupt high-energy spike classifies as hard onset');
+    /* Two phrases separated by silence: 1 soft onset, 1 hard onset => 50% soft starts */
+    const frames = [0, 0, 0, 0, 0.03, 0.07, 0.12, 0.14, 0, 0, 0, 0, 0, 0, 0.18, 0.15, 0.12, 0.08];
+    const m = Rec.analyzeFrames(frames, 0.05, 10);
+    assert(m.onsets === 2 && m.easyOnsetPct === 50, 'analyzeFrames counts onsets and computes easyOnsetPct');
+    assert(Rec.measuresHtml(m).includes('Soft starts') && Rec.measuresHtml(m).includes('50%'), 'measuresHtml displays Soft starts percentage');
+  }
+
   console.log('\n' + (fails ? fails + ' FAILED' : 'ALL PASSED'));
   const real = errors.filter(e => !e.startsWith('ASSERT'));
   if (real.length) { console.log('runtime errors:'); real.forEach(e => console.log(' -', e.split('\n').slice(0, 3).join(' | '))); }

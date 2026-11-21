@@ -52,7 +52,7 @@ export function sanitize(o) {
   s.pacerStyle = o.pacerStyle === 'tide' ? 'tide' : 'bloom';
   const cb = o.customBreath || {};
   s.customBreath = {inS:int(cb.inS, 4, 2, 8), hold1:int(cb.hold1, 0, 0, 8), outS:int(cb.outS, 6, 2, 12), hold2:int(cb.hold2, 0, 0, 8)};
-  const sanMeta = m => m && typeof m === 'object' ? {durationSec:num(m.durationSec, 0, 0, 600), speakingSec:num(m.speakingSec, 0, 0, 600), pauses:int(m.pauses, 0, 0, 99), wpm:m.wpm == null ? null : int(m.wpm, 0, 0, 300)} : null;
+  const sanMeta = m => m && typeof m === 'object' ? {durationSec:num(m.durationSec, 0, 0, 600), speakingSec:num(m.speakingSec, 0, 0, 600), pauses:int(m.pauses, 0, 0, 99), wpm:m.wpm == null ? null : int(m.wpm, 0, 0, 300), easyOnsetPct:m.easyOnsetPct == null ? null : int(m.easyOnsetPct, 0, 0, 100)} : null;
   s.proofDone = o.proofDone === true;
   s.proofColdId = typeof o.proofColdId === 'string' ? o.proofColdId.slice(0, 64) : '';
   s.proofPacedId = typeof o.proofPacedId === 'string' ? o.proofPacedId.slice(0, 64) : '';
