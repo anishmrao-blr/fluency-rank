@@ -3,7 +3,7 @@ import {PATTERNS, PHRASES} from './content.js';
 import {weavePhrases} from './personal.js';
 import {app, save} from './state.js';
 import {award} from './rules.js';
-import {T, cue, runBody, openRun, setRun, setPartial, setDarkCover, choiceRow, wireChoice, resultScreen} from './ui.js';
+import {T, cue, primeAudio, startAmbient, stopAmbient, syncSoundBtn, runBody, openRun, setRun, setPartial, setDarkCover, choiceRow, wireChoice, resultScreen} from './ui.js';
 
 export const LOW = 0.22, HIGH = 0.72;
 export const BREATH_IN = s => ({w:'Breathe in', s, to:HIGH, cue:'in'});
@@ -52,7 +52,7 @@ let cleanupRegistered = false;
 function ensureCleanup() {
   if (cleanupRegistered) return;
   cleanupRegistered = true;
-  T.onClear(() => { stopVoice(); releaseWakeLock(); });
+  T.onClear(() => { stopVoice(); releaseWakeLock(); stopAmbient(); });
 }
 document.addEventListener('visibilitychange', () => {
   if (document.visibilityState === 'visible' && wantWake && !wakeSentinel) acquireWakeLock();
@@ -100,9 +100,11 @@ export function tidePacer(o) {
   const ph = o.phases, cycS = ph.reduce((a, p) => a + p.s, 0), totalS = o.totalS || cycS * o.cycles;
   ensureCleanup();
   acquireWakeLock();
+  primeAudio();
+  startAmbient();
   setDarkCover(true);
   const mode = app.S.pacerStyle === 'tide' ? 'tide' : 'bloom';
-  setRun('<div class="tp-ui"><h2 class="h-t">' + esc(o.title) + '</h2>' + (o.head || '') + '<div class="tp-meta"><span id="tpCy"></span><span id="tpRem"></span><button type="button" class="mode-chip" id="tpMode" aria-label="Switch pacer visual">' + (mode === 'bloom' ? 'Orb view' : 'Tide view') + '</button></div><p class="tp-say" id="tpSay"></p></div>'
+  setRun('<div class="tp-ui"><h2 class="h-t">' + esc(o.title) + '</h2>' + (o.head || '') + '<div class="tp-meta"><span id="tpCy"></span><span id="tpRem"></span><button type="button" class="mode-chip" id="tpAmb" aria-pressed="' + String(!!app.S.ambient) + '" aria-label="Toggle ambient rain">' + (app.S.ambient ? 'Rain on' : 'Rain off') + '</button><button type="button" class="mode-chip" id="tpMode" aria-label="Switch pacer visual">' + (mode === 'bloom' ? 'Orb view' : 'Tide view') + '</button></div><p class="tp-say" id="tpSay"></p></div>'
     + '<p class="sr" aria-live="polite" id="tpLive"></p>'
     + '<div class="tp' + (reduceMotion ? ' rm' : '') + (mode === 'bloom' ? ' bloom-on' : '') + '" id="tp" aria-hidden="true">'
     + '<div class="tp-bloom" id="tpB"><div class="tp-petals"><span></span><span></span><span></span><span></span></div><div class="tp-core"></div></div>'
@@ -118,6 +120,15 @@ export function tidePacer(o) {
     save();
     tp.classList.toggle('bloom-on', app.S.pacerStyle === 'bloom');
     modeBtn.textContent = app.S.pacerStyle === 'bloom' ? 'Orb view' : 'Tide view';
+  };
+  const ambBtn = $('#tpAmb');
+  if (ambBtn) ambBtn.onclick = () => {
+    app.S.ambient = !app.S.ambient;
+    if (app.S.ambient && !app.S.sound) { app.S.sound = true; syncSoundBtn(); }
+    save();
+    ambBtn.textContent = app.S.ambient ? 'Rain on' : 'Rain off';
+    ambBtn.setAttribute('aria-pressed', String(app.S.ambient));
+    if (app.S.ambient) { primeAudio(); startAmbient(); } else stopAmbient();
   };
   /* ...and it ends above the End control, so low water and the count never run under it. The water
      body still reaches the bottom of the screen. Measured once, before any End confirmation opens. */
@@ -136,7 +147,7 @@ export function tidePacer(o) {
   let last = '';
   const frame = () => {
     const el = elapsed();
-    if (el >= totalS) { if (!reduceMotion) place(LOW); releaseWakeLock(); stopVoice(); cue('end'); o.onDone(Math.round(totalS / cycS)); return; }
+    if (el >= totalS) { if (!reduceMotion) place(LOW); releaseWakeLock(); stopVoice(); stopAmbient(); cue('end'); o.onDone(Math.round(totalS / cycS)); return; }
     const idx = Math.floor(el / cycS), pos = el - idx * cycS;
     let k = 0, acc = 0;
     while (k < ph.length - 1 && pos >= acc + ph[k].s) { acc += ph[k].s; k++; }

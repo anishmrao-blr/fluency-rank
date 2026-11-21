@@ -207,6 +207,7 @@ document.addEventListener('change', e => {
   else if (id === 'skel') { app.S.showSkeleton = e.target.checked; save(); }
   else if (id === 'hclk') { app.S.hideClock = e.target.checked; save(); }
   else if (id === 'snds') { app.S.sound = e.target.checked; save(); primeAudio(); }
+  else if (id === 'amb') { app.S.ambient = e.target.checked; save(); }
   else if (id === 'voice') { app.S.voice = e.target.checked; save(); }
   else if (id === 'remOn') { app.S.reminder.on = e.target.checked; save(); renderAll(); }
   else if (id === 'bkfile') {

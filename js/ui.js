@@ -1,6 +1,7 @@
 import {$, $$, esc, clamp, fmt, reduceMotion} from './util.js';
 import {DRILL_N, TYPE_N} from './content.js';
 import {app, save} from './state.js';
+import {primeAudio, cue, startAmbient, stopAmbient} from './audio.js';
 import {award} from './rules.js';
 import {nextRun} from './drills.js';
 import {renderAll, weekHtml} from './views.js';
@@ -53,25 +54,11 @@ export const T = {
   after(ms, fn) { const id = setTimeout(fn, ms); this.ids.push(['t', id]); return id; },
   every(ms, fn) { const id = setInterval(fn, ms); this.ids.push(['i', id]); return id; },
   onClear(fn) { cleanups.add(fn); },
-  clear() { this.ids.forEach(p => { if (p[0] === 't') clearTimeout(p[1]); else clearInterval(p[1]); }); this.ids = []; cancelAnimationFrame(this.raf); cleanups.forEach(fn => { try { fn(); } catch (e) { /* ignore */ } }); }
+  clear() { this.ids.forEach(p => { if (p[0] === 't') clearTimeout(p[1]); else clearInterval(p[1]); }); this.ids = []; cancelAnimationFrame(this.raf); stopAmbient(); cleanups.forEach(fn => { try { fn(); } catch (e) { /* ignore */ } }); }
 };
 
-/* optional audio cues so practice can be done eyes-off-screen */
-let ac = null;
-export function primeAudio() {
-  if (!app.S.sound) return;
-  try { ac = ac || new (window.AudioContext || window.webkitAudioContext)(); if (ac.state === 'suspended') ac.resume(); } catch (e) { ac = null; }
-}
-export function cue(kind) {
-  if (!app.S.sound || !ac) return;
-  try {
-    const f = {in:520, hold:460, out:390, go:660, end:440}[kind] || 440, o = ac.createOscillator(), g = ac.createGain(), t = ac.currentTime;
-    const peak = kind === 'hold' ? 0.07 : 0.12;
-    o.type = 'sine'; o.frequency.value = f;
-    g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(peak, t + 0.02); g.gain.exponentialRampToValueAtTime(0.0001, t + (kind === 'end' ? 0.5 : 0.22));
-    o.connect(g); g.connect(ac.destination); o.start(t); o.stop(t + 0.55);
-  } catch (e) { /* audio is optional */ }
-}
+/* optional audio cues & ambient bed so practice can be done eyes-off-screen */
+export {primeAudio, cue, startAmbient, stopAmbient};
 
 /* ---------- background inertness, shared by covers and sheets ---------- */
 export function setInert(on) { ['#app', '#tabs'].forEach(s => { const el = $(s); el.inert = on; if (on) el.setAttribute('aria-hidden', 'true'); else el.removeAttribute('aria-hidden'); }); }
@@ -176,7 +163,18 @@ function endNow() {
   const res = award(p.type, Object.assign({}, p.opts, {partial:true}));
   resultScreen({lead:p.lead, lines:[], res, type:p.type});
 }
-$('#snd').onclick = () => { app.S.sound = !app.S.sound; save(); syncSoundBtn(); primeAudio(); cue('go'); };
+$('#snd').onclick = () => {
+  app.S.sound = !app.S.sound;
+  save();
+  syncSoundBtn();
+  if (app.S.sound) {
+    primeAudio();
+    cue('go');
+    if ($('#tp') && app.S.ambient) startAmbient();
+  } else {
+    stopAmbient();
+  }
+};
 
 export function choiceRow(name, opts, sel, lab, label) {
   return '<div class="seg" role="group"' + (label ? ' aria-label="' + esc(label) + '"' : '') + '>' + opts.map(v => '<button type="button" class="segb" data-ch="' + name + '" data-v="' + esc(v) + '" aria-pressed="' + (String(v) === String(sel)) + '"><b>' + esc(lab ? lab(v) : v) + '</b></button>').join('') + '</div>';

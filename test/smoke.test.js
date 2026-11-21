@@ -117,10 +117,15 @@ const dayIdx=()=>{const p=ds(new Date()).split('-').map(Number);return Math.roun
     assert(d.activeElement&&d.activeElement.tagName==='H2','focus moves to the cover heading');
     assert(!!$('#runFoot #end')&&$('#end').textContent==='End','one End control at the bottom');
     assert(!$('#abort')&&!$('#stop'),'no Exit or Stop controls');
-    assert(!!$('#snd'),'Sound toggle stays in the header');
+    assert(!!$('#snd')&&$('#snd').textContent==='Sound on','Sound toggle stays in the header and defaults to on');
     click($('#go'));
     const live=$('#tpLive');
     assert(live&&live.getAttribute('aria-live')==='polite','the pacer has an aria-live region');
+    assert(!!$('#tpAmb')&&$('#tpAmb').textContent==='Rain on','pacer exposes ambient rain toggle');
+    click($('#tpAmb'));
+    assert($('#tpAmb').textContent==='Rain off'&&st().ambient===false,'ambient rain toggles off and saves');
+    click($('#tpAmb'));
+    assert($('#tpAmb').textContent==='Rain on'&&st().ambient===true,'ambient rain toggles back on');
     assert(!!$('#tpW')&&d.querySelectorAll('.tp-wave').length===2&&d.querySelectorAll('.tp-snd i').length===9,'pacer has water, two waves and sounding lines every 10%');
     adv(1000);
     assert(live.textContent==='Breathe in'&&$('#tpWord').textContent==='Breathe in','pacer announces the inhale');

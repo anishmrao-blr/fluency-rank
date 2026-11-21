@@ -11,7 +11,7 @@ export const fresh = () => ({
   v:3, xp:0, stats:{breath:0, pace:0, retrieval:0, composure:0, resilience:0},
   streak:0, best:0, shields:0, lastDay:null, energy:3,
   hard:'', userName:'', fearedWords:[], contexts:['work', 'phone'], customPassages:[], customQuestions:[],
-  opener:DEFAULT_OPENER, showSkeleton:true, hideClock:false, sound:false, voice:false,
+  opener:DEFAULT_OPENER, showSkeleton:true, hideClock:false, sound:true, ambient:true, voice:false,
   breathMins:3, pacerStyle:'bloom', customBreath:{inS:4, hold1:0, outS:6, hold2:0},
   proofDone:false, proofColdId:'', proofPacedId:'', proofColdRate:null, proofPacedRate:null,
   proofColdMeta:null, proofPacedMeta:null, lastReeval:'', reevalId:'', reevalRate:null, reevalMeta:null,
@@ -45,7 +45,8 @@ export function sanitize(o) {
   s.opener = String(o.opener || '').slice(0, 200).trim() || DEFAULT_OPENER;
   s.showSkeleton = o.showSkeleton !== false;
   s.hideClock = o.hideClock === true;
-  s.sound = o.sound === true;
+  s.sound = o.sound !== false;
+  s.ambient = o.ambient !== false;
   s.voice = o.voice === true;
   s.breathMins = [1, 3, 5].indexOf(Number(o.breathMins)) >= 0 ? Number(o.breathMins) : 3;
   s.pacerStyle = o.pacerStyle === 'tide' ? 'tide' : 'bloom';
