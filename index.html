@@ -3,9 +3,8 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<meta name="color-scheme" content="light dark">
-<meta name="theme-color" content="#F7F9F7" media="(prefers-color-scheme: light)">
-<meta name="theme-color" content="#111916" media="(prefers-color-scheme: dark)">
+<meta name="color-scheme" content="light">
+<meta name="theme-color" content="#F7F9F7">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
@@ -17,6 +16,11 @@
 <link rel="stylesheet" href="css/app.css">
 </head>
 <body>
+<div id="intro" hidden aria-hidden="true">
+  <div class="intro-orb"><div class="intro-petals"><span></span><span></span><span></span><span></span></div><div class="intro-core"></div></div>
+  <p class="intro-word" id="introWord">Take a breath</p>
+  <p class="intro-skip">Tap anywhere to enter</p>
+</div>
 <div id="app">
   <div id="notice" role="alert" hidden></div>
   <main id="view"></main>

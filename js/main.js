@@ -1,4 +1,4 @@
-import {$, dstr} from './util.js';
+import {$, dstr, reduceMotion} from './util.js';
 import {rankOf, DEFAULT_OPENER} from './content.js';
 import {app, fresh, sanitize, save, initDb} from './state.js';
 import {rollDay} from './rules.js';
@@ -139,10 +139,38 @@ document.addEventListener('keydown', e => {
 document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible' && !app.running) renderAll(); });
 window.addEventListener('error', () => { toast('Something went wrong. Your progress is saved.'); });
 
+/* Calm 1-breath animated intro on first open per session; tap anywhere to skip, off under reduced motion */
+function playIntro() {
+  const el = $('#intro');
+  if (!el || reduceMotion) return;
+  if (typeof navigator !== 'undefined' && /jsdom/i.test(navigator.userAgent || '')) return;
+  try {
+    if (sessionStorage.getItem('fr-intro')) return;
+    sessionStorage.setItem('fr-intro', '1');
+  } catch (e) { /* storage optional */ }
+  const word = $('#introWord');
+  let gone = false, t1 = 0, t2 = 0, t3 = 0;
+  const dismiss = () => {
+    if (gone) return;
+    gone = true;
+    clearTimeout(t1); clearTimeout(t2); clearTimeout(t3);
+    el.classList.add('out');
+    setTimeout(() => { el.hidden = true; el.classList.remove('out', 'in'); }, 460);
+  };
+  el.hidden = false;
+  requestAnimationFrame(() => el.classList.add('in'));
+  t1 = setTimeout(() => { if (word) word.textContent = 'Breathe in…'; }, 400);
+  t2 = setTimeout(() => { el.classList.remove('in'); if (word) word.textContent = 'Out, slowly'; }, 2100);
+  t3 = setTimeout(dismiss, 4000);
+  el.addEventListener('click', dismiss, {once:true});
+  document.addEventListener('keydown', dismiss, {once:true});
+}
+
 rollDay();
 renderAll();
 initDb();
 pruneExpiredClips().catch(() => {});
+playIntro();
 
 /* offline support: cache the app so it opens without a connection */
 if ('serviceWorker' in navigator) {

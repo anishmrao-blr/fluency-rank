@@ -26,34 +26,57 @@ export function viewHome() {
   const qp = questProgress();
   const hint = qp.done === 2 ? 'Breathing and speaking both done today.' : qp.items[0].ok ? 'Breathing done. One speaking drill completes today.' : qp.items[1].ok ? 'Speaking done. One breathing session completes today.' : 'One breathing session and one speaking drill.';
   return '<div class="home">' + titleBar('Today', '<button type="button" class="icb" data-act="settings" aria-label="Settings">' + ICON.gear + '</button>')
-    + '<section class="tide" aria-label="This week"><p class="nums">This week ' + practicedThisWeek() + ' of 5' + (app.S.best > 0 ? ' · Best run ' + app.S.best : '') + '</p>' + weekHtml() + '</section>'
-    + '<div class="focal-stage">'
-    + '<button type="button" class="hero-ring" data-act="session"><span class="ring-play" aria-hidden="true"><svg viewBox="0 0 24 24"><polygon points="7,5 19,12 7,19"/></svg></span>Start daily session · 5 min</button>'
-    + '<p class="today-line">Today ' + qp.done + ' of ' + qp.total + '</p><p class="today-sub">' + hint + '</p>'
-    + '</div>'
-    + '<div class="acts"><button type="button" class="btn btn-s" data-act="speak">I’m about to speak</button>'
-    + '<div class="home-links"><button type="button" class="lnk" data-act="short">Low energy? Short version</button>'
-    + (!app.S.proofDone ? '<button type="button" class="lnk" data-act="proof">3-min voice proof</button>' : '')
-    + '</div></div></div>';
+    + '<section class="tide-inline" aria-label="This week"><p class="nums">This week ' + practicedThisWeek() + ' of 5' + (app.S.best > 0 ? ' · Best run ' + app.S.best : '') + '</p>' + weekHtml() + '</section>'
+    + '<section class="pcard hero-card" aria-label="Daily session">'
+    + '<img src="assets/card-morning-home.jpg" alt="" aria-hidden="true">'
+    + '<span class="pc-pill">Today ' + qp.done + ' of ' + qp.total + ' · 5 min</span>'
+    + '<h2 class="pc-title">Daily voice session</h2>'
+    + '<p class="pc-sub">' + hint + '</p>'
+    + '<button type="button" class="pc-cta" data-act="session">Start daily session · 5 min</button>'
+    + '</section>'
+    + '<section class="pcard relief-card" aria-label="Pre-call reset">'
+    + '<img src="assets/bg-forest-pacer.jpg" alt="" aria-hidden="true">'
+    + '<span class="pc-pill mint">90 seconds · Acute relief</span>'
+    + '<p class="pc-sub">Three slow sighs, then rehearse your opening line aloud.</p>'
+    + '<button type="button" class="pc-cta ghost" data-act="speak">I’m about to speak</button>'
+    + '</section>'
+    + '<div class="home-chips">'
+    + '<button type="button" class="chip-card" data-act="short">Low energy? Short version</button>'
+    + (!app.S.proofDone ? '<button type="button" class="chip-card accent" data-act="proof">3-min voice proof</button>' : '')
+    + '</div></div>';
 }
 
-/* ---------- Breathe (goal-first, step 3) ---------- */
+/* ---------- Breathe (Visual-First 2x2 Photo Goal Cards) ---------- */
+const GOAL_MEDIA = {
+  calm:{img:'assets/bg-forest-pacer.jpg', tag:'Cyclic sigh'},
+  speak:{img:'assets/card-speak-studio.jpg', tag:'Voice exhale'},
+  focus:{img:'assets/card-sea-focus.jpg', tag:'Box 4·4·4·4'},
+  wind:{img:'assets/medallion-lotus.jpg', tag:'Extended 4·8'}
+};
 export function viewBreathe() {
   const mins = app.S.breathMins || 3;
   const chips = '<div class="seg b-len" role="group" aria-label="Session length">' + [1, 3, 5].map(m => '<button type="button" class="segb" data-act="bmins" data-v="' + m + '" aria-pressed="' + (m === mins) + '"><b>' + m + ' min</b></button>').join('') + '</div>';
-  const goals = BREATH_GOALS.map(g => rowBtn('goal', g.pat, g.n, g.d, 'Start ' + g.n + ': ' + PATTERNS[g.pat].n)).join('');
+  const goals = BREATH_GOALS.map(g => {
+    const med = GOAL_MEDIA[g.id] || GOAL_MEDIA.calm;
+    return '<button type="button" class="pcard goal-card" data-act="goal" data-v="' + esc(g.pat) + '" aria-label="Start ' + esc(g.n) + ': ' + esc(PATTERNS[g.pat].n) + '">'
+      + '<img src="' + med.img + '" alt="" aria-hidden="true">'
+      + '<span class="pc-pill mint">' + esc(med.tag) + '</span>'
+      + '<span class="gc-name">' + esc(g.n) + '</span>'
+      + '<span class="gc-sub">' + esc(PATTERNS[g.pat].n) + '</span>'
+      + '</button>';
+  }).join('');
   const all = BREATH_ALL.map(k => {
     const P = PATTERNS[k];
     return '<button type="button" class="li" data-act="breath" data-v="' + k + '" aria-label="Open ' + esc(P.n) + '"><span class="grow"><span class="tt">' + esc(P.n) + '</span><span class="ds">' + esc(P.d) + '</span>' + (P.ev ? '<span class="ev">' + esc(P.ev) + '</span>' : '') + '</span>' + ICON.chev + '</button>';
   }).join('') + rowBtn('breath', 'custom', 'Custom pattern', customDesc(app.S.customBreath) + ' seconds', 'Open Custom pattern');
   return titleBar('Breathe')
     + chips
-    + gh('Start by goal', 'bgH') + '<div class="group" role="group" aria-labelledby="bgH">' + goals + '</div>'
+    + gh('Start by goal', 'bgH') + '<div class="goal-grid" role="group" aria-labelledby="bgH">' + goals + '</div>'
     + '<p class="gf">One tap starts right away for ' + mins + ' min. Turn on sound cues or the voice guide in Settings to practise with your eyes closed.</p>'
     + gh('All techniques', 'baH') + '<div class="group" role="group" aria-labelledby="baH">' + all + '</div>';
 }
 
-/* ---------- Speak ---------- */
+/* ---------- Speak (Visual Studio Hero + 2-Col Drill Cards + Stepping Stones) ---------- */
 export function courseHtml() {
   const rec = recommendedMission();
   return '<ol class="course">' + MISSIONS.map((m, i) => {
@@ -63,16 +86,26 @@ export function courseHtml() {
 }
 export function viewGates() {
   const challenge = rankOf(app.S.xp) >= 1;
+  const doneSteps = MISSIONS.filter(m => missionStats(m.id).n > 0).length;
   return titleBar('Speak')
-    + gh('Drills', 'drH') + '<div class="group" role="group" aria-labelledby="drH">'
-    + rowBtn('read', '', 'Read aloud', 'Words light up at your pace target. About 2 min.')
-    + rowBtn('raid', '', 'Word warm-up', 'Name words from a letter and a topic. Under 1 min a round.')
-    + rowBtn('cold', '', 'Practice questions', 'Answer a question you have not seen. About 1 min.')
-    + (challenge ? rowBtn('boss', '', 'Challenge round', 'Five questions back to back. About 5 min.') : '')
+    + gh('Drills', 'drH') + '<div class="speak-grid" role="group" aria-labelledby="drH">'
+    + '<button type="button" class="pcard drill-hero" data-act="read" aria-label="Open Read aloud">'
+    + '<img src="assets/card-speak-studio.jpg" alt="" aria-hidden="true">'
+    + '<span class="pc-pill mint">Pace target ' + WPM[app.S.rung] + ' wpm · 2 min</span>'
+    + '<span class="pc-title">Read aloud</span>'
+    + '<span class="pc-sub">Soft starts at ▾ marks + optional live recording</span>'
+    + '<span class="wave-mini" aria-hidden="true"><i style="height:36%"></i><i style="height:68%"></i><i style="height:92%"></i><i style="height:52%"></i><i style="height:82%"></i><i style="height:40%"></i><i style="height:96%"></i><i style="height:62%"></i><i style="height:34%"></i><i style="height:76%"></i><i style="height:52%"></i><i style="height:86%"></i></span>'
+    + '</button>'
+    + '<div class="drill-pair">'
+    + '<button type="button" class="dcard" data-act="raid" aria-label="Open Word warm-up"><span class="dicon" aria-hidden="true">Aa</span><span class="tt">Word warm-up</span><span class="ds">45 s · Name words by letter &amp; topic</span></button>'
+    + '<button type="button" class="dcard" data-act="cold" aria-label="Open Practice questions"><span class="dicon" aria-hidden="true">“ ”</span><span class="tt">Practice questions</span><span class="ds">60 s · Answer on the spot + record</span></button>'
     + '</div>'
-    + gh('Real-world steps', 'rwH') + '<div class="group" role="group" aria-labelledby="rwH">' + courseHtml() + '</div>'
+    + (challenge ? '<button type="button" class="dcard full" data-act="boss" aria-label="Open Challenge round"><span class="dicon" aria-hidden="true">5×</span><span class="grow"><span class="tt">Challenge round</span><span class="ds">Five questions back to back. About 5 min.</span></span>' + ICON.chev + '</button>' : '')
+    + '</div>'
+    + gh('Real-world steps · ' + doneSteps + ' of ' + MISSIONS.length, 'rwH')
+    + '<div class="group" role="group" aria-labelledby="rwH">' + courseHtml() + '</div>'
     + '<p class="gf">Real conversations, from small to larger. They are always optional, and you never need them to progress.</p>'
-    + '<div class="stack" style="margin-top:16px"><button type="button" class="btn btn-s" data-act="field" aria-label="Open Real-world steps">Choose a real-world step</button></div>';
+    + '<div class="stack" style="margin-top:14px"><button type="button" class="btn btn-p" data-act="field" aria-label="Open Real-world steps">Choose a real-world step</button></div>';
 }
 
 /* ---------- Progress ---------- */
@@ -95,9 +128,17 @@ export function viewProgress() {
   const titles = TITLES.filter(t => app.S.titles.indexOf(t.id) >= 0);
   const field = app.S.log.filter(e => e.type === 'field' && e.pred != null).slice(-10);
   const items = app.S.log.slice(-12).reverse();
+  const doneSteps = MISSIONS.filter(m => missionStats(m.id).n > 0).length;
   let h = titleBar('Progress');
   if (roughPatch()) h += '<p class="gf" style="margin-top:12px">Your last three ratings were low. That happens to everyone. Slow your pace, keep sessions short, and if you have a speech therapist, this is a good time to check in.</p>';
-  h += gh('Rank') + '<div class="group"><div class="rankcard">' + emblem(R.r) + '<div class="grow"><span class="tt">Level ' + lvl + '</span>' + bar(into / 150 * 100) + '<span class="ds num">' + into + ' of 150 XP to level ' + (lvl + 1) + '</span><span class="ds num">' + (N ? (N.xp - app.S.xp).toLocaleString() + ' XP to Rank ' + N.r : 'Top rank') + ' · ' + app.S.xp.toLocaleString() + ' XP in all</span></div></div></div>';
+  h += '<div class="group rank-banner"><div class="rankcard">' + emblem(R.r) + '<div class="grow"><span class="tt">Level ' + lvl + '</span>' + bar(into / 150 * 100) + '<span class="ds num">' + into + ' of 150 XP to level ' + (lvl + 1) + '</span><span class="ds num">' + (N ? (N.xp - app.S.xp).toLocaleString() + ' XP to Rank ' + N.r : 'Top rank') + ' · ' + app.S.xp.toLocaleString() + ' XP in all</span></div></div></div>';
+  h += '<div class="kpi-grid">'
+    + '<div class="kpi-card"><span class="cap">Practice days</span><b class="kpi-val num">' + days + '</b></div>'
+    + '<div class="kpi-card"><span class="cap">This week</span><b class="kpi-val num">' + practicedThisWeek() + ' of 5</b></div>'
+    + '<div class="kpi-card"><span class="cap">Real steps</span><b class="kpi-val num">' + doneSteps + ' of ' + MISSIONS.length + '</b></div>'
+    + '<div class="kpi-card"><span class="cap">Pace target</span><b class="kpi-val num">' + WPM[app.S.rung] + ' wpm</b></div>'
+    + '</div>';
+  h += gh('Weekly activity') + '<div class="group"><div class="sumbox">' + weekHtml() + '</div></div>';
   h += gh('Titles') + '<div class="group">' + (titles.length ? titles.map(t => '<div class="li"><span class="tt">' + esc(t.n) + '</span></div>').join('') : '<div class="li"><span class="ds">Titles arrive at milestones, such as your first real-world step and your seventh practice day.</span></div>') + '</div>';
   h += gh('Stats') + '<div class="group">' + STAT_KEYS.map(k => { const p = app.S.stats[k] || 0; return '<div class="li stat"><span>' + STAT_N[k] + '</span>' + bar(p % 100) + '<span class="vl">Lv ' + (1 + Math.floor(p / 100)) + '</span></div>'; }).join('') + '<div class="li"><span class="grow">Reading pace target</span><span class="vl">' + WPM[app.S.rung] + ' wpm</span></div></div>';
   h += gh('Practice mosaic') + '<div class="group">' + mosaicHtml() + '</div><p class="gf">One cell per practice day, so a gap leaves no hole. ' + days + ' practice day' + (days === 1 ? '' : 's') + ' so far. In one UCL study a new routine took 66 days on average to feel automatic, and a missed day did not derail it.</p>';
