@@ -66,3 +66,8 @@ window.addEventListener('error', () => { toast('Something went wrong. Your progr
 rollDay();
 renderAll();
 initDb();
+
+/* offline support: cache the app so it opens without a connection */
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => { navigator.serviceWorker.register('sw.js').catch(() => {}); });
+}

@@ -6,14 +6,23 @@ word warm-ups, practice questions and real-world speaking steps, with Solo Level
 The spec is in `docs/superpowers/specs/2026-11-21-speak-with-confidence-design.md`, and the
 current implementation plan is in `docs/superpowers/plans/`.
 
-## Run and test
+## Run, test, release
 - Serve the folder with any static server and open it in a browser. There is nothing to build.
-- `npm install && npm test` runs the jsdom smoke test (fake clock, 85+ assertions). It must exit 0.
+  ES modules do not load from `file://`.
+- `npm install && npm test` runs `test/run.js`, which runs `test/smoke.test.js` (jsdom with a fake
+  clock; ES modules booted per window through `vm.SourceTextModule` in `test/load.js`) and
+  `test/pwa.test.js` (manifest, icons, fonts, precache list). It must exit 0.
+- Live at https://anishmrao-blr.github.io/fluency-rank/ (GitHub Pages, deployed from `main` at `/`).
+- Release rule: bump `VERSION` in `sw.js` on every release, and add every new file to `PRECACHE`.
+  The PWA test fails if a file under `js/` or `fonts/` is missing from the list.
+- `tools/make-icons.js` regenerates the icons; `tools/fetch-fonts.js` re-downloads the fonts.
 
-## Architecture (currently all in index.html; moving to ES modules in step 1 of the plan)
-- One IIFE, with sections in this order: utilities, content (RANKS, QUESTIONS, PASSAGES, MISSIONS...),
-  state and validation, game rules, UI helpers, run overlay, drills, views, events.
-- State is a single object, `S`, stored under the localStorage key `fluency-rank:v2`. `sanitize()`
+## Architecture (native ES modules in js/, no build step, no runtime dependencies)
+- `util` helpers, `content` (RANKS, QUESTIONS, PASSAGES, MISSIONS...), `state` (the `app` object,
+  `fresh/sanitize/save`), `rules` (`rollDay/award`), `ui` (toast, modal, run overlay, timers),
+  `drills`, `views`, and `main` (events and boot). Shared mutable state lives on `app`:
+  `app.S`, `app.tab`, `app.running`, `app.storageOk`, `app.noticeText`.
+- State is a single object, `app.S`, stored under the localStorage key `fluency-rank:v2`. `sanitize()`
   validates and clamps everything read from storage, an account DB, or a pasted backup. Add any new
   field to it.
 - `award(type, opts)` is the only place where XP, stats, streak, bonuses and the log change.
