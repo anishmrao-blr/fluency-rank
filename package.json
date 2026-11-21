@@ -1,0 +1,7 @@
+{
+  "name": "fluency-rank",
+  "private": true,
+  "version": "2.0.0",
+  "scripts": { "test": "node test/smoke.test.js" },
+  "devDependencies": { "jsdom": "^24.0.0" }
+}

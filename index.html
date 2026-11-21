@@ -1,0 +1,1095 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="dark">
+<title>Fluency Rank System</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700&family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+/*
+  Direction: a ranked status sheet, not a dashboard of cards.
+  Sections are ruled, not boxed. Numbers are tabular. Only the run panel and
+  the system notice get corner brackets. Colour carries meaning:
+  steel = system chrome, amber = progress, e1..e5 = how tired you were.
+*/
+:root{
+  --ink:#0b101b;
+  --slate:#121a2a;
+  --rule:#27344b;
+  --steel:#7db4f0;
+  --amber:#e9b44c;
+  --text:#e8edf5;
+  --mute:#97a6bf;
+  --ok:#5fcf9a;
+  --warn:#f08a5d;
+  --e1:#5f8fc9;--e2:#63a7a8;--e3:#a8b56f;--e4:#e0a94a;--e5:#e07a4a;
+  --f-display:"Barlow Condensed","Arial Narrow",system-ui,sans-serif;
+  --f-body:"IBM Plex Sans",system-ui,sans-serif;
+  --f-mono:"IBM Plex Mono",ui-monospace,Menlo,monospace;
+  color-scheme:dark;
+}
+*{box-sizing:border-box}
+html,body{min-height:100%}
+body{margin:0;background:var(--ink);color:var(--text);font:400 16px/1.5 var(--f-body)}
+button,input,textarea{font:inherit;color:inherit}
+h1,h2,h3{margin:0;font-family:var(--f-display);text-wrap:balance}
+p{margin:0}
+ul{margin:0;padding:0;list-style:none}
+.mono{font-family:var(--f-mono);font-variant-numeric:tabular-nums}
+.mute{color:var(--mute)}
+.note{font-size:14px;color:var(--mute)}
+.note b{color:var(--text);font-weight:500}
+.sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+#app{max-width:560px;margin:0 auto;padding:16px 16px 112px}
+.brand{display:flex;justify-content:space-between;align-items:baseline;gap:12px;padding-bottom:12px;border-bottom:1px solid var(--rule);margin-bottom:20px}
+.brand h1{font-size:22px;font-weight:700;letter-spacing:.14em;text-transform:uppercase}
+.brand small{font:400 12px var(--f-mono);color:var(--mute);text-align:right}
+#notice{border:1px solid var(--warn);color:var(--text);padding:10px 12px;font-size:14px;margin-bottom:16px}
+#notice[hidden]{display:none}
+#view{display:flex;flex-direction:column;gap:28px}
+
+/* ruled section */
+.blk{display:flex;flex-direction:column;gap:12px}
+.blk>.lbl{padding-top:12px;border-top:1px solid var(--rule)}
+.lbl{margin:0;font:600 14px/1 var(--f-display);letter-spacing:.18em;text-transform:uppercase;color:var(--steel)}
+h2.q{font:600 28px/1.2 var(--f-display)}
+h2.t{font:600 24px/1.2 var(--f-display)}
+
+/* bracketed panels: used sparingly */
+.panel{position:relative;background:var(--slate);border:1px solid var(--rule);padding:16px;display:flex;flex-direction:column;gap:12px}
+.panel::before,.panel::after{content:"";position:absolute;width:12px;height:12px;border:2px solid var(--steel);pointer-events:none}
+.panel::before{top:-1px;left:-1px;border-right:0;border-bottom:0}
+.panel::after{right:-1px;bottom:-1px;border-left:0;border-top:0}
+
+/* buttons */
+.btn{min-height:46px;padding:10px 18px;background:transparent;border:1px solid var(--steel);color:var(--steel);font:600 16px var(--f-display);letter-spacing:.12em;text-transform:uppercase;cursor:pointer}
+.btn:hover{background:rgba(125,180,240,.1)}
+.btn.solid{background:var(--steel);color:#08111e}
+.btn.solid:hover{background:#97c4f5}
+.btn.sm{min-height:44px;padding:6px 14px;font-size:14px}
+.btn.xl{min-height:88px;width:100%;font-size:28px}
+.btn[disabled]{opacity:.4;cursor:not-allowed}
+.btn.amber{border-color:var(--amber);color:var(--amber)}
+.btn.link{border:0;min-height:44px;padding:0 4px;text-decoration:underline;text-transform:none;letter-spacing:0;font:500 15px var(--f-body)}
+button:focus-visible,input:focus-visible,textarea:focus-visible,select:focus-visible,[tabindex]:focus-visible{outline:2px solid var(--amber);outline-offset:2px}
+.row{display:flex;gap:12px;flex-wrap:wrap}
+
+/* segmented choices */
+.seg{display:flex;gap:6px;flex-wrap:wrap}
+.segb{flex:1 1 0;min-width:52px;min-height:52px;padding:6px 8px;background:transparent;border:1px solid var(--rule);cursor:pointer;display:flex;flex-direction:column;align-items:center;justify-content:center;line-height:1.15;text-align:center}
+.segb b{font:600 18px var(--f-display);letter-spacing:.04em}
+.segb span{font-size:11px;color:var(--mute)}
+.segb.wide{flex-basis:100%;flex-direction:row;justify-content:space-between;padding:10px 14px;text-align:left;gap:12px}
+.segb[aria-pressed=true]{border-color:var(--steel);background:rgba(125,180,240,.14);box-shadow:inset 0 0 0 1px var(--steel)}
+.segb[aria-pressed=true] span{color:var(--text)}
+
+/* status head */
+.head{display:grid;grid-template-columns:92px 1fr;gap:16px;align-items:center}
+.rank{--c:#7f93b3;width:92px;height:104px;background:var(--c);clip-path:polygon(50% 0,100% 25%,100% 75%,50% 100%,0 75%,0 25%);display:grid;place-items:center}
+.rank i{width:84px;height:96px;background:var(--ink);clip-path:polygon(50% 0,100% 25%,100% 75%,50% 100%,0 75%,0 25%);display:grid;place-items:center;font:700 52px/1 var(--f-display);font-style:normal;color:var(--c)}
+.rE{--c:#8197b8}.rD{--c:#5fcf9a}.rC{--c:#7db4f0}.rB{--c:#a99bf0}.rA{--c:#f08a5d}.rS{--c:#e9b44c}
+.led{display:flex;flex-direction:column}
+.led>div{display:flex;justify-content:space-between;align-items:baseline;gap:12px;padding:6px 0;border-top:1px solid var(--rule);font-size:14px}
+.led>div:first-child{border-top:0}
+.led b{font:500 14px var(--f-mono);font-variant-numeric:tabular-nums}
+.bar{height:6px;background:#0a0f19;border:1px solid var(--rule)}
+.bar>i{display:block;height:100%;background:var(--amber)}
+.bar.steel>i{background:var(--steel)}
+
+/* quests, stats */
+.quests>li{display:grid;grid-template-columns:22px 1fr auto;gap:12px;align-items:center;padding:10px 0;border-top:1px solid var(--rule)}
+.quests small{display:block;color:var(--mute);font-size:13px}
+.quests b{font:600 17px var(--f-display);letter-spacing:.04em}
+.chk{width:20px;height:20px;border:1px solid var(--mute);display:block;position:relative}
+.ok .chk{background:var(--ok);border-color:var(--ok)}
+.ok .chk::after{content:"";position:absolute;left:5px;top:1px;width:6px;height:11px;border:solid #08111e;border-width:0 2px 2px 0;transform:rotate(45deg)}
+.stat{display:grid;grid-template-columns:120px 1fr 44px;gap:12px;align-items:center;padding:6px 0;border-top:1px solid var(--rule);font-size:14px}
+.stat .mono{font-size:12px;color:var(--mute);text-align:right}
+
+/* week strip and mosaic */
+.week{display:grid;grid-template-columns:repeat(7,1fr);gap:4px}
+.wk{height:34px;border:1px solid var(--rule);display:grid;place-items:center;font:500 11px var(--f-mono);color:var(--mute)}
+.wk.on{background:var(--steel);border-color:var(--steel);color:#08111e}
+.wk.today{outline:1px solid var(--amber);outline-offset:1px}
+.mosaic{display:grid;grid-template-columns:repeat(11,1fr);gap:3px}
+.cell{aspect-ratio:1;display:grid;place-items:center;border:1px solid var(--rule);font:400 10px var(--f-mono);color:#566685}
+.cell.f{border-color:transparent;color:#08111e;font-weight:500}
+.e1{background:var(--e1)}.e2{background:var(--e2)}.e3{background:var(--e3)}.e4{background:var(--e4)}.e5{background:var(--e5)}
+.legend{display:flex;flex-wrap:wrap;gap:4px 14px;font-size:12px;color:var(--mute)}
+.legend span{display:inline-flex;align-items:center;gap:6px}
+.legend i{width:10px;height:10px;display:inline-block}
+
+/* gate list */
+.grow{display:grid;grid-template-columns:1fr auto;gap:2px 16px;padding:14px 0;border-top:1px solid var(--rule);align-items:center}
+.grow h3{font:600 20px var(--f-display);letter-spacing:.04em}
+.grow .xpr{font:400 12px var(--f-mono);color:var(--amber);grid-column:1}
+.grow p{grid-column:1;font-size:14px;color:var(--mute)}
+.grow .btn{grid-column:2;grid-row:1/4}
+.grow.locked{opacity:.55}
+
+/* log */
+.erow{display:grid;grid-template-columns:96px 1fr 40px;gap:12px;align-items:center;font-size:13px;padding:5px 0}
+.erow .mono{color:var(--mute);text-align:right;font-size:12px}
+.loglist>li{display:grid;grid-template-columns:1fr auto;gap:2px 12px;padding:10px 0;border-top:1px solid var(--rule);font-size:14px}
+.loglist small{grid-column:1/-1;color:var(--mute);overflow-wrap:anywhere}
+.loglist .xp{font:400 13px var(--f-mono);color:var(--amber)}
+
+/* guide and forms */
+.guide li{padding:8px 0;border-top:1px solid var(--rule);font-size:15px}
+.guide li b{font:600 17px var(--f-display);letter-spacing:.04em;color:var(--steel)}
+.lab{font:500 12px var(--f-mono);letter-spacing:.1em;text-transform:uppercase;color:var(--mute)}
+input[type=text],textarea,select{width:100%;background:#0a0f19;border:1px solid var(--rule);padding:10px 12px;border-radius:0;font-size:16px}
+textarea{min-height:92px;resize:vertical}
+input[type=range]{width:100%;accent-color:var(--steel);min-height:32px}
+.tg{display:flex;align-items:center;gap:12px;min-height:44px;cursor:pointer;font-size:15px}
+.tg input{width:22px;height:22px;accent-color:var(--steel)}
+.chips{display:flex;flex-wrap:wrap;gap:8px}
+.chip{font-size:13px;padding:4px 10px;border:1px solid var(--rule);color:var(--mute)}
+
+/* tab bar */
+#tabs{position:fixed;left:0;right:0;bottom:0;z-index:10;background:var(--ink);border-top:1px solid var(--rule)}
+#tabs .in{display:flex;max-width:560px;margin:0 auto}
+#tabs button{flex:1;min-height:60px;background:transparent;border:0;border-top:3px solid transparent;color:var(--mute);font:600 15px var(--f-display);letter-spacing:.16em;text-transform:uppercase;cursor:pointer}
+#tabs button[aria-current=page]{color:var(--steel);border-top-color:var(--steel)}
+
+/* drill overlay */
+#run{position:fixed;inset:0;z-index:20;background:var(--ink);overflow:auto;display:none}
+.run-in{max-width:560px;margin:0 auto;padding:16px 16px 48px;display:flex;flex-direction:column;gap:20px}
+.run-h{display:flex;justify-content:space-between;align-items:center;gap:8px;padding-bottom:12px;border-bottom:1px solid var(--rule)}
+.run-h h1{font-size:18px;letter-spacing:.14em;text-transform:uppercase;flex:1;min-width:0}
+#runBody{display:flex;flex-direction:column;gap:16px}
+#runBody h2:focus{outline:none}
+.orb{width:230px;height:230px;border-radius:50%;margin:8px auto;border:3px solid var(--steel);background:rgba(125,180,240,.08);display:grid;place-items:center;transform:scale(.6);padding:22px;text-align:center}
+.orb .phase{font:600 26px var(--f-display);letter-spacing:.06em;text-transform:uppercase}
+.orb .sub{font-size:14px;margin-top:6px;min-height:42px}
+.pc-meta{display:flex;justify-content:space-between;font:400 13px var(--f-mono);color:var(--mute)}
+.big{font:700 120px/1 var(--f-display);color:var(--steel);text-align:center}
+.count{font:700 80px/1 var(--f-display);text-align:center}
+.clock{font:500 30px var(--f-mono);color:var(--amber);text-align:center;min-height:45px}
+.reader{font-size:22px;line-height:1.9}
+.w{color:var(--mute);padding:0 1px}
+.w.done{color:var(--text)}
+.w.now{background:var(--steel);color:#08111e}
+.w.c::after,.w.s::after{content:"\25BE";font-size:12px;color:var(--amber);margin-left:2px;vertical-align:super}
+.skel{border-left:2px solid var(--steel);padding:2px 0 2px 12px;display:flex;flex-direction:column;gap:2px;font-size:15px}
+.skel b{color:var(--steel);font-weight:600}
+.phaseline{display:flex;justify-content:space-between;align-items:baseline;font:600 20px var(--f-display);letter-spacing:.06em;text-transform:uppercase}
+.xp{font:700 44px/1 var(--f-display);color:var(--amber)}
+.rlabel{font-size:15px;margin-bottom:6px}
+.twist{border-left:3px solid var(--amber);padding:4px 0 4px 12px}
+.center{text-align:center}
+
+/* toasts and system notice */
+#toasts{position:fixed;left:0;right:0;top:12px;z-index:40;display:flex;flex-direction:column;align-items:center;gap:8px;pointer-events:none;padding:0 16px}
+.toast{background:var(--slate);border:1px solid var(--steel);padding:8px 14px;font:400 13px var(--f-mono)}
+#modal{position:fixed;inset:0;z-index:30;background:rgba(5,8,14,.86);display:flex;align-items:center;justify-content:center;padding:16px}
+#modal[hidden]{display:none}
+.modal-in{max-width:420px;width:100%}
+
+@media (max-width:420px){
+  .stat{grid-template-columns:104px 1fr 40px}
+  .big{font-size:96px}
+  .orb{width:210px;height:210px}
+  .head{grid-template-columns:80px 1fr}
+  .rank{width:80px;height:92px}
+  .rank i{width:73px;height:85px;font-size:44px}
+}
+@media (prefers-reduced-motion:reduce){
+  *{transition:none!important;animation:none!important;scroll-behavior:auto!important}
+}
+</style>
+</head>
+<body>
+<div id="app">
+  <header class="brand"><h1>Fluency Rank System</h1><small id="sync" role="status">Saved on this device</small></header>
+  <div id="notice" role="alert" hidden></div>
+  <main id="view"></main>
+</div>
+<nav id="tabs" aria-label="Sections"><div class="in">
+  <button type="button" data-act="tab" data-v="status">Status</button>
+  <button type="button" data-act="tab" data-v="gates">Gates</button>
+  <button type="button" data-act="tab" data-v="log">Log</button>
+  <button type="button" data-act="tab" data-v="guide">Guide</button>
+</div></nav>
+<div id="run" role="dialog" aria-modal="true" aria-labelledby="runTitle">
+  <div class="run-in">
+    <header class="run-h"><h1 id="runTitle" tabindex="-1"></h1><button type="button" class="btn sm" id="snd" aria-pressed="false">Sound off</button><button type="button" class="btn sm" id="abort">Exit</button></header>
+    <div id="runBody"></div>
+  </div>
+</div>
+<div id="modal" hidden></div>
+<div id="toasts" aria-live="polite"></div>
+
+<script>
+(() => {
+'use strict';
+
+/* ================= utilities ================= */
+const $ = (s, r = document) => r.querySelector(s);
+const $$ = (s, r = document) => Array.from(r.querySelectorAll(s));
+const esc = s => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const rnd = n => Math.floor(Math.random() * n);
+const clamp = (v, lo, hi) => Math.min(hi, Math.max(lo, v));
+const num = (v, d, lo, hi) => { v = Number(v); return Number.isFinite(v) ? clamp(v, lo, hi) : d; };
+const int = (v, d, lo, hi) => Math.round(num(v, d, lo, hi));
+const isDate = s => typeof s === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(s);
+const reduceMotion = !!(window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches);
+const shuffle = a => { a = a.slice(); for (let i = a.length - 1; i > 0; i--) { const j = rnd(i + 1); [a[i], a[j]] = [a[j], a[i]]; } return a; };
+const pad = n => String(n).padStart(2, '0');
+const dstr = d => { d = d || new Date(); return d.getFullYear() + '-' + pad(d.getMonth() + 1) + '-' + pad(d.getDate()); };
+const dayNum = s => { const p = s.split('-').map(Number); return Math.round(Date.UTC(p[0], p[1] - 1, p[2]) / 86400000); };
+const numStr = n => { const d = new Date(n * 86400000); return d.getUTCFullYear() + '-' + pad(d.getUTCMonth() + 1) + '-' + pad(d.getUTCDate()); };
+const weekStartNum = n => n - ((n + 3) % 7); /* Monday start; day 0 (1970-01-01) was a Thursday */
+const fmt = sec => { sec = Math.max(0, Math.round(sec)); return Math.floor(sec / 60) + ':' + pad(sec % 60); };
+
+/* ================= content ================= */
+const RANKS = [{r:'E',xp:0},{r:'D',xp:1200},{r:'C',xp:3600},{r:'B',xp:8000},{r:'A',xp:15000},{r:'S',xp:30000}];
+const rankOf = xp => RANKS.reduce((k, x, i) => xp >= x.xp ? i : k, 0);
+const levelOf = xp => 1 + Math.floor(xp / 150);
+const STAT_KEYS = ['breath', 'pace', 'retrieval', 'composure', 'resilience'];
+const STAT_N = {breath:'Breath control', pace:'Pace', retrieval:'Word retrieval', composure:'Composure', resilience:'Resilience'};
+const ENERGY = ['Fresh', 'Good', 'Flat', 'Tired', 'Spent'];
+const FLU = ['Blocked often', 'Bumpy', 'Mixed', 'Mostly smooth', 'Smooth'];
+const QUESTS = [
+  {id:'breath', n:'Breath Gate', need:1, d:'One full breathing session'},
+  {id:'read', n:'Paced Reading', need:1, d:'One passage at your pace gate'},
+  {id:'raid', n:'Alphabet Raid', need:2, d:'Two rounds of word retrieval'},
+  {id:'cold', n:'Cold Questions', need:2, d:'Two unrehearsed answers'}
+];
+const TYPE_N = {breath:'Breath Gate', read:'Paced Reading', raid:'Alphabet Raid', cold:'Cold Question', boss:'Boss Gauntlet', ritual:'Pre-call ritual', debrief:'Debrief', field:'Field mission'};
+const DRILL_N = {breath:'Breath Gate', read:'Paced Reading', raid:'Alphabet Raid', cold:'Cold Question'};
+const PATTERNS = {
+  gentle:{n:'Gentle', inS:4, outS:6, speak:false, d:'4 in, 6 out'},
+  slow:{n:'Slow', inS:4, outS:8, speak:false, d:'4 in, 8 out'},
+  speak:{n:'Breath and speak', inS:3, outS:7, speak:true, d:'3 in, say a phrase on the 7 second exhale'}
+};
+const PHRASES = ['Let me start with the headline.', 'Here is what changed since last week.', 'My recommendation is to hold steady.', 'The main risk is timing.', 'I will confirm the numbers by Thursday.', 'Thanks for joining, everyone.', 'There are three things to cover.', 'I prefer the second option.', 'That depends on two things.', 'The short answer is yes.'];
+const WPM = [70, 80, 90, 100, 115, 130, 145];
+const PASSAGES = [
+  {t:'Monday forecast review', x:'Good morning, everyone. Let me start with the headline. Volume is running four percent above plan, and most of the gap sits in two queues. I recommend we hold staffing flat this week, because the surge looks temporary. If the trend continues past Friday, I will bring a revised plan to this group. Until then, our priority is protecting service levels while we learn more.'},
+  {t:'Vendor check-in', x:'Thanks for joining this check-in. I want to cover three things: performance against target, open risks, and next steps. Performance is steady, although adherence dipped on Tuesday. The main risk is attrition on the evening shift. My ask today is simple. Please confirm the hiring dates by Thursday, and I will update the plan right after that.'},
+  {t:'Annual plan narrative', x:'Our annual plan rests on one idea. We grow the team only where demand is predictable, and we use partners and automation for everything else. This keeps cost under control without hurting quality. The assumptions are written down, the owners are named, and every quarter we will check them against what actually happened.'},
+  {t:'Explaining a miss', x:'Last month the forecast missed by six percent. Here is what happened. A product change landed earlier than planned, and our model did not know about it. We have fixed the input and added a weekly check with the product team. I am confident the next month will be closer, and I will share the result as soon as I have it.'},
+  {t:'Handing a decision back', x:'I have looked at both options, and I prefer the second one. It costs a little more, but it removes the biggest risk. If the group agrees, I can start next week. If you see a problem I have missed, please tell me now, because it is much easier to change course today than a month from now.'},
+  {t:'A quiet morning', x:'It was a quiet morning in the city. The first bus arrived on time, and a few people stood waiting under the awning. Somewhere nearby a vendor was setting up his stall, arranging oranges in neat rows. The air smelled of rain and fresh bread. It was the kind of morning that made every task feel possible.'}
+];
+const QUESTIONS = [
+  {t:'If you had to cut vendor spend by ten percent, where would you start and why?'},
+  {t:'What is the biggest risk to next year’s headcount plan?'},
+  {t:'Why should we trust this forecast?'},
+  {t:'Walk me through what changed since last quarter.'},
+  {t:'Should we hire full-time staff or expand the vendor team? Pick one.'},
+  {t:'Volume comes in twenty percent above forecast next week. What do you do first?'},
+  {t:'What do you need from my team to make this work?'},
+  {t:'Who owns this decision, and by when does it need to be made?'},
+  {t:'Why did the forecast miss last month?'},
+  {t:'If you could watch only one metric, which one and why?'},
+  {t:'What would you stop doing to free up capacity?'},
+  {t:'Explain this plan to a busy executive in thirty seconds.'},
+  {t:'What is your recommendation, and how confident are you?'},
+  {t:'Tell me about a plan of yours that did not work. What did you change?'},
+  {t:'What is the cheapest way to test this idea before we commit?'},
+  {t:'Where do you disagree with the current approach?'},
+  {t:'What would make you change your recommendation?'},
+  {t:'How do we know the vendor is performing, beyond their own reports?'},
+  {t:'What will attrition look like in March?', u:1},
+  {t:'Where does this project stand, and what is blocking it?'},
+  {t:'What trade-off are we making if we approve this?'},
+  {t:'Give me one thing to do this quarter and one thing not to do.'},
+  {t:'You have three requests and time for one. How do you choose?'},
+  {t:'What data are we missing to make this call?', u:1},
+  {t:'How will we know in ninety days that this worked?'},
+  {t:'I disagree with that number. Convince me.'},
+  {t:'What is the risk if we do nothing?'},
+  {t:'Which assumption in the model worries you most?'},
+  {t:'What would you do with ten percent more budget?'},
+  {t:'Summarize where we landed in two sentences.'}
+];
+const STALL = ['Let me think about that for a second.', 'Good question. My first read is…', 'The short answer is… and the detail is…', 'I want to be accurate, so I will confirm by Thursday.', 'It depends on two things. First…', 'What decision does this feed?', 'My instinct is… and I would validate it against…'];
+const LETTERS = 'ABCDEFGHIJKLMNOPRSTUVW'.split('');
+const CATS = ['Animals', 'Countries', 'Cities', 'Foods', 'Professions', 'Things in a house', 'Sports', 'Things at an office', 'Planning and ops terms', 'Things you can carry'];
+const MISSIONS = [
+  {id:'m1', t:'Greet someone you pass, aloud, on one breath', d:'Low stakes. Soft start, slow pace.'},
+  {id:'m2', t:'Make a small request: order, ask a price, or phone a shop', d:'Have your first words ready.'},
+  {id:'m3', t:'Ask one question in a small meeting', d:'Write the question as one sentence first.'},
+  {id:'m4', t:'Give your update first on a team call', d:'Use your opening line from the Guide.'},
+  {id:'m5', t:'State a recommendation in the first five minutes of a meeting', d:'Position first, reason second.'},
+  {id:'m6', t:'Open a call with your prepared opening line', d:'Run the pre-call ritual before it.'},
+  {id:'m7', t:'Answer pushback without deferring', d:'Hold your position, then say what would change it.'},
+  {id:'m8', t:'Lead a segment for a senior audience', d:'Slow pace, planned pauses.'}
+];
+const TWISTS = [
+  'Stand up while you practice.',
+  'Practice as if you were on a phone call: look away from the screen.',
+  'Speak to an imagined senior leader, not to yourself.',
+  'Use normal office volume, not a whisper.',
+  'Walk slowly while you practice.',
+  'Practice in a different room than usual.'
+];
+const ANCHORS = ['after my morning tea or coffee', 'before my first call', 'after lunch', 'right after my last call of the day', 'on my commute'];
+const DEFAULT_OPENER = 'Hi everyone, thanks for joining. Let me start with the headline.';
+
+/* ================= state, validation, storage ================= */
+const KEY = 'fluency-rank:v2';
+const blankDaily = () => ({date:'', breath:0, read:0, raid:0, cold:0, ritual:0, debrief:0, field:0, solid:false, cleared:false, twist:false});
+const fresh = () => ({
+  v:2, xp:0, stats:{breath:0, pace:0, retrieval:0, composure:0, resilience:0},
+  streak:0, best:0, shields:0, lastDay:null, energy:3,
+  hard:'', opener:DEFAULT_OPENER, showSkeleton:true, hideClock:false, sound:false,
+  rung:2, up:0, down:0, coldSecs:60, bosses:0,
+  plan:{anchor:'', mins:10}, planBonus:false, started:'', days:{},
+  weekAward:'', fieldWeek:'', weak:{}, comeback:false,
+  daily:blankDaily(), log:[], updatedAt:0
+});
+
+/* Every value read from storage, the account database or a pasted backup passes through here. */
+function sanitize(o) {
+  const s = fresh();
+  if (!o || typeof o !== 'object') return s;
+  s.xp = int(o.xp, 0, 0, 1e7);
+  STAT_KEYS.forEach(k => { s.stats[k] = int(o.stats && o.stats[k], 0, 0, 1e6); });
+  s.streak = int(o.streak, 0, 0, 1e5);
+  s.best = Math.max(s.streak, int(o.best, 0, 0, 1e5));
+  s.shields = int(o.shields, 0, 0, 2);
+  s.lastDay = isDate(o.lastDay) ? o.lastDay : null;
+  s.energy = int(o.energy, 3, 1, 5);
+  s.hard = String(o.hard || '').toUpperCase().replace(/[^A-Z]/g, '').slice(0, 12);
+  s.opener = String(o.opener || '').slice(0, 200).trim() || DEFAULT_OPENER;
+  s.showSkeleton = o.showSkeleton !== false;
+  s.hideClock = o.hideClock === true;
+  s.sound = o.sound === true;
+  s.rung = int(o.rung, 2, 0, WPM.length - 1);
+  s.up = int(o.up, 0, 0, 5); s.down = int(o.down, 0, 0, 5);
+  s.coldSecs = [45, 60, 90].indexOf(Number(o.coldSecs)) >= 0 ? Number(o.coldSecs) : 60;
+  s.bosses = int(o.bosses, 0, 0, 1e4);
+  const p = o.plan || {};
+  s.plan = {anchor: ANCHORS.indexOf(p.anchor) >= 0 ? p.anchor : '', mins: p.mins === 3 ? 3 : 10};
+  s.planBonus = o.planBonus === true;
+  s.started = isDate(o.started) ? o.started : '';
+  if (o.days && typeof o.days === 'object') {
+    Object.keys(o.days).filter(isDate).sort().slice(-400).forEach(d => {
+      const v = o.days[d] || {};
+      s.days[d] = {n: int(v.n, 1, 1, 4), e: int(v.e, 3, 1, 5)};
+    });
+  }
+  s.weekAward = isDate(o.weekAward) ? o.weekAward : '';
+  s.fieldWeek = isDate(o.fieldWeek) ? o.fieldWeek : '';
+  if (o.weak && typeof o.weak === 'object') {
+    Object.keys(o.weak).filter(k => /^[A-Z]$/.test(k)).forEach(k => { const n = int(o.weak[k], 0, 0, 5); if (n > 0) s.weak[k] = n; });
+  }
+  s.comeback = o.comeback === true;
+  const d = o.daily || {};
+  s.daily = blankDaily();
+  s.daily.date = isDate(d.date) ? d.date : '';
+  ['breath', 'read', 'raid', 'cold', 'ritual', 'debrief', 'field'].forEach(k => { s.daily[k] = int(d[k], 0, 0, 99); });
+  ['solid', 'cleared', 'twist'].forEach(k => { s.daily[k] = d[k] === true; });
+  s.log = (Array.isArray(o.log) ? o.log : []).slice(-300).filter(e => e && typeof e === 'object').map(e => ({
+    t: num(e.t, 0, 0, 4e12),
+    type: TYPE_N[e.type] ? e.type : 'cold',
+    energy: int(e.energy, 3, 1, 5),
+    score: e.score == null ? null : int(e.score, 3, 1, 5),
+    xp: int(e.xp, 0, 0, 5000),
+    meta: String(e.meta || '').slice(0, 300),
+    pred: e.pred == null ? null : int(e.pred, 0, 0, 10),
+    act: e.act == null ? null : int(e.act, 0, 0, 10),
+    chance: e.chance == null ? null : int(e.chance, 0, 0, 100),
+    bad: e.bad == null ? null : int(e.bad, 0, 0, 2),
+    mid: typeof e.mid === 'string' && /^m\d$/.test(e.mid) ? e.mid : ''
+  }));
+  S_updated(s, o);
+  return s;
+}
+function S_updated(s, o) { s.updatedAt = num(o.updatedAt, 0, 0, 4e12); }
+
+let S = fresh();
+let storageOk = true, noticeText = '';
+(function loadLocal() {
+  let raw = null;
+  try { raw = localStorage.getItem(KEY); } catch (e) { storageOk = false; return; }
+  if (!raw) return;
+  try { S = sanitize(JSON.parse(raw)); }
+  catch (e) {
+    try { localStorage.setItem(KEY + ':corrupt', raw); } catch (_) { /* nothing more to do */ }
+    noticeText = 'Your saved data could not be read, so this is a fresh start. The old data was kept aside and is not lost.';
+  }
+})();
+
+let saveTimer = null, dbRef = null, writing = false, dirty = false;
+function updateSync() {
+  const el = $('#sync');
+  el.textContent = dbRef ? 'Synced to your account' : storageOk ? 'Saved on this device' : 'Not saved: use Backup in Guide';
+  const n = $('#notice');
+  const msg = noticeText || (!storageOk && !dbRef ? 'Progress cannot be saved in this view. Copy a backup from the Guide tab before you leave.' : '');
+  n.hidden = !msg; n.textContent = msg;
+}
+function save() {
+  S.updatedAt = Date.now();
+  try { localStorage.setItem(KEY, JSON.stringify(S)); storageOk = true; } catch (e) { storageOk = false; }
+  dirty = true; clearTimeout(saveTimer); saveTimer = setTimeout(flushDb, 800);
+  updateSync();
+}
+function flushDb() {
+  if (!dbRef || writing || !dirty) return;
+  writing = true; dirty = false;
+  Promise.resolve().then(() => dbRef.set(JSON.parse(JSON.stringify(S)))).catch(() => {}).then(() => { writing = false; if (dirty) saveTimer = setTimeout(flushDb, 800); });
+}
+function applyRemote(remote, tries) {
+  if (running && tries < 40) { setTimeout(() => applyRemote(remote, tries + 1), 3000); return; }
+  if (running) return;
+  S = remote; rollDay();
+  try { localStorage.setItem(KEY, JSON.stringify(S)); } catch (e) { /* account copy still holds it */ }
+  renderAll();
+}
+function initDb() {
+  try {
+    if (!window.claude || !window.claude.use) return;
+    Promise.all([window.claude.use('db'), window.claude.use('user')]).then(r => {
+      const db = r[0], user = r[1];
+      if (!db || !user) return null;
+      return Promise.resolve(user.id()).then(id => {
+        if (!id) return null;
+        const ref = db.doc('data/users/' + id + '/profile');
+        return ref.get().then(snap => {
+          dbRef = ref; updateSync();
+          if (snap.exists) {
+            const remote = sanitize(snap.data());
+            if (remote.updatedAt > S.updatedAt) { applyRemote(remote, 0); return; }
+          }
+          if (S.updatedAt > 0) { dirty = true; flushDb(); }
+        });
+      });
+    }).catch(() => {});
+  } catch (e) { /* account sync is optional */ }
+}
+
+/* ================= game rules ================= */
+const doneCount = () => QUESTS.filter(q => (S.daily[q.id] || 0) >= q.need).length;
+const weekStr = () => numStr(weekStartNum(dayNum(dstr())));
+function practicedThisWeek() {
+  const w = weekStartNum(dayNum(dstr()));
+  return Object.keys(S.days).filter(d => weekStartNum(dayNum(d)) === w).length;
+}
+function rollDay() {
+  const t = dstr();
+  if (S.daily.date === t) return false;
+  if (S.lastDay) {
+    const gap = dayNum(t) - dayNum(S.lastDay);
+    if (gap > 1) {
+      const missed = gap - 1;
+      if (S.shields >= missed) { S.shields -= missed; S.lastDay = numStr(dayNum(t) - 1); }
+      else { S.streak = 0; S.lastDay = null; S.comeback = true; }
+    }
+  }
+  S.daily = blankDaily(); S.daily.date = t;
+  return true;
+}
+rollDay();
+
+/* o: {xp, pts, q, qn, score, meta, extra}. Session XP gets the tired bonus, bonuses do not. */
+function award(type, o) {
+  rollDay();
+  const before = {rank: rankOf(S.xp), level: levelOf(S.xp)};
+  const e = S.energy, tired = e >= 4, notes = [];
+  const xp = Math.round((o.xp || 0) * (tired ? 1.5 : 1));
+  let bonus = 0;
+  Object.keys(o.pts || {}).forEach(k => { S.stats[k] = (S.stats[k] || 0) + o.pts[k]; });
+  if (e >= 3) S.stats.resilience += tired ? 5 : 2;
+  if (o.q) S.daily[o.q] = (S.daily[o.q] || 0) + (o.qn || 1);
+  const n = doneCount();
+  if (n >= 1 || type === 'field') {
+    const t = S.daily.date, rec = S.days[t] || {n:0, e:0};
+    S.days[t] = {n: Math.max(rec.n, n, 1), e: Math.max(rec.e, e)};
+    const keys = Object.keys(S.days).sort();
+    if (keys.length > 400) keys.slice(0, keys.length - 400).forEach(k => { delete S.days[k]; });
+    if (!S.started) S.started = t;
+    if (S.lastDay !== t) {
+      const gap = S.lastDay ? dayNum(t) - dayNum(S.lastDay) : null;
+      S.streak = gap === 1 ? S.streak + 1 : 1;
+      S.best = Math.max(S.best, S.streak);
+      S.lastDay = t;
+    }
+    if (S.comeback) { S.comeback = false; bonus += 25; notes.push('Comeback bonus: +25 XP'); }
+    if (n >= 2 && !S.daily.solid) { S.daily.solid = true; bonus += 15; notes.push('Solid day: +15 XP'); }
+    if (n >= QUESTS.length && !S.daily.cleared) { S.daily.cleared = true; bonus += 25; notes.push('Full clear: +25 XP'); }
+    const ws = weekStr();
+    if (practicedThisWeek() >= 5 && S.weekAward !== ws) { S.weekAward = ws; bonus += 60; if (S.shields < 2) S.shields++; notes.push('Weekly goal met: +60 XP and a shield'); }
+    if (type === 'field' && S.fieldWeek !== ws) { S.fieldWeek = ws; bonus += 40; notes.push('First field mission this week: +40 XP'); }
+  }
+  S.xp += xp + bonus;
+  S.log.push(Object.assign({t:Date.now(), type, energy:e, score:o.score == null ? null : o.score, xp:xp + bonus, meta:String(o.meta || '').slice(0, 300), pred:null, act:null, chance:null, bad:null, mid:''}, o.extra || {}));
+  if (S.log.length > 300) S.log = S.log.slice(-300);
+  save();
+  const after = {rank: rankOf(S.xp), level: levelOf(S.xp)};
+  return {xp: xp + bonus, tired, notes, rankUp: after.rank > before.rank ? RANKS[after.rank].r : null, levelUp: after.level > before.level ? after.level : null};
+}
+function avgScore(filter) {
+  const a = S.log.filter(e => e.score != null && filter(e));
+  return a.length ? a.reduce((s, e) => s + e.score, 0) / a.length : null;
+}
+
+/* ================= ui helpers ================= */
+function toast(m) { const c = $('#toasts'), d = document.createElement('div'); d.className = 'toast'; d.textContent = m; c.appendChild(d); setTimeout(() => d.remove(), 3400); }
+let modalReturn = null;
+function modal(title, body) {
+  const m = $('#modal');
+  modalReturn = document.activeElement;
+  m.innerHTML = '<div class="panel modal-in" role="alertdialog" aria-modal="true" aria-labelledby="mt"><div class="lbl">System</div><h2 class="t" id="mt">' + esc(title) + '</h2><p>' + esc(body) + '</p><button type="button" class="btn solid" id="mclose">Continue</button></div>';
+  m.hidden = false;
+  $('#mclose').onclick = closeModal; $('#mclose').focus();
+}
+function closeModal() { const m = $('#modal'); if (m.hidden) return; m.hidden = true; if (modalReturn && modalReturn.focus) { try { modalReturn.focus(); } catch (e) { /* element gone */ } } }
+const block = (label, inner, cls) => '<section class="blk ' + (cls || '') + '">' + (label ? '<h2 class="lbl">' + esc(label) + '</h2>' : '') + inner + '</section>';
+const bar = (p, cls) => '<div class="bar ' + (cls || '') + '"><i style="width:' + clamp(p, 0, 100) + '%"></i></div>';
+const energySeg = () => '<div class="seg" role="group" aria-label="Energy right now">' + ENERGY.map((n, i) => '<button type="button" class="segb" data-act="energy" data-v="' + (i + 1) + '" aria-pressed="' + (S.energy === i + 1) + '"><b>' + (i + 1) + '</b><span>' + n + '</span></button>').join('') + '</div>';
+
+const T = {
+  ids: [], raf: 0,
+  after(ms, fn) { const id = setTimeout(fn, ms); this.ids.push(['t', id]); return id; },
+  every(ms, fn) { const id = setInterval(fn, ms); this.ids.push(['i', id]); return id; },
+  clear() { this.ids.forEach(p => { if (p[0] === 't') clearTimeout(p[1]); else clearInterval(p[1]); }); this.ids = []; cancelAnimationFrame(this.raf); }
+};
+
+/* optional audio cues so practice can be done eyes-off-screen */
+let ac = null;
+function primeAudio() {
+  if (!S.sound) return;
+  try { ac = ac || new (window.AudioContext || window.webkitAudioContext)(); if (ac.state === 'suspended') ac.resume(); } catch (e) { ac = null; }
+}
+function cue(kind) {
+  if (!S.sound || !ac) return;
+  try {
+    const f = {in:520, out:390, go:660, end:440}[kind] || 440, o = ac.createOscillator(), g = ac.createGain(), t = ac.currentTime;
+    o.type = 'sine'; o.frequency.value = f;
+    g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(0.12, t + 0.02); g.gain.exponentialRampToValueAtTime(0.0001, t + (kind === 'end' ? 0.5 : 0.22));
+    o.connect(g); g.connect(ac.destination); o.start(t); o.stop(t + 0.55);
+  } catch (e) { /* audio is optional */ }
+}
+
+/* ---------- run overlay ---------- */
+let running = false, runReturn = null;
+const runEl = $('#run'), runBody = $('#runBody'), runTitle = $('#runTitle');
+const RUN = {active:false, q:[], i:0, n:0};
+function setInert(on) { ['#app', '#tabs'].forEach(s => { const el = $(s); el.inert = on; if (on) el.setAttribute('aria-hidden', 'true'); else el.removeAttribute('aria-hidden'); }); }
+function syncSoundBtn() { const b = $('#snd'); b.textContent = S.sound ? 'Sound on' : 'Sound off'; b.setAttribute('aria-pressed', String(S.sound)); }
+function openRun(title) {
+  T.clear(); if (!running) runReturn = document.activeElement;
+  running = true;
+  runTitle.textContent = RUN.active ? 'Run ' + RUN.i + ' of ' + RUN.n + ': ' + title : title;
+  runBody.innerHTML = ''; runEl.style.display = 'block'; runEl.scrollTop = 0;
+  document.body.style.overflow = 'hidden'; setInert(true); syncSoundBtn(); primeAudio();
+}
+function stopRun() {
+  T.clear(); running = false; RUN.active = false; RUN.q = [];
+  runEl.style.display = 'none'; document.body.style.overflow = ''; setInert(false);
+  renderAll();
+  if (runReturn && runReturn.isConnected && runReturn.focus) { try { runReturn.focus(); } catch (e) { /* ignore */ } }
+}
+function setRun(html) {
+  runBody.innerHTML = html; runEl.scrollTop = 0;
+  const h = $('h2', runBody);
+  if (h) { h.setAttribute('tabindex', '-1'); try { h.focus({preventScroll:true}); } catch (e) { /* ignore */ } }
+}
+$('#abort').onclick = stopRun;
+$('#snd').onclick = () => { S.sound = !S.sound; save(); syncSoundBtn(); primeAudio(); cue('go'); };
+
+function choiceRow(name, opts, sel, lab) {
+  return '<div class="seg" role="group">' + opts.map(v => '<button type="button" class="segb" data-ch="' + name + '" data-v="' + esc(v) + '" aria-pressed="' + (String(v) === String(sel)) + '"><b>' + esc(lab ? lab(v) : v) + '</b></button>').join('') + '</div>';
+}
+function wireChoice(name, fn) { $$('[data-ch="' + name + '"]', runBody).forEach(b => { b.onclick = () => fn(b.getAttribute('data-v')); }); }
+function rateHtml(id, label, hints) {
+  return '<div class="rate" id="' + id + '" role="group" aria-label="' + esc(label) + '"><div class="rlabel">' + esc(label) + '</div><div class="seg">' + [1, 2, 3, 4, 5].map(n => '<button type="button" class="segb" data-n="' + n + '" aria-pressed="false"><b>' + n + '</b><span>' + esc(hints[n - 1]) + '</span></button>').join('') + '</div></div>';
+}
+function wireRate(id, fn) {
+  const root = $('#' + id, runBody);
+  $$('.segb', root).forEach(b => { b.onclick = () => { $$('.segb', root).forEach(x => x.setAttribute('aria-pressed', 'false')); b.setAttribute('aria-pressed', 'true'); fn(Number(b.getAttribute('data-n'))); }; });
+}
+function afterAward(res) {
+  if (res.rankUp) modal('Rank up', 'You reached Rank ' + res.rankUp + '. Your log, stats and mosaic carry over.');
+  else if (res.levelUp) toast('Level ' + res.levelUp + ' reached');
+  res.notes.slice(0, 3).forEach(n => toast(n));
+}
+function resultScreen(title, lines, res, again) {
+  afterAward(res);
+  const inRun = RUN.active && RUN.q.length > 0;
+  const lastOne = RUN.active && RUN.q.length === 0;
+  const all = lastOne ? lines.concat(['Run complete.']) : lines;
+  setRun(block(title, '<div class="xp mono">+' + res.xp + ' XP</div>' + (res.tired ? '<p class="note">Tired-session bonus applied (+50% session XP).</p>' : '') + '<ul class="plain">' + all.map(l => '<li>' + esc(l) + '</li>').join('') + '</ul><div class="row">' + (inRun ? '<button type="button" class="btn solid" id="nextb">Next: ' + DRILL_N[RUN.q[0]] + '</button>' : (again ? '<button type="button" class="btn solid" id="again">' + esc(again.label) + '</button>' : '')) + '<button type="button" class="btn" id="back">' + (inRun ? 'End run' : 'Done') + '</button></div>'));
+  if (inRun) $('#nextb').onclick = nextRun; else if (again) $('#again').onclick = again.fn;
+  $('#back').onclick = stopRun;
+}
+const clockText = sec => S.hideClock ? '' : fmt(sec);
+
+/* ================= drills ================= */
+const QUSED = {};
+function nextQuestion() {
+  if (Object.keys(QUSED).length >= QUESTIONS.length) Object.keys(QUSED).forEach(k => delete QUSED[k]);
+  let i, g = 0; do { i = rnd(QUESTIONS.length); g++; } while (QUSED[i] && g < 200);
+  QUSED[i] = 1; return QUESTIONS[i];
+}
+function pickRaid(last) {
+  const hard = Array.from(new Set((S.hard || '').split('')));
+  const weak = Object.keys(S.weak);
+  const pool = hard.concat(weak);
+  const L = (pool.length && Math.random() < 0.5) ? pool[rnd(pool.length)] : LETTERS[rnd(LETTERS.length)];
+  let C, g = 0; do { C = CATS[rnd(CATS.length)]; g++; } while (C === last && g < 50);
+  return {L, C};
+}
+function pacer(host, o) {
+  host.innerHTML = '<div class="orb" id="orb"><div><div class="phase" id="ph">Get ready</div><div class="sub" id="sb"></div></div></div><div class="pc-meta"><span id="cy">Cycle 1</span><span id="rem"></span></div>';
+  const orb = $('#orb', host), ph = $('#ph', host), sb = $('#sb', host), cy = $('#cy', host), rem = $('#rem', host);
+  const start = performance.now(), cyc = (o.inS + o.outS) * 1000;
+  let last = '';
+  const frame = () => {
+    const el = performance.now() - start;
+    if (el >= o.totalS * 1000) { orb.style.transform = 'scale(.6)'; cue('end'); o.onDone(Math.floor(el / cyc)); return; }
+    const pos = el % cyc, idx = Math.floor(el / cyc);
+    const inhale = pos < o.inS * 1000;
+    const p = inhale ? pos / (o.inS * 1000) : (pos - o.inS * 1000) / (o.outS * 1000);
+    if (!reduceMotion) orb.style.transform = 'scale(' + (inhale ? 0.6 + 0.4 * p : 1 - 0.4 * p).toFixed(3) + ')';
+    const key = (inhale ? 'in' : 'out') + idx;
+    if (key !== last) {
+      last = key; cue(inhale ? 'in' : 'out');
+      ph.textContent = inhale ? 'Breathe in' : 'Breathe out slowly';
+      if (o.phrases) sb.textContent = (inhale ? 'Next: ' : 'Say: ') + o.phrases[idx % o.phrases.length];
+      cy.textContent = 'Cycle ' + (idx + 1);
+    }
+    rem.textContent = S.hideClock ? '' : fmt(Math.ceil((o.totalS * 1000 - el) / 1000));
+    T.raf = requestAnimationFrame(frame);
+  };
+  T.raf = requestAnimationFrame(frame);
+}
+
+function runBreath(o) {
+  o = o || {};
+  openRun('Breath Gate');
+  let pat = 'gentle', mins = 2;
+  const setup = () => {
+    setRun(block('Breath Gate', '<h2 class="t">Pace your breath</h2><p class="note">Breathe in through the nose, out slowly. In speak mode, say the phrase on the exhale in one easy breath and start it softly.</p><div class="lab">Pattern</div><div class="seg">' + Object.keys(PATTERNS).map(k => '<button type="button" class="segb wide" data-ch="pat" data-v="' + k + '" aria-pressed="' + (k === pat) + '"><b>' + PATTERNS[k].n + '</b><span>' + PATTERNS[k].d + '</span></button>').join('') + '</div><div class="lab">Length</div>' + choiceRow('mins', [1, 2, 3, 5], mins, v => v + ' min') + '<button type="button" class="btn solid" id="go">Begin</button>'));
+    wireChoice('pat', v => { pat = v; setup(); });
+    wireChoice('mins', v => { mins = Number(v); setup(); });
+    $('#go').onclick = begin;
+  };
+  const begin = () => {
+    const P = PATTERNS[pat];
+    setRun(block(P.n + ' · ' + P.d, '<h2 class="sr">Breathing guide</h2><div id="pc"></div><button type="button" class="btn sm" id="stop">Stop</button>', 'center'));
+    $('#stop').onclick = () => { T.clear(); if (o.auto) stopRun(); else setup(); };
+    pacer($('#pc'), {inS:P.inS, outS:P.outS, totalS:mins * 60, phrases:P.speak ? shuffle(PHRASES) : null, onDone: cycles => {
+      const res = award('breath', {xp:10 * mins, pts:{breath:6 * mins}, q:'breath', meta:P.n + ', ' + mins + ' min'});
+      resultScreen('Breath Gate cleared', [cycles + ' cycles of ' + P.d, 'Carry this pace into your first sentence.'], res, {label:'Go again', fn:setup});
+    }});
+  };
+  if (o.auto) { mins = 1; begin(); } else setup();
+}
+
+function coachRead(sc, wpm) {
+  const base = avgScore(e => e.energy <= 2);
+  if (S.energy >= 4 && sc >= 3 && base !== null && sc >= base - 0.5) return 'You matched your fresh-day average while tired. That is the target condition.';
+  if (sc >= 4) return 'Smooth at ' + wpm + ' wpm. Two smooth reads in a row at your pace gate move it up.';
+  if (sc <= 2) return 'Drop about 10 wpm and make the first sound of each phrase softer.';
+  return 'Mixed. Start each phrase on the exhale and pause at the marks.';
+}
+let lastPassage = -1;
+function runRead(o) {
+  o = o || {};
+  openRun('Paced Reading');
+  let sel = 0, wpm = WPM[S.rung];
+  const setup = () => {
+    setRun(block('Paced Reading', '<h2 class="t">Read at a set pace</h2><p class="note">Words light up at your chosen speed. Read aloud, breathe at each ▾ mark, start each phrase softly. Pace gate ' + (S.rung + 1) + ' of ' + WPM.length + ' is ' + WPM[S.rung] + ' wpm. Two smooth reads in a row move it up.</p><div class="lab">Passage</div><div class="seg">' + PASSAGES.map((p, i) => '<button type="button" class="segb wide" data-ch="ps" data-v="' + i + '" aria-pressed="' + (i === sel) + '"><b>' + esc(p.t) + '</b><span>' + p.x.split(/\s+/).length + ' words</span></button>').join('') + '</div><label class="lab" for="wpm">Pace: <span id="wv">' + wpm + '</span> words per minute</label><input type="range" id="wpm" min="60" max="150" step="5" value="' + wpm + '"><p class="note">Conversation runs near 150. Start slower than feels natural, especially when tired. Changing the pace off your gate means this read does not move the gate.</p><button type="button" class="btn solid" id="go">Start reading</button>'));
+    $('#wpm').oninput = function () { wpm = Number(this.value); $('#wv').textContent = wpm; };
+    wireChoice('ps', v => { sel = Number(v); setup(); });
+    $('#go').onclick = play;
+  };
+  const play = () => {
+    const P = PASSAGES[sel], words = P.x.split(/\s+/);
+    setRun(block(P.t + ' · ' + wpm + ' wpm', '<h2 class="sr">Reading</h2><div class="reader" id="rd">' + words.map((w, i) => '<span class="w' + (/[,;:]$/.test(w) ? ' c' : '') + (/[.?!]$/.test(w) ? ' s' : '') + '">' + esc(w) + '</span>').join(' ') + '</div><button type="button" class="btn sm" id="stop">Stop</button>'));
+    $('#stop').onclick = () => { T.clear(); if (o.auto) stopRun(); else setup(); };
+    const spans = $$('.w', runBody), base = 60000 / wpm;
+    let i = 0;
+    const step = () => {
+      if (i > 0) { spans[i - 1].classList.remove('now'); spans[i - 1].classList.add('done'); }
+      if (i >= spans.length) { T.after(500, rate); return; }
+      const w = words[i];
+      spans[i].classList.add('now');
+      const d = base * (1 + (/[,;:]$/.test(w) ? 0.6 : 0) + (/[.?!]$/.test(w) ? 1.4 : 0) + (w.length > 8 ? 0.3 : 0));
+      i++; T.after(d, step);
+    };
+    step();
+  };
+  const rate = () => {
+    let sc = 0;
+    setRun(block('Self-check', '<h2 class="t">How smooth was that?</h2>' + rateHtml('r1', 'Rate your fluency, not your effort.', FLU) + '<button type="button" class="btn solid" id="sub" disabled>Log it</button>'));
+    wireRate('r1', n => { sc = n; $('#sub').disabled = false; });
+    $('#sub').onclick = () => {
+      const coach = coachRead(sc, wpm), onGate = wpm === WPM[S.rung];
+      let gateNote = '';
+      if (onGate) {
+        if (sc >= 4) { S.up++; S.down = 0; if (S.up >= 2 && S.rung < WPM.length - 1) { S.rung++; S.up = 0; gateNote = 'Pace gate up: next read starts at ' + WPM[S.rung] + ' wpm.'; } }
+        else if (sc <= 2) { S.up = 0; if (S.energy < 4) { S.down++; if (S.down >= 2 && S.rung > 0) { S.rung--; S.down = 0; gateNote = 'Pace eased to ' + WPM[S.rung] + ' wpm. Slower is part of the plan.'; } } }
+        else { S.up = 0; S.down = 0; }
+      }
+      const res = award('read', {xp:20 + sc * 3, pts:{pace:5 + sc * 2, breath:2}, q:'read', score:sc, meta:PASSAGES[sel].t + ' at ' + wpm + ' wpm'});
+      resultScreen('Reading cleared', [PASSAGES[sel].t + ' at ' + wpm + ' wpm. Fluency ' + sc + ' of 5 at energy ' + S.energy + '.', coach].concat(gateNote ? [gateNote] : []), res, {label:'Another passage', fn:() => { wpm = WPM[S.rung]; setup(); }});
+    };
+  };
+  if (o.auto) { do { sel = rnd(PASSAGES.length); } while (sel === lastPassage && PASSAGES.length > 1); lastPassage = sel; play(); } else setup();
+}
+
+function runRaid(o) {
+  o = o || {};
+  openRun('Alphabet Raid');
+  let secs = 45, last = '';
+  const prep = () => { const q = pickRaid(last); last = q.C; show(q); };
+  const show = q => {
+    setRun(block('Alphabet Raid', '<div class="lab center">Round target</div><div class="big" aria-hidden="true">' + q.L + '</div><h2 class="t center">Words that start with ' + q.L + ': ' + esc(q.C.toLowerCase()) + '</h2><p class="note">Say each word aloud and tap +1 as you go. Breathe in first and begin on the exhale.</p>' + choiceRow('secs', [30, 45, 60], secs, v => v + ' s') + '<button type="button" class="btn solid" id="go">Start the clock</button>', 'center'));
+    wireChoice('secs', v => { secs = Number(v); show(q); });
+    $('#go').onclick = () => play(q);
+  };
+  const play = q => {
+    let count = 0, blanks = 0, total = secs;
+    const t0 = performance.now();
+    setRun(block(q.L + ' · ' + q.C, '<h2 class="sr">Round running</h2><div class="clock" id="clk" role="timer" aria-live="off">' + (S.hideClock ? '' : total + '.0s') + '</div>' + bar(0, 'steel').replace('<i ', '<i id="tb" ') + '<div class="count" id="cnt" aria-live="polite">0</div><button type="button" class="btn solid xl" id="plus">+1 word</button><div class="row"><button type="button" class="btn" id="blank">I blanked</button><button type="button" class="btn" id="more">+15 s</button></div><p class="note" id="tip">If you blank: pause, breathe out, say "let me think", then keep going.</p>', 'center'));
+    cue('go');
+    $('#plus').onclick = () => { count++; $('#cnt').textContent = count; };
+    $('#blank').onclick = () => { blanks++; $('#tip').textContent = 'Blank noted. A pause is fine. Breathe out and restart softly.'; };
+    $('#more').onclick = () => { total += 15; };
+    const iv = T.every(100, () => {
+      const left = Math.max(0, total - (performance.now() - t0) / 1000);
+      if (!S.hideClock) $('#clk').textContent = left.toFixed(1) + 's';
+      $('#tb').style.width = clamp((1 - left / total) * 100, 0, 100) + '%';
+      if (left <= 0) { clearInterval(iv); cue('end'); finish(q, count, blanks, total); }
+    });
+  };
+  const finish = (q, count, blanks, total) => {
+    const c = Math.min(count, 12), w = S.weak[q.L] || 0;
+    const nw = clamp(w + ((blanks > 0 || count <= 2) ? 1 : 0) - ((count >= 6 && blanks === 0) ? 1 : 0), 0, 5);
+    if (nw > 0) S.weak[q.L] = nw; else delete S.weak[q.L];
+    const res = award('raid', {xp:10 + c * 2, pts:{retrieval:3 + c}, q:'raid', meta:q.L + ', ' + q.C + ': ' + count + ' words'});
+    const coach = nw > w ? q.L + ' will come back sooner. Spaced repeats on weak sounds are how they improve.' : (count >= 6 && blanks === 0 ? 'Clean round. ' + q.L + ' is getting easier.' : 'Recovering from a blank is the skill, not avoiding one.');
+    resultScreen('Round cleared', [count + ' words in ' + total + ' seconds' + (blanks ? ', ' + blanks + ' blank' + (blanks > 1 ? 's' : '') : '') + '.', coach], res, {label:'Next round', fn:prep});
+  };
+  prep();
+}
+
+function coachCold(sc, lead, calm) {
+  if (!lead) return 'Open with your position: "My recommendation is…". Reasons come second.';
+  if (!calm) return 'When you stall, stop, breathe out and restart softly. Do not rush through it.';
+  if (sc <= 2) return 'Cut to one reason and stop. A short answer with a clean ending beats a long one.';
+  return 'Position first and steady under pressure. Repeat it tomorrow with a different question.';
+}
+function runCold(boss, o) {
+  o = o || {};
+  openRun(boss ? 'Boss Gauntlet' : 'Cold Questions');
+  let secs = boss ? 45 : S.coldSecs;
+  const intro = () => {
+    setRun(block(boss ? 'Boss Gauntlet' : 'Cold Questions', '<h2 class="t">' + (boss ? 'Five questions back to back' : 'Answer a question you have not seen') + '</h2><p class="note">' + (boss ? 'Each question gives you a short breath, then ' + secs + ' seconds to answer aloud. Rate yourself once at the end. It counts most when you are a little tired.' : 'You get a 5 second breath, then your answer time. Lead with your position, give a reason, say what would change your mind. Speak aloud.') + '</p>' + (boss ? '' : '<div class="lab">Answer time</div>' + choiceRow('secs', [45, 60, 90], secs, v => v + ' s')) + '<button type="button" class="btn solid" id="go">' + (boss ? 'Begin' : 'Ask me') + '</button>'));
+    if (!boss) wireChoice('secs', v => { secs = Number(v); S.coldSecs = secs; save(); intro(); });
+    $('#go').onclick = () => askOne(0);
+  };
+  const askOne = idx => {
+    const q = nextQuestion(), stall = shuffle(STALL).slice(0, 3), breathS = boss ? 3 : 5;
+    let total = secs;
+    setRun(block(boss ? 'Question ' + (idx + 1) + ' of 5' : 'Cold question', '<h2 class="q">' + esc(q.t) + '</h2>' + (q.u ? '<p class="note">You may not know this one. Give a position, what you would check, and when you will confirm.</p>' : '') + (S.showSkeleton ? '<div class="skel"><span><b>Position.</b> My recommendation is…</span><span><b>Because.</b> One or two reasons, one number if you have it.</span><span><b>Change.</b> I would revisit if…</span></div>' : '') + '<div class="phaseline"><span id="phl">Breathe</span><span id="clk" class="mono" role="timer" aria-live="off">' + (S.hideClock ? '' : breathS) + '</span></div>' + bar(0, 'steel').replace('<i ', '<i id="tb" ') + '<div class="chips">' + stall.map(s => '<span class="chip">' + esc(s) + '</span>').join('') + '</div><div class="row"><button type="button" class="btn" id="done">' + (boss && idx < 4 ? 'Next question' : 'Done') + '</button><button type="button" class="btn" id="more">+15 s</button></div>'));
+    let t0 = performance.now(), phase = 'breath', finished = false;
+    const end = () => { if (finished) return; finished = true; clearInterval(iv); cue('end'); if (boss && idx < 4) askOne(idx + 1); else rate(); };
+    $('#done').onclick = end;
+    $('#more').onclick = () => { total += 15; };
+    const iv = T.every(100, () => {
+      const el = (performance.now() - t0) / 1000;
+      if (phase === 'breath') {
+        if (!S.hideClock) $('#clk').textContent = Math.max(0, Math.ceil(breathS - el));
+        $('#tb').style.width = clamp(el / breathS * 100, 0, 100) + '%';
+        if (el >= breathS) { phase = 'speak'; t0 = performance.now(); $('#phl').textContent = 'Answer aloud'; cue('go'); }
+      } else {
+        if (!S.hideClock) $('#clk').textContent = fmt(Math.ceil(total - el));
+        $('#tb').style.width = clamp(el / total * 100, 0, 100) + '%';
+        if (el >= total) end();
+      }
+    });
+  };
+  const rate = () => {
+    let sc = 0;
+    setRun(block('Self-check', '<h2 class="t">' + (boss ? 'How did the gauntlet go?' : 'How did that go?') + '</h2>' + rateHtml('r1', 'Rate your fluency, not the quality of your answer.', FLU) + '<label class="tg"><input type="checkbox" id="lead"> I led with a clear position</label><label class="tg"><input type="checkbox" id="calm"> I stayed calm when I got stuck</label><button type="button" class="btn solid" id="sub" disabled>Log it</button>'));
+    wireRate('r1', n => { sc = n; $('#sub').disabled = false; });
+    $('#sub').onclick = () => {
+      const lead = $('#lead').checked, calm = $('#calm').checked, bonus = (lead ? 5 : 0) + (calm ? 5 : 0), coach = coachCold(sc, lead, calm);
+      if (boss) {
+        S.bosses++;
+        const res = award('boss', {xp:80 + sc * 8 + bonus * 2, pts:{composure:20 + sc * 3, retrieval:5}, q:'cold', qn:2, score:sc, meta:'Five question gauntlet'});
+        resultScreen('Gauntlet cleared', ['Fluency ' + sc + ' of 5 at energy ' + S.energy + '.', coach], res, {label:'Back to Gates', fn:stopRun});
+      } else {
+        const res = award('cold', {xp:20 + sc * 3 + bonus, pts:{composure:4 + sc * 2 + (lead ? 2 : 0)}, q:'cold', score:sc, meta:'Cold question'});
+        resultScreen('Answer logged', ['Fluency ' + sc + ' of 5 at energy ' + S.energy + '.', coach], res, {label:'Next question', fn:() => askOne(0)});
+      }
+    };
+  };
+  if (o.auto) askOne(0); else intro();
+}
+
+function runRitual() {
+  openRun('Pre-call ritual');
+  const s1 = () => {
+    setRun(block('Step 1 of 3: breathe', '<h2 class="sr">Breathe</h2><div id="pc"></div><button type="button" class="btn sm" id="skip">Skip step</button>', 'center'));
+    $('#skip').onclick = () => { T.clear(); s2(); };
+    pacer($('#pc'), {inS:4, outS:6, totalS:60, onDone:s2});
+  };
+  const s2 = () => {
+    const q = pickRaid(''), t0 = performance.now(), total = 30;
+    setRun(block('Step 2 of 3: warm up retrieval', '<div class="big" aria-hidden="true">' + q.L + '</div><h2 class="t center">Words that start with ' + q.L + ': ' + esc(q.C.toLowerCase()) + '</h2><p class="note">Say words aloud, slowly, one per exhale. No counting.</p><div class="clock" id="clk" role="timer" aria-live="off">' + (S.hideClock ? '' : total) + '</div><button type="button" class="btn sm" id="skip">Next step</button>', 'center'));
+    const go = () => { T.clear(); s3(); };
+    $('#skip').onclick = go;
+    const iv = T.every(200, () => { const left = Math.ceil(total - (performance.now() - t0) / 1000); if (!S.hideClock) $('#clk').textContent = Math.max(0, left); if (left <= 0) { clearInterval(iv); go(); } });
+  };
+  const s3 = () => {
+    setRun(block('Step 3 of 3: your opening line', '<h2 class="q">' + esc(S.opener) + '</h2><p class="note">Say it aloud twice, each time on one easy breath, starting softly. Then decide your headline position for the call and say it once.</p><button type="button" class="btn solid" id="done">I am ready</button>'));
+    $('#done').onclick = () => {
+      const res = award('ritual', {xp:20, pts:{breath:3, composure:3}, q:'ritual', meta:'Pre-call ritual'});
+      resultScreen('Ritual complete', ['Go into the call with your position ready.', 'You can change the opening line in the Guide.'], res, null);
+    };
+  };
+  s1();
+}
+
+function runDebrief() {
+  openRun('Meeting debrief');
+  setRun(block('Debrief', '<h2 class="t">Three lines, then done</h2><p class="note">Write it once and leave it there. Replaying a meeting in your head keeps the anxiety alive.</p><label class="lab" for="d1">What went fine</label><input type="text" id="d1" maxlength="140" autocomplete="off"><label class="lab" for="d2">One adjustment for next time</label><input type="text" id="d2" maxlength="140" autocomplete="off"><button type="button" class="btn solid" id="sub">Save and move on</button>'));
+  $('#sub').onclick = () => {
+    const a = $('#d1').value.trim(), b = $('#d2').value.trim();
+    if (!a && !b) { toast('Write at least one line'); return; }
+    const first = !(S.daily.debrief > 0);
+    const res = award('debrief', {xp:first ? 10 : 0, pts:{composure:first ? 2 : 0}, q:'debrief', meta:'Fine: ' + a + ' | Next: ' + b});
+    resultScreen('Debrief saved', ['Done. Leave it there.'], res, null);
+  };
+}
+
+/* Field missions: graded real-world speaking, with a prediction before and the outcome after. */
+function missionStats(id) {
+  const a = S.log.filter(e => e.type === 'field' && e.mid === id);
+  return {n:a.length, avgAct:a.length ? a.reduce((s, e) => s + (e.act || 0), 0) / a.length : null};
+}
+function recommendedMission() {
+  for (let i = 0; i < MISSIONS.length; i++) {
+    const m = missionStats(MISSIONS[i].id);
+    if (m.n < 2 || (m.avgAct !== null && m.avgAct > 4)) return MISSIONS[i].id;
+  }
+  return MISSIONS[MISSIONS.length - 1].id;
+}
+function runField() {
+  openRun('Field mission');
+  const rec = recommendedMission();
+  const list = () => {
+    setRun(block('Field missions', '<h2 class="t">Real situations, in order</h2><p class="note">Drills build skill. Missions test it in real conversations, which is where progress counts. Do the suggested one, then move up when your anxiety at a step drops.</p><div class="seg">' + MISSIONS.map((m, i) => { const st = missionStats(m.id); return '<button type="button" class="segb wide" data-ch="ms" data-v="' + m.id + '" aria-pressed="false"><b>' + (i + 1) + '. ' + esc(m.t) + '</b><span>' + (m.id === rec ? 'Suggested' : (st.n ? 'Done ' + st.n + 'x' : '')) + '</span></button>'; }).join('') + '</div>'));
+    wireChoice('ms', before);
+  };
+  const before = id => {
+    const m = MISSIONS.filter(x => x.id === id)[0];
+    let pred = 5, chance = 30;
+    setRun(block('Before', '<h2 class="t">' + esc(m.t) + '</h2><p class="note">' + esc(m.d) + ' Predict first, so you can compare with what really happens.</p><label class="lab" for="pa">Expected anxiety: <span id="pav">5</span> of 10</label><input type="range" id="pa" min="0" max="10" step="1" value="5"><label class="lab" for="pc2">Chance it goes badly: <span id="pcv">30</span>%</label><input type="range" id="pc2" min="0" max="100" step="5" value="30"><p class="note">Goes badly means the thing you fear actually happens, for example people react badly or you cannot finish.</p><button type="button" class="btn solid" id="go">I will do it now</button><button type="button" class="btn link" id="back">Back to the list</button>'));
+    $('#pa').oninput = function () { pred = Number(this.value); $('#pav').textContent = pred; };
+    $('#pc2').oninput = function () { chance = Number(this.value); $('#pcv').textContent = chance; };
+    $('#back').onclick = list;
+    $('#go').onclick = () => during(m, pred, chance);
+  };
+  const during = (m, pred, chance) => {
+    setRun(block('Now', '<h2 class="q">' + esc(m.t) + '</h2><p class="note">Do it, then come back. Breathe out, start softly, pause when you need to. Not today is a fine answer.</p><div class="row"><button type="button" class="btn solid" id="done">I did it</button><button type="button" class="btn" id="skip">Not today</button></div>'));
+    $('#done').onclick = () => after(m, pred, chance);
+    $('#skip').onclick = list;
+  };
+  const after = (m, pred, chance) => {
+    let act = 3, sc = 0, bad = -1;
+    setRun(block('After', '<h2 class="t">What actually happened</h2><label class="lab" for="aa">Actual anxiety: <span id="aav">3</span> of 10</label><input type="range" id="aa" min="0" max="10" step="1" value="3"><div class="rate" id="bd" role="group" aria-label="Did the bad outcome happen"><div class="rlabel">Did the thing you feared happen?</div><div class="seg"><button type="button" class="segb" data-n="0" aria-pressed="false"><b>No</b></button><button type="button" class="segb" data-n="1" aria-pressed="false"><b>Partly</b></button><button type="button" class="segb" data-n="2" aria-pressed="false"><b>Yes</b></button></div></div>' + rateHtml('r1', 'Rate your fluency, not the outcome.', FLU) + '<button type="button" class="btn solid" id="sub" disabled>Log it</button>'));
+    const ready = () => { $('#sub').disabled = !(sc > 0 && bad >= 0); };
+    $('#aa').oninput = function () { act = Number(this.value); $('#aav').textContent = act; };
+    $$('#bd .segb', runBody).forEach(b => { b.onclick = () => { $$('#bd .segb', runBody).forEach(x => x.setAttribute('aria-pressed', 'false')); b.setAttribute('aria-pressed', 'true'); bad = Number(b.getAttribute('data-n')); ready(); }; });
+    wireRate('r1', n => { sc = n; ready(); });
+    $('#sub').onclick = () => {
+      const first = missionStats(m.id).n === 0;
+      const res = award('field', {xp:first ? 60 : 35, pts:{composure:10, resilience:4}, q:'field', score:sc, meta:m.t, extra:{pred, act, chance, bad, mid:m.id}});
+      const gap = pred - act;
+      const lines = ['Anxiety: expected ' + pred + ', actual ' + act + '. Fluency ' + sc + ' of 5.',
+        bad === 0 ? 'You gave it a ' + chance + '% chance of going badly. It did not. Keep that on record.' : (bad === 1 ? 'It went partly badly. Note what you would change, then repeat this step.' : 'It went badly. That is data, not a verdict. Repeat this step at a smaller size.'),
+        gap >= 2 ? 'The real thing was easier than you predicted by ' + gap + ' points.' : (gap <= -2 ? 'It was harder than predicted. Stay on this step before moving up.' : 'Your prediction was close.')];
+      resultScreen('Mission logged', lines, res, {label:'Another mission', fn:() => { openRun('Field mission'); list(); }});
+    };
+  };
+  list();
+}
+const DRILLS = {breath:runBreath, read:runRead, raid:runRaid, cold:o => runCold(false, o)};
+function startRun(list) { RUN.active = true; RUN.q = list.slice(); RUN.n = list.length; RUN.i = 0; nextRun(); }
+function nextRun() { if (!RUN.q.length) { stopRun(); return; } const k = RUN.q.shift(); RUN.i++; DRILLS[k]({auto:true}); }
+const RUN_FULL = ['breath', 'read', 'raid', 'cold', 'raid', 'cold'];
+const RUN_SHORT = ['breath', 'raid', 'cold'];
+
+/* ================= views ================= */
+let tab = 'status';
+function twistToday() { return TWISTS[dayNum(dstr()) % TWISTS.length]; }
+function mosaicHtml() {
+  const keys = Object.keys(S.days).sort(), total = keys.length;
+  const start = total > 0 ? Math.floor((total - 1) / 66) * 66 : 0;
+  const cells = keys.slice(start, start + 66);
+  let h = '';
+  for (let i = 0; i < 66; i++) h += cells[i] ? '<div class="cell f e' + S.days[cells[i]].e + '" aria-hidden="true">' + (start + i + 1) + '</div>' : '<div class="cell" aria-hidden="true">' + (start + i + 1) + '</div>';
+  return '<div class="mosaic" role="img" aria-label="Practice mosaic: ' + total + ' practice days painted, 66 cells per mosaic">' + h + '</div><div class="legend"><span>Colour is your most tired state that day:</span>' + ENERGY.map((n, i) => '<span><i class="e' + (i + 1) + '"></i>' + n + '</span>').join('') + '</div>';
+}
+function weekHtml() {
+  const w = weekStartNum(dayNum(dstr())), today = dayNum(dstr()), L = ['M', 'T', 'W', 'T', 'F', 'S', 'S'];
+  let h = '';
+  for (let i = 0; i < 7; i++) { const d = numStr(w + i), on = !!S.days[d]; h += '<div class="wk' + (on ? ' on' : '') + (w + i === today ? ' today' : '') + '"><span aria-hidden="true">' + L[i] + '</span><span class="sr">' + d + (on ? ' practiced' : ' not practiced') + '</span></div>'; }
+  return '<div class="week">' + h + '</div>';
+}
+function roughPatch() {
+  const recent = S.log.filter(e => e.score != null).slice(-3);
+  if (recent.length < 3) return false;
+  return recent.every(e => e.score <= 2 && Date.now() - e.t < 10 * 86400000);
+}
+function viewStatus() {
+  const ri = rankOf(S.xp), R = RANKS[ri], N = RANKS[ri + 1], lvl = levelOf(S.xp), into = S.xp - (lvl - 1) * 150;
+  const days = Object.keys(S.days).length, wk = practicedThisWeek(), tired = S.energy >= 4;
+  let h = '';
+  h += '<section class="head"><div class="rank r' + R.r + '" role="img" aria-label="Rank ' + R.r + '"><i>' + R.r + '</i></div><div class="led"><div><span>Level</span><b>' + lvl + '</b></div><div><span>Level progress</span><b>' + into + ' / 150</b></div><div><span>' + (N ? 'To rank ' + N.r : 'Rank') + '</span><b>' + (N ? (N.xp - S.xp).toLocaleString() + ' XP' : 'Top') + '</b></div><div><span>Practice run</span><b>' + S.streak + ' d · best ' + S.best + '</b></div></div></section>';
+  h += '<section class="panel"><div class="lbl">Today’s run</div><p>' + (S.plan.anchor ? 'Your plan: <b>' + esc(S.plan.anchor) + '</b>, do the run.' : 'Pick the moment you will do this each day. A fixed cue makes it automatic.') + '</p>'
+    + '<p class="note">' + (tired ? 'You are tired. The short run keeps the habit and still counts.' : 'Drills alternate on purpose. Mixed practice sticks better than repeating one drill.') + '</p>'
+    + '<div class="row"><button type="button" class="btn ' + (tired ? '' : 'solid') + '" data-act="run" data-v="full">Full run · 10 min</button><button type="button" class="btn ' + (tired ? 'solid' : '') + '" data-act="run" data-v="short">Short run · 4 min</button></div>'
+    + '<p class="note">Any one drill counts as a practice day. Doing more earns bonus XP.</p></section>';
+  if (!S.plan.anchor) h += block('Make it automatic', '<p class="note">Choose the moment you will practice. Say it as a plan: after this, I do that. Set a phone alarm for the same moment, since this page cannot send reminders. Choosing a plan earns 30 XP.</p><div class="seg">' + ANCHORS.map(a => '<button type="button" class="segb wide" data-act="plan" data-v="' + esc(a) + '" aria-pressed="false"><b>' + esc(a.charAt(0).toUpperCase() + a.slice(1)) + '</b></button>').join('') + '</div>');
+  if (roughPatch()) h += block('Rough patch', '<p>Your last three ratings were low. That happens, and it is common after treatment. Slow your pace, keep sessions short, and book a booster session with your speech therapist. Your pace gate already eases when you are not tired.</p>');
+  h += block('Energy right now', energySeg() + '<p class="note">' + (tired ? 'Tired sessions earn +50% session XP and build Resilience. Keep them short and protect your sleep.' : 'Set this before each session. Your ratings are tracked against it.') + '</p>');
+  h += block('Daily quests', '<ul class="quests">' + QUESTS.map(q => { const n = Math.min(S.daily[q.id] || 0, q.need), ok = n >= q.need; return '<li class="' + (ok ? 'ok' : '') + '"><span class="chk" aria-hidden="true"></span><div><b>' + q.n + '</b><small>' + q.d + (ok ? ' (done)' : '') + '</small></div><span class="mono">' + n + '/' + q.need + '</span></li>'; }).join('') + '</ul><p class="note">One quest keeps your practice day. Two earn a solid day, four a full clear.</p>');
+  h += block('This week', weekHtml() + '<p class="note"><b>' + wk + ' of 5</b> practice days. Reach five for a bonus and a shield. A shield quietly covers one missed day.' + (S.shields ? ' You hold ' + S.shields + '.' : '') + '</p>');
+  h += block('Mosaic', mosaicHtml() + '<div class="led"><div><span>Practice days</span><b>' + days + ' / 66</b></div></div>' + bar(days % 66 / 66 * 100) + '<p class="note">One cell per practice day, not per calendar day, so a gap leaves no hole. In one UCL study a new routine took 66 days on average to feel automatic, ranging from 18 to 254, and an occasional missed day did not derail it.</p>');
+  h += block('Today’s twist', '<div class="twist"><p>' + esc(twistToday()) + '</p></div><p class="note">Varying where and how you practice helps skills carry over to real situations.</p>' + (S.daily.twist ? '<p class="note">Claimed.</p>' : '<button type="button" class="btn sm" data-act="twist">I did it: +10 XP</button>'));
+  h += block('Stats', STAT_KEYS.map(k => { const p = S.stats[k] || 0; return '<div class="stat"><span>' + STAT_N[k] + '</span>' + bar(p % 100) + '<span class="mono">Lv ' + (1 + Math.floor(p / 100)) + '</span></div>'; }).join('') + '<div class="stat"><span>Pace gate</span>' + bar((S.rung + 1) / WPM.length * 100, 'steel') + '<span class="mono">' + WPM[S.rung] + '</span></div>');
+  h += block('Before and after a call', '<p class="note">Before: three minutes of breath, retrieval and your opening line. After: three lines, then stop.</p><div class="row"><button type="button" class="btn" data-act="ritual">Pre-call ritual</button><button type="button" class="btn" data-act="debrief">Debrief a meeting</button></div>');
+  return h;
+}
+function gateRow(name, xp, desc, act, locked, lockMsg) {
+  return '<div class="grow' + (locked ? ' locked' : '') + '"><h3>' + name + '</h3><span class="xpr">' + xp + '</span><p>' + desc + (locked ? ' ' + lockMsg : '') + '</p><button type="button" class="btn sm' + (locked ? '' : ' solid') + '"' + (locked ? ' disabled' : ' data-act="' + act + '"') + '>' + (locked ? 'Locked' : 'Open') + '</button></div>';
+}
+function viewGates() {
+  const bossLocked = rankOf(S.xp) < 1;
+  return block('Energy right now', energySeg())
+    + block('Daily run', '<p class="note">Interleaved: breath, reading, two retrieval rounds, two cold answers.</p><div class="row"><button type="button" class="btn solid" data-act="run" data-v="full">Full run · 10 min</button><button type="button" class="btn" data-act="run" data-v="short">Short run · 4 min</button></div>')
+    + block('Drills', gateRow('Breath Gate', '10 XP per minute', 'Paced breathing with a guide. Includes a mode where you say a phrase on each exhale.', 'breath')
+      + gateRow('Paced Reading', '26 to 35 XP', 'Read aloud while words light up at your pace gate. Slow, chunked delivery with soft starts.', 'read')
+      + gateRow('Alphabet Raid', '10 to 34 XP a round', 'Name words from a letter and category. Your hard and weak sounds come up more often.', 'raid')
+      + gateRow('Cold Questions', '26 to 40 XP', 'Strategy-meeting questions you have not prepared for. Lead with a position and recover from a blank.', 'cold')
+      + gateRow('Boss Gauntlet', '88 to 130 XP', 'Five cold questions back to back. Once a week, ideally when a little tired.', 'boss', bossLocked, 'Unlocks at Rank D.'))
+    + block('Real world', gateRow('Field missions', '35 to 60 XP', 'Graded real conversations with a prediction before and the outcome after. This is where progress counts.', 'field'));
+}
+function viewLog() {
+  const sess = S.log.filter(e => e.type !== 'debrief'), tired = sess.filter(e => e.energy >= 4).length;
+  const rows = [1, 2, 3, 4, 5].map(n => { const a = S.log.filter(e => e.score != null && e.energy === n), avg = a.length ? a.reduce((s, e) => s + e.score, 0) / a.length : 0; return '<div class="erow"><span>' + n + ' ' + ENERGY[n - 1] + '</span>' + bar(avg / 5 * 100, 'steel') + '<span class="mono">' + (a.length ? avg.toFixed(1) : '–') + '</span></div>'; }).join('');
+  const scored = S.log.filter(e => e.score != null).length;
+  const field = S.log.filter(e => e.type === 'field' && e.pred != null).slice(-10);
+  let fieldHtml = '<p class="note">No field missions yet. After a few you will see how your predictions compare with reality.</p>';
+  if (field.length) {
+    const pa = field.reduce((s, e) => s + e.pred, 0) / field.length, aa = field.reduce((s, e) => s + e.act, 0) / field.length, pc = field.reduce((s, e) => s + e.chance, 0) / field.length, badN = field.filter(e => e.bad >= 1).length;
+    fieldHtml = '<div class="led"><div><span>Predicted anxiety, average</span><b>' + pa.toFixed(1) + ' / 10</b></div><div><span>Actual anxiety, average</span><b>' + aa.toFixed(1) + ' / 10</b></div><div><span>Expected chance of going badly</span><b>' + Math.round(pc) + '%</b></div><div><span>Went badly, partly or fully</span><b>' + badN + ' of ' + field.length + '</b></div></div><p class="note">' + (pa - aa >= 1.5 ? 'Reality has been easier than you predicted. That gap is the evidence to move up a step.' : (aa - pa >= 1.5 ? 'Reality has run harder than predicted. Spend longer on the current step.' : 'Your predictions track reality well.')) + '</p>';
+  }
+  const items = S.log.slice(-15).reverse();
+  return block('Totals', '<div class="led"><div><span>Sessions</span><b>' + sess.length + '</b></div><div><span>When tired or spent</span><b>' + tired + '</b></div><div><span>Gauntlets cleared</span><b>' + S.bosses + '</b></div><div><span>Total XP</span><b>' + S.xp.toLocaleString() + '</b></div></div>')
+    + block('Fluency by energy', rows + '<p class="note">' + (scored < 6 ? 'Rate a few readings and answers at different energy levels. Your pattern appears here.' : 'Average self-rated fluency out of 5. A smaller gap between fresh and tired days is the progress to watch.') + '</p>')
+    + block('Predictions versus reality', fieldHtml)
+    + block('Recent sessions', items.length ? '<ul class="loglist">' + items.map(e => '<li><span>' + esc(TYPE_N[e.type] || e.type) + (e.score != null ? ' · fluency ' + e.score : '') + ' · energy ' + e.energy + '</span><span class="xp">+' + e.xp + '</span><small>' + esc(new Date(e.t).toLocaleString([], {day:'numeric', month:'short', hour:'2-digit', minute:'2-digit'})) + (e.meta ? ' · ' + esc(e.meta) : '') + '</small></li>').join('') + '</ul>' : '<p class="note">Nothing logged yet. Clear a gate and it appears here.</p>')
+    + block('For your speech therapist', '<p class="note">A plain summary of the last 14 days to bring to a session. Copy it or select it.</p><textarea id="sum" readonly aria-label="Summary for your speech therapist"></textarea><div class="row"><button type="button" class="btn sm" data-act="copysum">Copy summary</button></div><p class="note" id="summsg" role="status"></p>');
+}
+function summaryText() {
+  const since = Date.now() - 14 * 86400000, L = S.log.filter(e => e.t >= since), sess = L.filter(e => e.type !== 'debrief');
+  const days = Object.keys(S.days).filter(d => dayNum(d) >= dayNum(dstr()) - 13).length;
+  const lines = ['Fluency Rank System: last 14 days', 'Practice days: ' + days + ' of 14. Sessions: ' + sess.length + '. At energy 4 or 5: ' + sess.filter(e => e.energy >= 4).length + '.'];
+  const byE = [1, 2, 3, 4, 5].map(n => { const a = L.filter(e => e.score != null && e.energy === n); return a.length ? n + ' (' + ENERGY[n - 1].toLowerCase() + '): ' + (a.reduce((s, e) => s + e.score, 0) / a.length).toFixed(1) + ', n=' + a.length : null; }).filter(Boolean);
+  lines.push('Self-rated fluency out of 5 by energy: ' + (byE.length ? byE.join('; ') : 'not enough data'));
+  lines.push('Reading pace gate: ' + WPM[S.rung] + ' wpm. Hard sounds set by me: ' + (S.hard || 'none') + '. Letters needing repeats: ' + (Object.keys(S.weak).join(', ') || 'none') + '.');
+  const f = L.filter(e => e.type === 'field' && e.pred != null);
+  lines.push('Field missions: ' + f.length + (f.length ? '. Predicted anxiety ' + (f.reduce((s, e) => s + e.pred, 0) / f.length).toFixed(1) + ', actual ' + (f.reduce((s, e) => s + e.act, 0) / f.length).toFixed(1) + ' (out of 10). Went badly in ' + f.filter(e => e.bad >= 1).length + '.' : '.'));
+  const notes = L.filter(e => e.type === 'debrief' && e.meta).slice(-5).map(e => '- ' + e.meta);
+  if (notes.length) lines.push('Debrief notes:', ...notes);
+  return lines.join('\n');
+}
+function viewGuide() {
+  return block('Goal', '<p>The aim is smooth speech, and staying calm and in the conversation when a word catches. Fatigue makes speech bumpier for most people who stammer, so on tired days the target is a steady pace, not perfection. This app is practice. It supports your speech therapist and does not replace them.</p>', 'guide')
+    + block('Techniques', '<ul><li><b>Speak on a breath.</b> Inhale quietly and begin as you exhale.</li><li><b>Easy onset.</b> Start the first sound softly, like a sigh turning into a word.</li><li><b>Slow rate.</b> Stretch syllables a little without going robotic.</li><li><b>Phrase and pause.</b> Speak in chunks and pause at commas and the ends of thoughts.</li><li><b>Pause, do not dodge.</b> A silent pause beats swapping a word to avoid a sound. Ask your therapist how they want you to handle a block.</li></ul>', 'guide')
+    + block('Answering cold', '<ul><li><b>Position.</b> "My recommendation is…"</li><li><b>Because.</b> One or two reasons, one number if you have it.</li><li><b>Change.</b> "I would revisit if…"</li></ul><div class="lab">Buying a moment honestly</div><div class="chips">' + STALL.map(s => '<span class="chip">' + esc(s) + '</span>').join('') + '</div>', 'guide')
+    + block('Tired-day protocol', '<ul><li><b>Lower the bar.</b> The short run counts as a practice day.</li><li><b>Slow down more.</b> About ten percent slower than a fresh day.</li><li><b>Run the pre-call ritual</b> before a late call.</li><li><b>One idea per breath.</b> Shorter sentences.</li><li><b>Protect sleep.</b> Practice earlier, not later. Never trade sleep for progress.</li></ul>', 'guide')
+    + block('How this is built', '<ul><li><b>Choice and competence.</b> Gamification research finds that progression, goals and feedback help, while points alone drive short-term compliance. So you choose your drills, your plan and your twist, and pace gates move only when you do well.</li><li><b>Practice days, not streak pressure.</b> Streaks work through fear of loss and can backfire after a miss. Here one drill counts, shields cover a gap, a comeback earns a bonus, and the mosaic fills per practice day.</li><li><b>Mixed, varied, spaced.</b> Interleaved runs, a daily twist, and weak letters returning on a schedule are known ways to make practice transfer.</li><li><b>Relapse is planned for.</b> Studies report relapse after fluency treatment in a large share of people, with transfer to real situations the hard part. Hence field missions, rough-patch handling, and a summary for your therapist.</li><li><b>Prediction versus reality.</b> Comparing what you expected with what happened is a standard step in exposure work for social anxiety, though research on exactly why it works is still mixed.</li></ul><p class="note">None of this is a promise of results. People vary, and your therapist can tell you what fits you.</p>', 'guide')
+    + block('Your plan', '<div class="lab">When I practice</div><div class="seg">' + ANCHORS.map(a => '<button type="button" class="segb wide" data-act="plan" data-v="' + esc(a) + '" aria-pressed="' + (S.plan.anchor === a) + '"><b>' + esc(a.charAt(0).toUpperCase() + a.slice(1)) + '</b></button>').join('') + '</div><div class="lab">Minimum on a hard day</div><div class="seg"><button type="button" class="segb" data-act="mins" data-v="3" aria-pressed="' + (S.plan.mins === 3) + '"><b>3 min</b></button><button type="button" class="segb" data-act="mins" data-v="10" aria-pressed="' + (S.plan.mins === 10) + '"><b>10 min</b></button></div><p class="note">Telling one person your plan makes it more likely to happen.</p>', 'guide')
+    + block('Settings', '<label class="lab" for="hard">My hard sounds (letters)</label><input type="text" id="hard" maxlength="12" placeholder="For example BPSTM" value="' + esc(S.hard) + '" autocomplete="off"><p class="note">Alphabet Raid picks these about half the time, along with letters you struggle with.</p><label class="lab" for="opener">My opening line for calls</label><textarea id="opener" maxlength="200">' + esc(S.opener) + '</textarea><label class="tg"><input type="checkbox" id="skel"' + (S.showSkeleton ? ' checked' : '') + '> Show the answer outline during cold questions</label><label class="tg"><input type="checkbox" id="hclk"' + (S.hideClock ? ' checked' : '') + '> Hide countdown numbers, keep the progress bar</label><label class="tg"><input type="checkbox" id="snds"' + (S.sound ? ' checked' : '') + '> Sound cues for breathing and timers</label>', 'guide')
+    + block('Backup', '<p class="note">Progress saves on this device and, where available, to your account. To move it by hand, copy this text, or paste a saved copy over it and load it.</p><textarea id="bk" aria-label="Backup data"></textarea><div class="row"><button type="button" class="btn sm" data-act="copy">Select backup</button><button type="button" class="btn sm" data-act="import">Load pasted backup</button><button type="button" class="btn sm amber" data-act="reset" id="rst">Reset progress</button></div><p class="note" id="bkmsg" role="status"></p>', 'guide');
+}
+function renderAll() {
+  try {
+    rollDay();
+    $('#view').innerHTML = tab === 'status' ? viewStatus() : tab === 'gates' ? viewGates() : tab === 'log' ? viewLog() : viewGuide();
+    $$('#tabs button').forEach(b => { if (b.getAttribute('data-v') === tab) b.setAttribute('aria-current', 'page'); else b.removeAttribute('aria-current'); });
+    const bk = $('#bk'); if (bk) bk.value = JSON.stringify(S);
+    const sm = $('#sum'); if (sm) sm.value = summaryText();
+    updateSync();
+  } catch (e) { toast('Something went wrong drawing this screen. Your progress is saved.'); }
+}
+
+/* ================= events ================= */
+let resetArmed = false;
+function selectText(el) { el.removeAttribute('readonly'); el.focus(); el.select(); }
+const ACT = {
+  tab(t) { tab = t.getAttribute('data-v'); renderAll(); window.scrollTo(0, 0); },
+  energy(t) { S.energy = Number(t.getAttribute('data-v')); save(); renderAll(); },
+  run(t) { startRun(t.getAttribute('data-v') === 'short' ? RUN_SHORT : RUN_FULL); },
+  breath() { runBreath(); }, read() { runRead(); }, raid() { runRaid(); }, cold() { runCold(false); },
+  field() { runField(); }, ritual() { runRitual(); }, debrief() { runDebrief(); },
+  boss() { if (rankOf(S.xp) < 1) { toast('Boss Gauntlet unlocks at Rank D'); return; } runCold(true); },
+  plan(t) {
+    S.plan.anchor = t.getAttribute('data-v');
+    if (!S.planBonus) { S.planBonus = true; S.xp += 30; toast('Plan saved: +30 XP'); }
+    save(); renderAll();
+  },
+  mins(t) { S.plan.mins = Number(t.getAttribute('data-v')) === 3 ? 3 : 10; save(); renderAll(); },
+  twist() { if (S.daily.twist) return; S.daily.twist = true; S.xp += 10; save(); toast('Twist done: +10 XP'); renderAll(); },
+  copysum() { const el = $('#sum'); selectText(el); let ok = false; try { ok = document.execCommand && document.execCommand('copy'); } catch (e) { ok = false; } el.setAttribute('readonly', ''); $('#summsg').textContent = ok ? 'Copied.' : 'Selected. Copy it with your keyboard.'; },
+  copy() { const el = $('#bk'); selectText(el); let ok = false; try { ok = document.execCommand && document.execCommand('copy'); } catch (e) { ok = false; } $('#bkmsg').textContent = ok ? 'Copied.' : 'Selected. Copy it with your keyboard.'; },
+  import() {
+    const bk = $('#bk'), msg = $('#bkmsg');
+    try {
+      const o = JSON.parse(bk.value);
+      if (!o || typeof o !== 'object' || typeof o.xp !== 'number') throw new Error('shape');
+      if (JSON.stringify(sanitize(o)) === JSON.stringify(S)) { msg.textContent = 'That is the data you already have. Paste a saved backup over the text, then load it.'; return; }
+      S = sanitize(o); rollDay(); save(); renderAll(); toast('Backup loaded');
+    } catch (e) { msg.textContent = 'That text is not a valid backup. Nothing was changed.'; }
+  },
+  reset(t) {
+    if (!resetArmed) { resetArmed = true; t.textContent = 'Press again to confirm'; setTimeout(() => { resetArmed = false; const b = $('#rst'); if (b) b.textContent = 'Reset progress'; }, 4000); return; }
+    resetArmed = false; S = fresh(); rollDay(); save(); renderAll(); toast('Progress reset');
+  }
+};
+document.addEventListener('click', e => {
+  const t = e.target.closest && e.target.closest('[data-act]');
+  if (!t || t.disabled) return;
+  const fn = ACT[t.getAttribute('data-act')];
+  if (!fn) return;
+  try { fn(t); } catch (err) { toast('Something went wrong. Your progress is saved.'); }
+});
+document.addEventListener('change', e => {
+  const id = e.target && e.target.id;
+  if (id === 'hard') { S.hard = e.target.value.toUpperCase().replace(/[^A-Z]/g, '').slice(0, 12); e.target.value = S.hard; save(); }
+  else if (id === 'opener') { S.opener = e.target.value.trim().slice(0, 200) || DEFAULT_OPENER; save(); }
+  else if (id === 'skel') { S.showSkeleton = e.target.checked; save(); }
+  else if (id === 'hclk') { S.hideClock = e.target.checked; save(); }
+  else if (id === 'snds') { S.sound = e.target.checked; save(); primeAudio(); }
+});
+document.addEventListener('keydown', e => {
+  const m = $('#modal');
+  if (!m.hidden) {
+    if (e.key === 'Escape') { closeModal(); return; }
+    if (e.key === 'Tab') { e.preventDefault(); const b = $('#mclose'); if (b) b.focus(); }
+  }
+});
+document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible' && !running) renderAll(); });
+window.addEventListener('error', () => { toast('Something went wrong. Your progress is saved.'); });
+
+renderAll();
+initDb();
+})();
+</script>
+</body>
+</html>
