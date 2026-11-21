@@ -1,8 +1,21 @@
 import {dstr, dayNum, numStr, weekStartNum} from './util.js';
-import {RANKS, rankOf, levelOf, QUESTS} from './content.js';
+import {RANKS, rankOf, levelOf, XP, QUEST_ITEMS, BREATH_TYPES, SPEAK_TYPES, TITLES} from './content.js';
 import {app, blankDaily, save} from './state.js';
 
-export const doneCount = () => QUESTS.filter(q => (app.S.daily[q.id] || 0) >= q.need).length;
+/* Daily Quest progress for today: {done, total:2, items:[{id, n, d, ok}]}. */
+export function questProgress() {
+  const d = app.S.daily;
+  const items = QUEST_ITEMS.map(q => ({id:q.id, n:q.n, d:q.d, ok: q.id === 'breath' ? d.breathDone === true : d.speakDone === true}));
+  return {done: items.filter(i => i.ok).length, total: QUEST_ITEMS.length, items};
+}
+/* Title ids a state has earned, in TITLES order. Used by award() and by the v2 migration. */
+export function earnedTitles(s) {
+  const r = rankOf(s.xp), ids = [];
+  if (s.log.some(e => e.type === 'field')) ids.push('first-step');
+  if (Object.keys(s.days).length >= 7) ids.push('week');
+  for (let i = 1; i <= r; i++) ids.push('rank-' + RANKS[i].r);
+  return TITLES.map(t => t.id).filter(id => ids.indexOf(id) >= 0);
+}
 export const weekStr = () => numStr(weekStartNum(dayNum(dstr())));
 export function practicedThisWeek() {
   const w = weekStartNum(dayNum(dstr()));
@@ -23,42 +36,49 @@ export function rollDay() {
   return true;
 }
 
-/* o: {xp, pts, q, qn, score, meta, extra}. Session XP gets the tired bonus, bonuses do not. */
+/* o: {pts, q, qn, score, meta, extra, partial}. XP comes from the fixed XP table only.
+   partial: the session was ended early; it earns the same XP and the log meta says so. */
 export function award(type, o) {
+  o = o || {};
   rollDay();
-  const before = {rank: rankOf(app.S.xp), level: levelOf(app.S.xp)};
-  const e = app.S.energy, tired = e >= 4, notes = [];
-  const xp = Math.round((o.xp || 0) * (tired ? 1.5 : 1));
+  const S = app.S, D = S.daily;
+  const before = {rank: rankOf(S.xp), level: levelOf(S.xp)};
+  const e = S.energy, notes = [];
+  const xp = type === 'debrief' && (D.debrief || 0) > 0 ? 0 : (XP[type] || 0);
   let bonus = 0;
-  Object.keys(o.pts || {}).forEach(k => { app.S.stats[k] = (app.S.stats[k] || 0) + o.pts[k]; });
-  if (e >= 3) app.S.stats.resilience += tired ? 5 : 2;
-  if (o.q) app.S.daily[o.q] = (app.S.daily[o.q] || 0) + (o.qn || 1);
-  const n = doneCount();
-  if (n >= 1 || type === 'field') {
-    const t = app.S.daily.date, rec = app.S.days[t] || {n:0, e:0};
-    app.S.days[t] = {n: Math.max(rec.n, n, 1), e: Math.max(rec.e, e)};
-    const keys = Object.keys(app.S.days).sort();
-    if (keys.length > 400) keys.slice(0, keys.length - 400).forEach(k => { delete app.S.days[k]; });
-    if (!app.S.started) app.S.started = t;
-    if (app.S.lastDay !== t) {
-      const gap = app.S.lastDay ? dayNum(t) - dayNum(app.S.lastDay) : null;
-      app.S.streak = gap === 1 ? app.S.streak + 1 : 1;
-      app.S.best = Math.max(app.S.best, app.S.streak);
-      app.S.lastDay = t;
+  Object.keys(o.pts || {}).forEach(k => { S.stats[k] = (S.stats[k] || 0) + o.pts[k]; });
+  if (o.q) D[o.q] = (D[o.q] || 0) + (o.qn || 1);
+  if (BREATH_TYPES.indexOf(type) >= 0) D.breathDone = true;
+  if (SPEAK_TYPES.indexOf(type) >= 0) D.speakDone = true;
+  const n = (D.breathDone ? 1 : 0) + (D.speakDone ? 1 : 0);
+  if (n >= 1) {
+    const t = D.date, rec = S.days[t] || {n:0, e:0};
+    S.days[t] = {n, e: Math.max(rec.e, e)};
+    const keys = Object.keys(S.days).sort();
+    if (keys.length > 400) keys.slice(0, keys.length - 400).forEach(k => { delete S.days[k]; });
+    if (!S.started) S.started = t;
+    if (S.lastDay !== t) {
+      const gap = S.lastDay ? dayNum(t) - dayNum(S.lastDay) : null;
+      S.streak = gap === 1 ? S.streak + 1 : 1;
+      S.best = Math.max(S.best, S.streak);
+      S.lastDay = t;
     }
-    if (app.S.comeback) { app.S.comeback = false; bonus += 25; notes.push('Comeback bonus: +25 XP'); }
-    if (n >= 2 && !app.S.daily.solid) { app.S.daily.solid = true; bonus += 15; notes.push('Solid day: +15 XP'); }
-    if (n >= QUESTS.length && !app.S.daily.cleared) { app.S.daily.cleared = true; bonus += 25; notes.push('Full clear: +25 XP'); }
+    if (S.comeback) { S.comeback = false; bonus += XP.comeback; notes.push('Comeback bonus: +' + XP.comeback + ' XP'); }
+    /* daily.cleared marks the Daily Quest bonus as paid today */
+    if (n >= 2 && !D.cleared) { D.cleared = true; bonus += XP.quest; notes.push('[Quest complete] Daily Quest · +' + XP.quest + ' XP'); }
     const ws = weekStr();
-    if (practicedThisWeek() >= 5 && app.S.weekAward !== ws) { app.S.weekAward = ws; bonus += 60; if (app.S.shields < 2) app.S.shields++; notes.push('Weekly goal met: +60 XP and a shield'); }
-    if (type === 'field' && app.S.fieldWeek !== ws) { app.S.fieldWeek = ws; bonus += 40; notes.push('First field mission this week: +40 XP'); }
+    if (practicedThisWeek() >= 5 && S.weekAward !== ws) { S.weekAward = ws; bonus += XP.week; if (S.shields < 2) S.shields++; notes.push('Weekly goal met: +' + XP.week + ' XP and a shield'); }
   }
-  app.S.xp += xp + bonus;
-  app.S.log.push(Object.assign({t:Date.now(), type, energy:e, score:o.score == null ? null : o.score, xp:xp + bonus, meta:String(o.meta || '').slice(0, 300), pred:null, act:null, chance:null, bad:null, mid:''}, o.extra || {}));
-  if (app.S.log.length > 300) app.S.log = app.S.log.slice(-300);
+  S.xp += xp + bonus;
+  const tail = o.partial === true ? ' (ended early)' : '';
+  const meta = String(o.meta || '').slice(0, 300 - tail.length) + tail;
+  S.log.push(Object.assign({t:Date.now(), type, energy:e, score:o.score == null ? null : o.score, xp:xp + bonus, meta, pred:null, act:null, chance:null, bad:null, mid:''}, o.extra || {}));
+  if (S.log.length > 300) S.log = S.log.slice(-300);
+  const titlesEarned = earnedTitles(S).filter(id => S.titles.indexOf(id) < 0);
+  titlesEarned.forEach(id => { S.titles.push(id); notes.push('[Title earned] ' + TITLES.filter(x => x.id === id)[0].n); });
   save();
-  const after = {rank: rankOf(app.S.xp), level: levelOf(app.S.xp)};
-  return {xp: xp + bonus, tired, notes, rankUp: after.rank > before.rank ? RANKS[after.rank].r : null, levelUp: after.level > before.level ? after.level : null};
+  const after = {rank: rankOf(S.xp), level: levelOf(S.xp)};
+  return {xp: xp + bonus, notes, titlesEarned, rankUp: after.rank > before.rank ? RANKS[after.rank].r : null, levelUp: after.level > before.level ? after.level : null};
 }
 export function avgScore(filter) {
   const a = app.S.log.filter(e => e.score != null && filter(e));

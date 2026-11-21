@@ -89,7 +89,7 @@ export function resultScreen(title, lines, res, again) {
   const inRun = RUN.active && RUN.q.length > 0;
   const lastOne = RUN.active && RUN.q.length === 0;
   const all = lastOne ? lines.concat(['Run complete.']) : lines;
-  setRun(block(title, '<div class="xp mono">+' + res.xp + ' XP</div>' + (res.tired ? '<p class="note">Tired-session bonus applied (+50% session XP).</p>' : '') + '<ul class="plain">' + all.map(l => '<li>' + esc(l) + '</li>').join('') + '</ul><div class="row">' + (inRun ? '<button type="button" class="btn solid" id="nextb">Next: ' + DRILL_N[RUN.q[0]] + '</button>' : (again ? '<button type="button" class="btn solid" id="again">' + esc(again.label) + '</button>' : '')) + '<button type="button" class="btn" id="back">' + (inRun ? 'End run' : 'Done') + '</button></div>'));
+  setRun(block(title, '<div class="xp mono">+' + res.xp + ' XP</div>' + '<ul class="plain">' + all.map(l => '<li>' + esc(l) + '</li>').join('') + '</ul><div class="row">' + (inRun ? '<button type="button" class="btn solid" id="nextb">Next: ' + DRILL_N[RUN.q[0]] + '</button>' : (again ? '<button type="button" class="btn solid" id="again">' + esc(again.label) + '</button>' : '')) + '<button type="button" class="btn" id="back">' + (inRun ? 'End run' : 'Done') + '</button></div>'));
   if (inRun) $('#nextb').onclick = nextRun; else if (again) $('#again').onclick = again.fn;
   $('#back').onclick = stopRun;
 }

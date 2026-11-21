@@ -1,22 +1,24 @@
 import {$, num, int, isDate} from './util.js';
-import {STAT_KEYS, TYPE_N, WPM, ANCHORS, DEFAULT_OPENER} from './content.js';
-import {rollDay} from './rules.js';
+import {STAT_KEYS, TYPE_N, WPM, ANCHORS, DEFAULT_OPENER, TITLES} from './content.js';
+import {rollDay, earnedTitles} from './rules.js';
 import {renderAll} from './views.js';
 
 export const app = {S: null, storageOk: true, noticeText: '', running: false, tab: 'status'};
 export const KEY = 'fluency-rank:v2';
-export const blankDaily = () => ({date:'', breath:0, read:0, raid:0, cold:0, ritual:0, debrief:0, field:0, solid:false, cleared:false, twist:false});
+export const blankDaily = () => ({date:'', breath:0, read:0, raid:0, cold:0, ritual:0, debrief:0, field:0, breathDone:false, speakDone:false, solid:false, cleared:false, twist:false});
 export const fresh = () => ({
-  v:2, xp:0, stats:{breath:0, pace:0, retrieval:0, composure:0, resilience:0},
+  v:3, xp:0, stats:{breath:0, pace:0, retrieval:0, composure:0, resilience:0},
   streak:0, best:0, shields:0, lastDay:null, energy:3,
   hard:'', opener:DEFAULT_OPENER, showSkeleton:true, hideClock:false, sound:false,
   rung:2, up:0, down:0, coldSecs:60, bosses:0,
   plan:{anchor:'', mins:10}, planBonus:false, started:'', days:{},
-  weekAward:'', fieldWeek:'', weak:{}, comeback:false,
+  weekAward:'', weak:{}, comeback:false, titles:[],
   daily:blankDaily(), log:[], updatedAt:0
 });
 
-/* Every value read from storage, the account database or a pasted backup passes through here. */
+/* Every value read from storage, the account database or a pasted backup passes through here.
+   v2 data migrates to v3: titles are filled from what was already earned, fieldWeek is dropped,
+   and XP is never recalculated. */
 export function sanitize(o) {
   const s = fresh();
   if (!o || typeof o !== 'object') return s;
@@ -47,7 +49,6 @@ export function sanitize(o) {
     });
   }
   s.weekAward = isDate(o.weekAward) ? o.weekAward : '';
-  s.fieldWeek = isDate(o.fieldWeek) ? o.fieldWeek : '';
   if (o.weak && typeof o.weak === 'object') {
     Object.keys(o.weak).filter(k => /^[A-Z]$/.test(k)).forEach(k => { const n = int(o.weak[k], 0, 0, 5); if (n > 0) s.weak[k] = n; });
   }
@@ -57,6 +58,8 @@ export function sanitize(o) {
   s.daily.date = isDate(d.date) ? d.date : '';
   ['breath', 'read', 'raid', 'cold', 'ritual', 'debrief', 'field'].forEach(k => { s.daily[k] = int(d[k], 0, 0, 99); });
   ['solid', 'cleared', 'twist'].forEach(k => { s.daily[k] = d[k] === true; });
+  s.daily.breathDone = d.breathDone === true || s.daily.breath > 0 || s.daily.ritual > 0;
+  s.daily.speakDone = d.speakDone === true || ['read', 'raid', 'cold', 'field'].some(k => s.daily[k] > 0);
   s.log = (Array.isArray(o.log) ? o.log : []).slice(-300).filter(e => e && typeof e === 'object').map(e => ({
     t: num(e.t, 0, 0, 4e12),
     type: TYPE_N[e.type] ? e.type : 'cold',
@@ -70,6 +73,8 @@ export function sanitize(o) {
     bad: e.bad == null ? null : int(e.bad, 0, 0, 2),
     mid: typeof e.mid === 'string' && /^m\d$/.test(e.mid) ? e.mid : ''
   }));
+  const had = Array.isArray(o.titles) ? o.titles : [], migrated = Number(o.v) >= 3 ? [] : earnedTitles(s);
+  s.titles = TITLES.map(t => t.id).filter(id => had.indexOf(id) >= 0 || migrated.indexOf(id) >= 0);
   S_updated(s, o);
   return s;
 }

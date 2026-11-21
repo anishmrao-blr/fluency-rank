@@ -72,7 +72,7 @@ function kit(w){
     tab('gates');click($('[data-act="read"]'));click($('#go'));adv(150000);
     assert(body().includes('How smooth'),'read reaches rating');
     rate(4);click($('#sub'));
-    assert(body().includes('+47 XP'),'read 4/5 gives +32 plus solid-day 15');
+    assert(body().includes('+65 XP'),'read gives +25 plus the Daily Quest +40'); // fixed XP (spec 3): was +47 (32 + solid-day 15)
     click($('#back'));
     s=st();assert(s.up===1&&s.rung===2,'pace gate counts one smooth read');
 
@@ -82,10 +82,10 @@ function kit(w){
     assert($('#cnt').textContent==='3','raid counter');
     adv(46000);
     assert(body().includes('3 words'),'raid finishes with count');
-    assert(body().includes('+16 XP'),'raid +16 XP');
+    assert(body().includes('+25 XP'),'raid +25 XP'); // fixed XP (spec 3): was +16
     click($('#back'));
     s=st();assert(s.daily.raid===1,'raid quest progress');
-    assert(s.daily.solid===true,'solid day bonus after two quests');
+    assert(s.daily.breathDone===true&&s.daily.speakDone===true&&s.daily.cleared===true,'Daily Quest complete after breath and speak'); // fixed XP (spec 3): was the solid-day flag
     assert(Object.keys(s.weak).length===0||Object.keys(s.weak).length===1,'weak map stays valid');
 
     // cold with a blanked raid to exercise weak-letter tracking
@@ -101,17 +101,17 @@ function kit(w){
     assert(body().includes('Answer aloud'),'cold moves to answer phase');
     click($('#done'));
     rate(5);$('#lead').checked=true;$('#calm').checked=true;click($('#sub'));
-    assert(/\+3\d XP/.test(body())||/\+4\d XP/.test(body()),'cold XP awarded');
+    assert(body().includes('+30 XP'),'cold XP awarded'); // fixed XP (spec 3): was +3x or +4x by rating
     click($('#back'));
     s=st();assert(s.daily.cold===1,'cold quest progress');
 
-    // tired bonus
+    // no tired bonus
     tab('status');click($('[data-act="energy"][data-v="5"]'));
     assert(st().energy===5,'energy saved');
     tab('gates');click($('[data-act="breath"]'));click($('#go'));adv(121000);
-    assert(body().includes('Tired-session bonus')&&body().includes('+30 XP'),'tired breath is +30 XP');
+    assert(!body().includes('Tired-session bonus')&&body().includes('+20 XP'),'tired breath is still +20 XP'); // fixed XP (spec 3): was +30 with the tired bonus
     click($('#back'));
-    s=st();assert(s.stats.resilience>=5,'resilience gained on tired session');
+    s=st();assert(s.stats.resilience===0,'no Courage from a tired session'); // fixed XP (spec 3): was resilience >= 5
     assert(Object.values(s.days)[0].e===5,'mosaic records the tired state');
 
     // field mission
@@ -126,11 +126,11 @@ function kit(w){
     click($('#bd .segb[data-n="0"]'));rate(4);
     assert(!$('#sub').disabled,'log enabled after ratings');
     click($('#sub'));
-    assert(/\+1\d\d XP/.test(body()),'first mission XP (60 x1.5 tired + 40 weekly)');
+    assert(body().includes('+60 XP'),'first mission XP is +60'); // fixed XP (spec 3): was +1xx (60 x1.5 tired + 40 weekly)
     click($('#back'));
     s=st();const f=s.log.filter(e=>e.type==='field')[0];
     assert(f&&f.pred===7&&f.mid==='m1'&&f.bad===0,'field log carries prediction and outcome');
-    assert(s.fieldWeek!=='','weekly first-field bonus tracked');
+    assert(s.fieldWeek===undefined&&s.titles.includes('first-step')&&s.stats.resilience===4,'first mission earns a title and Courage, no weekly field bonus'); // fixed XP (spec 3): was fieldWeek tracked
 
     // ritual and debrief
     tab('status');click($('[data-act="ritual"]'));adv(61000);adv(31000);
@@ -185,7 +185,7 @@ function kit(w){
     assert(body().includes('Run complete'),'run completes');
     click($('#back'));
     const s=st();
-    assert(s.daily.cleared===true&&s.daily.breath===1&&s.daily.cold>=2,'full run clears all four quests');
+    assert(s.daily.cleared===true&&s.daily.breathDone&&s.daily.speakDone&&s.daily.breath===1&&s.daily.cold>=2,'full run completes the Daily Quest'); // fixed XP (spec 3): was all four old quests
     assert(s.xp>=120,'full run earns meaningful XP');
     // exit mid-run
     tab('status');click($('[data-act="run"][data-v="short"]'));click($('#abort'));

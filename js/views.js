@@ -1,7 +1,7 @@
 import {$, $$, esc, dstr, dayNum, numStr, weekStartNum} from './util.js';
-import {RANKS, rankOf, levelOf, STAT_KEYS, STAT_N, ENERGY, QUESTS, TYPE_N, WPM, STALL, TWISTS, ANCHORS} from './content.js';
+import {RANKS, rankOf, levelOf, STAT_KEYS, STAT_N, ENERGY, XP, TYPE_N, WPM, STALL, TWISTS, ANCHORS} from './content.js';
 import {app, updateSync} from './state.js';
-import {practicedThisWeek, rollDay} from './rules.js';
+import {practicedThisWeek, rollDay, questProgress} from './rules.js';
 import {toast, block, bar, energySeg} from './ui.js';
 
 export function twistToday() { return TWISTS[dayNum(dstr()) % TWISTS.length]; }
@@ -32,11 +32,11 @@ export function viewStatus() {
   h += '<section class="panel"><div class="lbl">Today’s run</div><p>' + (app.S.plan.anchor ? 'Your plan: <b>' + esc(app.S.plan.anchor) + '</b>, do the run.' : 'Pick the moment you will do this each day. A fixed cue makes it automatic.') + '</p>'
     + '<p class="note">' + (tired ? 'You are tired. The short run keeps the habit and still counts.' : 'Drills alternate on purpose. Mixed practice sticks better than repeating one drill.') + '</p>'
     + '<div class="row"><button type="button" class="btn ' + (tired ? '' : 'solid') + '" data-act="run" data-v="full">Full run · 10 min</button><button type="button" class="btn ' + (tired ? 'solid' : '') + '" data-act="run" data-v="short">Short run · 4 min</button></div>'
-    + '<p class="note">Any one drill counts as a practice day. Doing more earns bonus XP.</p></section>';
+    + '<p class="note">One breathing session or one speaking drill counts as a practice day. Doing both completes the Daily Quest for ' + XP.quest + ' XP.</p></section>';
   if (!app.S.plan.anchor) h += block('Make it automatic', '<p class="note">Choose the moment you will practice. Say it as a plan: after this, I do that. Set a phone alarm for the same moment, since this page cannot send reminders. Choosing a plan earns 30 XP.</p><div class="seg">' + ANCHORS.map(a => '<button type="button" class="segb wide" data-act="plan" data-v="' + esc(a) + '" aria-pressed="false"><b>' + esc(a.charAt(0).toUpperCase() + a.slice(1)) + '</b></button>').join('') + '</div>');
   if (roughPatch()) h += block('Rough patch', '<p>Your last three ratings were low. That happens, and it is common after treatment. Slow your pace, keep sessions short, and book a booster session with your speech therapist. Your pace gate already eases when you are not tired.</p>');
-  h += block('Energy right now', energySeg() + '<p class="note">' + (tired ? 'Tired sessions earn +50% session XP and build Resilience. Keep them short and protect your sleep.' : 'Set this before each session. Your ratings are tracked against it.') + '</p>');
-  h += block('Daily quests', '<ul class="quests">' + QUESTS.map(q => { const n = Math.min(app.S.daily[q.id] || 0, q.need), ok = n >= q.need; return '<li class="' + (ok ? 'ok' : '') + '"><span class="chk" aria-hidden="true"></span><div><b>' + q.n + '</b><small>' + q.d + (ok ? ' (done)' : '') + '</small></div><span class="mono">' + n + '/' + q.need + '</span></li>'; }).join('') + '</ul><p class="note">One quest keeps your practice day. Two earn a solid day, four a full clear.</p>');
+  h += block('Energy right now', energySeg() + '<p class="note">' + (tired ? 'Keep tired sessions short and protect your sleep. Your ratings are tracked against this.' : 'Set this before each session. Your ratings are tracked against it.') + '</p>');
+  h += block('Daily Quest', '<ul class="quests">' + questProgress().items.map(q => '<li class="' + (q.ok ? 'ok' : '') + '"><span class="chk" aria-hidden="true"></span><div><b>' + q.n + '</b><small>' + q.d + (q.ok ? ' (done)' : '') + '</small></div><span class="mono">' + (q.ok ? 1 : 0) + '/1</span></li>').join('') + '</ul><p class="note">One item keeps your practice day. Both earn ' + XP.quest + ' XP.</p>');
   h += block('This week', weekHtml() + '<p class="note"><b>' + wk + ' of 5</b> practice days. Reach five for a bonus and a shield. A shield quietly covers one missed day.' + (app.S.shields ? ' You hold ' + app.S.shields + '.' : '') + '</p>');
   h += block('Mosaic', mosaicHtml() + '<div class="led"><div><span>Practice days</span><b>' + days + ' / 66</b></div></div>' + bar(days % 66 / 66 * 100) + '<p class="note">One cell per practice day, not per calendar day, so a gap leaves no hole. In one UCL study a new routine took 66 days on average to feel automatic, ranging from 18 to 254, and an occasional missed day did not derail it.</p>');
   h += block('Today’s twist', '<div class="twist"><p>' + esc(twistToday()) + '</p></div><p class="note">Varying where and how you practice helps skills carry over to real situations.</p>' + (app.S.daily.twist ? '<p class="note">Claimed.</p>' : '<button type="button" class="btn sm" data-act="twist">I did it: +10 XP</button>'));
@@ -51,12 +51,12 @@ export function viewGates() {
   const bossLocked = rankOf(app.S.xp) < 1;
   return block('Energy right now', energySeg())
     + block('Daily run', '<p class="note">Interleaved: breath, reading, two retrieval rounds, two cold answers.</p><div class="row"><button type="button" class="btn solid" data-act="run" data-v="full">Full run · 10 min</button><button type="button" class="btn" data-act="run" data-v="short">Short run · 4 min</button></div>')
-    + block('Drills', gateRow('Breath Gate', '10 XP per minute', 'Paced breathing with a guide. Includes a mode where you say a phrase on each exhale.', 'breath')
-      + gateRow('Paced Reading', '26 to 35 XP', 'Read aloud while words light up at your pace gate. Slow, chunked delivery with soft starts.', 'read')
-      + gateRow('Alphabet Raid', '10 to 34 XP a round', 'Name words from a letter and category. Your hard and weak sounds come up more often.', 'raid')
-      + gateRow('Cold Questions', '26 to 40 XP', 'Strategy-meeting questions you have not prepared for. Lead with a position and recover from a blank.', 'cold')
-      + gateRow('Boss Gauntlet', '88 to 130 XP', 'Five cold questions back to back. Once a week, ideally when a little tired.', 'boss', bossLocked, 'Unlocks at Rank D.'))
-    + block('Real world', gateRow('Field missions', '35 to 60 XP', 'Graded real conversations with a prediction before and the outcome after. This is where progress counts.', 'field'));
+    + block('Drills', gateRow('Breath Gate', XP.breath + ' XP', 'Paced breathing with a guide. Includes a mode where you say a phrase on each exhale.', 'breath')
+      + gateRow('Paced Reading', XP.read + ' XP', 'Read aloud while words light up at your pace gate. Slow, chunked delivery with soft starts.', 'read')
+      + gateRow('Alphabet Raid', XP.raid + ' XP a round', 'Name words from a letter and category. Your hard and weak sounds come up more often.', 'raid')
+      + gateRow('Cold Questions', XP.cold + ' XP', 'Strategy-meeting questions you have not prepared for. Lead with a position and recover from a blank.', 'cold')
+      + gateRow('Boss Gauntlet', XP.boss + ' XP', 'Five cold questions back to back. Once a week, ideally when a little tired.', 'boss', bossLocked, 'Unlocks at Rank D.'))
+    + block('Real world', gateRow('Field missions', XP.field + ' XP', 'Graded real conversations with a prediction before and the outcome after. This is where progress counts.', 'field'));
 }
 export function viewLog() {
   const sess = app.S.log.filter(e => e.type !== 'debrief'), tired = sess.filter(e => e.energy >= 4).length;

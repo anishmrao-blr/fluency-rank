@@ -2,16 +2,21 @@ export const RANKS = [{r:'E',xp:0},{r:'D',xp:1200},{r:'C',xp:3600},{r:'B',xp:800
 export const rankOf = xp => RANKS.reduce((k, x, i) => xp >= x.xp ? i : k, 0);
 export const levelOf = xp => 1 + Math.floor(xp / 150);
 export const STAT_KEYS = ['breath', 'pace', 'retrieval', 'composure', 'resilience'];
-export const STAT_N = {breath:'Breath control', pace:'Pace', retrieval:'Word retrieval', composure:'Composure', resilience:'Resilience'};
+export const STAT_N = {breath:'Breath control', pace:'Pace', retrieval:'Word retrieval', composure:'Composure', resilience:'Courage'};
 export const ENERGY = ['Fresh', 'Good', 'Flat', 'Tired', 'Spent'];
 export const FLU = ['Blocked often', 'Bumpy', 'Mixed', 'Mostly smooth', 'Smooth'];
-export const QUESTS = [
-  {id:'breath', n:'Breath Gate', need:1, d:'One full breathing session'},
-  {id:'read', n:'Paced Reading', need:1, d:'One passage at your pace gate'},
-  {id:'raid', n:'Alphabet Raid', need:2, d:'Two rounds of word retrieval'},
-  {id:'cold', n:'Cold Questions', need:2, d:'Two unrehearsed answers'}
-];
-export const TYPE_N = {breath:'Breath Gate', read:'Paced Reading', raid:'Alphabet Raid', cold:'Cold Question', boss:'Boss Gauntlet', ritual:'Pre-call ritual', debrief:'Debrief', field:'Field mission'};
+/* Fixed XP per session type (spec 3). Ratings never change these amounts. */
+export const XP = {breath:20, ritual:20, read:25, raid:25, cold:30, field:60, boss:100, reeval:50, quest:40, comeback:25, week:60, debrief:10};
+/* Daily Quest: a breath item and a speak item. Session types that complete each one. */
+export const QUEST_ITEMS = [{id:'breath', n:'Breathe', d:'One breathing session'}, {id:'speak', n:'Speak', d:'One speaking drill'}];
+export const BREATH_TYPES = ['breath', 'ritual'];
+export const SPEAK_TYPES = ['read', 'raid', 'cold', 'boss', 'field'];
+/* Titles, each earned once at a milestone. */
+export const TITLES = [
+  {id:'first-step', n:'The One Who Spoke First'},
+  {id:'week', n:'Seven Days'}
+].concat(RANKS.slice(1).map(x => ({id:'rank-' + x.r, n:'Rank ' + x.r + ' Hunter'})));
+export const TYPE_N = {breath:'Breath Gate', read:'Paced Reading', raid:'Alphabet Raid', cold:'Cold Question', boss:'Boss Gauntlet', ritual:'Pre-call ritual', debrief:'Debrief', field:'Field mission', reeval:'Weekly re-record'};
 export const DRILL_N = {breath:'Breath Gate', read:'Paced Reading', raid:'Alphabet Raid', cold:'Cold Question'};
 export const PATTERNS = {
   gentle:{n:'Gentle', inS:4, outS:6, speak:false, d:'4 in, 6 out'},

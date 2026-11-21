@@ -58,7 +58,7 @@ export function runBreath(o) {
     setRun(block(P.n + ' · ' + P.d, '<h2 class="sr">Breathing guide</h2><div id="pc"></div><button type="button" class="btn sm" id="stop">Stop</button>', 'center'));
     $('#stop').onclick = () => { T.clear(); if (o.auto) stopRun(); else setup(); };
     pacer($('#pc'), {inS:P.inS, outS:P.outS, totalS:mins * 60, phrases:P.speak ? shuffle(PHRASES) : null, onDone: cycles => {
-      const res = award('breath', {xp:10 * mins, pts:{breath:6 * mins}, q:'breath', meta:P.n + ', ' + mins + ' min'});
+      const res = award('breath', {pts:{breath:6 * mins}, q:'breath', meta:P.n + ', ' + mins + ' min'});
       resultScreen('Breath Gate cleared', [cycles + ' cycles of ' + P.d, 'Carry this pace into your first sentence.'], res, {label:'Go again', fn:setup});
     }});
   };
@@ -111,7 +111,7 @@ export function runRead(o) {
         else if (sc <= 2) { app.S.up = 0; if (app.S.energy < 4) { app.S.down++; if (app.S.down >= 2 && app.S.rung > 0) { app.S.rung--; app.S.down = 0; gateNote = 'Pace eased to ' + WPM[app.S.rung] + ' wpm. Slower is part of the plan.'; } } }
         else { app.S.up = 0; app.S.down = 0; }
       }
-      const res = award('read', {xp:20 + sc * 3, pts:{pace:5 + sc * 2, breath:2}, q:'read', score:sc, meta:PASSAGES[sel].t + ' at ' + wpm + ' wpm'});
+      const res = award('read', {pts:{pace:5 + sc * 2, breath:2}, q:'read', score:sc, meta:PASSAGES[sel].t + ' at ' + wpm + ' wpm'});
       resultScreen('Reading cleared', [PASSAGES[sel].t + ' at ' + wpm + ' wpm. Fluency ' + sc + ' of 5 at energy ' + app.S.energy + '.', coach].concat(gateNote ? [gateNote] : []), res, {label:'Another passage', fn:() => { wpm = WPM[app.S.rung]; setup(); }});
     };
   };
@@ -147,7 +147,7 @@ export function runRaid(o) {
     const c = Math.min(count, 12), w = app.S.weak[q.L] || 0;
     const nw = clamp(w + ((blanks > 0 || count <= 2) ? 1 : 0) - ((count >= 6 && blanks === 0) ? 1 : 0), 0, 5);
     if (nw > 0) app.S.weak[q.L] = nw; else delete app.S.weak[q.L];
-    const res = award('raid', {xp:10 + c * 2, pts:{retrieval:3 + c}, q:'raid', meta:q.L + ', ' + q.C + ': ' + count + ' words'});
+    const res = award('raid', {pts:{retrieval:3 + c}, q:'raid', meta:q.L + ', ' + q.C + ': ' + count + ' words'});
     const coach = nw > w ? q.L + ' will come back sooner. Spaced repeats on weak sounds are how they improve.' : (count >= 6 && blanks === 0 ? 'Clean round. ' + q.L + ' is getting easier.' : 'Recovering from a blank is the skill, not avoiding one.');
     resultScreen('Round cleared', [count + ' words in ' + total + ' seconds' + (blanks ? ', ' + blanks + ' blank' + (blanks > 1 ? 's' : '') : '') + '.', coach], res, {label:'Next round', fn:prep});
   };
@@ -195,13 +195,13 @@ export function runCold(boss, o) {
     setRun(block('Self-check', '<h2 class="t">' + (boss ? 'How did the gauntlet go?' : 'How did that go?') + '</h2>' + rateHtml('r1', 'Rate your fluency, not the quality of your answer.', FLU) + '<label class="tg"><input type="checkbox" id="lead"> I led with a clear position</label><label class="tg"><input type="checkbox" id="calm"> I stayed calm when I got stuck</label><button type="button" class="btn solid" id="sub" disabled>Log it</button>'));
     wireRate('r1', n => { sc = n; $('#sub').disabled = false; });
     $('#sub').onclick = () => {
-      const lead = $('#lead').checked, calm = $('#calm').checked, bonus = (lead ? 5 : 0) + (calm ? 5 : 0), coach = coachCold(sc, lead, calm);
+      const lead = $('#lead').checked, calm = $('#calm').checked, coach = coachCold(sc, lead, calm);
       if (boss) {
         app.S.bosses++;
-        const res = award('boss', {xp:80 + sc * 8 + bonus * 2, pts:{composure:20 + sc * 3, retrieval:5}, q:'cold', qn:2, score:sc, meta:'Five question gauntlet'});
+        const res = award('boss', {pts:{composure:20 + sc * 3, retrieval:5, resilience:5}, q:'cold', qn:2, score:sc, meta:'Five question gauntlet'});
         resultScreen('Gauntlet cleared', ['Fluency ' + sc + ' of 5 at energy ' + app.S.energy + '.', coach], res, {label:'Back to Gates', fn:stopRun});
       } else {
-        const res = award('cold', {xp:20 + sc * 3 + bonus, pts:{composure:4 + sc * 2 + (lead ? 2 : 0)}, q:'cold', score:sc, meta:'Cold question'});
+        const res = award('cold', {pts:{composure:4 + sc * 2 + (lead ? 2 : 0)}, q:'cold', score:sc, meta:'Cold question'});
         resultScreen('Answer logged', ['Fluency ' + sc + ' of 5 at energy ' + app.S.energy + '.', coach], res, {label:'Next question', fn:() => askOne(0)});
       }
     };
@@ -226,7 +226,7 @@ export function runRitual() {
   const s3 = () => {
     setRun(block('Step 3 of 3: your opening line', '<h2 class="q">' + esc(app.S.opener) + '</h2><p class="note">Say it aloud twice, each time on one easy breath, starting softly. Then decide your headline position for the call and say it once.</p><button type="button" class="btn solid" id="done">I am ready</button>'));
     $('#done').onclick = () => {
-      const res = award('ritual', {xp:20, pts:{breath:3, composure:3}, q:'ritual', meta:'Pre-call ritual'});
+      const res = award('ritual', {pts:{breath:3, composure:3}, q:'ritual', meta:'Pre-call ritual'});
       resultScreen('Ritual complete', ['Go into the call with your position ready.', 'You can change the opening line in the Guide.'], res, null);
     };
   };
@@ -240,7 +240,7 @@ export function runDebrief() {
     const a = $('#d1').value.trim(), b = $('#d2').value.trim();
     if (!a && !b) { toast('Write at least one line'); return; }
     const first = !(app.S.daily.debrief > 0);
-    const res = award('debrief', {xp:first ? 10 : 0, pts:{composure:first ? 2 : 0}, q:'debrief', meta:'Fine: ' + a + ' | Next: ' + b});
+    const res = award('debrief', {pts:{composure:first ? 2 : 0}, q:'debrief', meta:'Fine: ' + a + ' | Next: ' + b});
     resultScreen('Debrief saved', ['Done. Leave it there.'], res, null);
   };
 }
@@ -286,8 +286,7 @@ export function runField() {
     $$('#bd .segb', runBody).forEach(b => { b.onclick = () => { $$('#bd .segb', runBody).forEach(x => x.setAttribute('aria-pressed', 'false')); b.setAttribute('aria-pressed', 'true'); bad = Number(b.getAttribute('data-n')); ready(); }; });
     wireRate('r1', n => { sc = n; ready(); });
     $('#sub').onclick = () => {
-      const first = missionStats(m.id).n === 0;
-      const res = award('field', {xp:first ? 60 : 35, pts:{composure:10, resilience:4}, q:'field', score:sc, meta:m.t, extra:{pred, act, chance, bad, mid:m.id}});
+      const res = award('field', {pts:{composure:10, resilience:4}, q:'field', score:sc, meta:m.t, extra:{pred, act, chance, bad, mid:m.id}});
       const gap = pred - act;
       const lines = ['Anxiety: expected ' + pred + ', actual ' + act + '. Fluency ' + sc + ' of 5.',
         bad === 0 ? 'You gave it a ' + chance + '% chance of going badly. It did not. Keep that on record.' : (bad === 1 ? 'It went partly badly. Note what you would change, then repeat this step.' : 'It went badly. That is data, not a verdict. Repeat this step at a smaller size.'),

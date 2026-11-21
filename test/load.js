@@ -14,6 +14,8 @@ async function runModules(dom, entryRel) {
   const entry = load(path.join(ROOT, entryRel));
   await entry.link((spec, ref) => load(path.resolve(path.dirname(ref.identifier), spec.split('?')[0])));
   await entry.evaluate();
+  // lets unit tests reach a module's exports, e.g. window.__mod('js/rules.js').award
+  dom.window.__mod = rel => cache.get(path.resolve(ROOT, rel)).namespace;
 }
 
 /* opts: {url, beforeParse(w), onError(msg)}. Resolves to the window once main.js has run. */
