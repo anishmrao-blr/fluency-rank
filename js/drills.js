@@ -85,12 +85,13 @@ export function runRead(o) {
     setPartial(null);
     const cues = phoneticGuideFor(app.S);
     const cueHtml = cues.length ? '<div class="ph-card"><span class="ph-k">Focus cue for your hard sounds</span>' + cues.map(c => '<div class="ph-item"><b>' + esc(c.letter) + ' · ' + esc(c.title) + '</b><span class="ds">' + esc(c.cue) + '</span></div>').join('') + '</div>' : '';
-    setRun('<h2 class="h-t">Read aloud</h2><p class="note">Breathe at each ▾ mark and start softly. Pace target: ' + WPM[app.S.rung] + ' wpm.</p>' + cueHtml + '<div class="lab" id="psL">Passage</div><div class="group" role="group" aria-labelledby="psL">' + passages.map((p, i) => '<button type="button" class="li" data-ch="ps" data-v="' + i + '" aria-pressed="' + (i === sel) + '"><span class="grow"><span class="tt">' + esc(p.t) + '</span><span class="ds">' + p.x.split(/\s+/).length + ' words</span></span><svg class="ic ck" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg></button>').join('') + '</div><label class="lab" for="wpm">Pace: <span id="wv" class="num">' + wpm + '</span> wpm</label><input type="range" id="wpm" min="60" max="150" step="5" value="' + wpm + '"><button type="button" class="btn btn-p" id="go">Start reading</button>');
+    setRun('<h2 class="h-t">Read aloud</h2><p class="note">Breathe at each ▾ mark and start softly. Pace target: ' + WPM[app.S.rung] + ' wpm.</p>' + cueHtml + '<div class="lab" id="psL">Passage</div><div class="group" role="group" aria-labelledby="psL">' + passages.map((p, i) => '<button type="button" class="li" data-ch="ps" data-v="' + i + '" aria-pressed="' + (i === sel) + '"><span class="grow"><span class="tt">' + esc(p.t) + '</span><span class="ds">' + p.x.split(/\s+/).length + ' words</span></span><svg class="ic ck" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg></button>').join('') + '</div><label class="lab" for="wpm">Pace: <span id="wv" class="num">' + wpm + '</span> wpm</label><input type="range" id="wpm" min="60" max="150" step="5" value="' + wpm + '"><div class="stack"><button type="button" class="btn btn-p" id="goRec">Record &amp; read (with scorecard)</button><button type="button" class="btn btn-s" id="go">Start reading (no mic)</button></div>');
     $('#wpm').oninput = function () { wpm = Number(this.value); $('#wv').textContent = wpm; };
     wireChoice('ps', v => { sel = Number(v); setup(); });
-    $('#go').onclick = play;
+    $('#goRec').onclick = () => play(true);
+    $('#go').onclick = () => play(false);
   };
-  const play = () => {
+  const play = async withRec => {
     const P = weavePassage(passages[sel] || passages[0], app.S), words = P.x.split(/\s+/), t0 = performance.now();
     let rec = null, recording = false, captured = null;
     setDarkCover(true);
@@ -101,6 +102,22 @@ export function runRead(o) {
       + '<div class="rec-row"><button type="button" class="btn btn-s btn-sm" id="recBtn" aria-pressed="false">Record voice</button><span class="cap" id="recMsg" role="status">Stays on this device</span></div></div>');
     setPartial(() => { const el = (performance.now() - t0) / 1000; return el >= 60 ? readPartial('The ' + minsDone(el) + ' you read still counts', P) : null; });
     const recBtn = $('#recBtn'), recMsg = $('#recMsg'), waveCv = $('#waveCv'), onsetBox = $('#onsetBox');
+    const startMic = async () => {
+      recBtn.disabled = true; recBtn.textContent = 'Opening mic…';
+      rec = createRecorder({canvas:waveCv, onsetEl:onsetBox});
+      const r = await rec.start();
+      recBtn.disabled = false;
+      if (!r.ok) {
+        rec = null;
+        recBtn.textContent = 'Record voice';
+        recMsg.textContent = r.reason === 'denied' ? 'Microphone blocked. You can still finish without recording.' : 'Recording is not available in this browser.';
+        return false;
+      }
+      recording = true; waveCv.hidden = false; if (onsetBox) onsetBox.hidden = false;
+      recBtn.textContent = 'Stop recording'; recBtn.setAttribute('aria-pressed', 'true');
+      recMsg.textContent = 'Recording on device…';
+      return true;
+    };
     recBtn.onclick = async () => {
       if (recording && rec) {
         recBtn.disabled = true;
@@ -111,19 +128,7 @@ export function runRead(o) {
         recMsg.textContent = 'Saved for playback after reading.';
         return;
       }
-      recBtn.disabled = true; recBtn.textContent = 'Opening mic…';
-      rec = createRecorder({canvas:waveCv, onsetEl:onsetBox});
-      const r = await rec.start();
-      recBtn.disabled = false;
-      if (!r.ok) {
-        rec = null;
-        recBtn.textContent = 'Record voice';
-        recMsg.textContent = r.reason === 'denied' ? 'Microphone blocked. You can still finish without recording.' : 'Recording is not available in this browser.';
-        return;
-      }
-      recording = true; waveCv.hidden = false; if (onsetBox) onsetBox.hidden = false;
-      recBtn.textContent = 'Stop recording'; recBtn.setAttribute('aria-pressed', 'true');
-      recMsg.textContent = 'Recording on device…';
+      await startMic();
     };
     const spans = $$('.w', runBody), base = 60000 / wpm;
     let i = 0;
@@ -141,7 +146,17 @@ export function runRead(o) {
       const d = base * (1 + (/[,;:]$/.test(w) ? 0.6 : 0) + (/[.?!]$/.test(w) ? 1.4 : 0) + (w.length > 8 ? 0.3 : 0));
       i++; T.after(d, step);
     };
-    step();
+    if (withRec) {
+      const ok = await startMic();
+      if (ok) {
+        recMsg.textContent = 'Take a breath… starting in a moment';
+        T.after(1200, () => { if (recording) recMsg.textContent = 'Recording on device…'; step(); });
+      } else {
+        step();
+      }
+    } else {
+      step();
+    }
   };
   const rate = clip => {
     let sc = 0;
