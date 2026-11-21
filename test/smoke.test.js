@@ -1,13 +1,8 @@
-const {JSDOM,VirtualConsole}=require('jsdom');
-const fs=require('fs');
-const html=fs.readFileSync(''+require('path').resolve(__dirname,'..','index.html')+'','utf8').replace(/<link[^>]*>/g,'');
 const errors=[];
 const KEY='fluency-rank:v2';
-function boot(seed,raw){
-  const vc=new VirtualConsole();
-  vc.on('jsdomError',e=>errors.push('jsdomError: '+(e.detail&&e.detail.stack||e.message)));
-  vc.on('error',e=>errors.push('console.error: '+e));
-  const dom=new JSDOM(html,{runScripts:'dangerously',url:'https://example.com/',virtualConsole:vc,pretendToBeVisual:true,beforeParse(w){
+const {bootApp}=require('./load');
+async function boot(seed,raw){
+  return bootApp({onError:m=>errors.push(m),beforeParse(w){
     w.scrollTo=()=>{};
     let now=1000;const q=[];const dead=new Set();let id=1;
     w.__clock={advance(ms){const target=now+ms;for(;;){q.sort((a,b)=>a.t-b.t);const n=q[0];if(!n||n.t>target)break;q.shift();now=n.t;try{n.fn()}catch(e){errors.push('timer: '+e.stack)}if(n.every&&!dead.has(n.id)){n.t=now+n.every;q.push(n)}}now=target}};
@@ -22,7 +17,6 @@ function boot(seed,raw){
     else if(seed)w.localStorage.setItem(KEY,JSON.stringify(seed));
     w.addEventListener('error',e=>errors.push('window error: '+e.message));
   }});
-  return dom.window;
 }
 const sleep=ms=>new Promise(r=>setTimeout(r,ms));
 let fails=0;
@@ -46,7 +40,7 @@ function kit(w){
 (async()=>{
   /* ---------- core flows ---------- */
   {
-    const w=boot();const k=kit(w);await sleep(50);
+    const w=await boot();const k=kit(w);await sleep(50);
     const {$,click,adv,st,body,rate,tab,d}=k;
     assert($('#view').textContent.includes('Today’s run'),'status renders');
     for(const t of ['gates','log','guide','status'])tab(t);
@@ -176,7 +170,7 @@ function kit(w){
 
   /* ---------- daily run ---------- */
   {
-    const w=boot();const k=kit(w);await sleep(50);
+    const w=await boot();const k=kit(w);await sleep(50);
     const {$,click,adv,st,body,rate,tab}=k;
     click($('[data-act="run"][data-v="full"]'));
     assert($('#runTitle').textContent.startsWith('Run 1 of 6'),'full run starts with breath');
@@ -200,14 +194,14 @@ function kit(w){
 
   /* ---------- boss, rank gating ---------- */
   {
-    const w=boot();const k=kit(w);await sleep(50);
+    const w=await boot();const k=kit(w);await sleep(50);
     const {$,click,adv,st,body,rate,tab}=k;
     tab('gates');
     const bossBtn=[...w.document.querySelectorAll('.grow')].find(x=>x.textContent.includes('Boss Gauntlet')).querySelector('button');
     assert(bossBtn.disabled,'boss locked at Rank E');
   }
   {
-    const w=boot({v:2,xp:1500,updatedAt:1});const k=kit(w);await sleep(50);
+    const w=await boot({v:2,xp:1500,updatedAt:1});const k=kit(w);await sleep(50);
     const {$,click,adv,st,body,rate,tab}=k;
     tab('gates');click($('[data-act="boss"]'));click($('#go'));
     for(let i=1;i<=5;i++){assert($('#runBody').textContent.includes('Question '+i+' of 5'),'boss question '+i);click($('#done'));}
@@ -220,13 +214,13 @@ function kit(w){
 
   /* ---------- streak, shields, comeback ---------- */
   {
-    const w=boot({v:2,xp:100,streak:5,best:5,shields:1,lastDay:ago(2),updatedAt:1});const k=kit(w);await sleep(50);
+    const w=await boot({v:2,xp:100,streak:5,best:5,shields:1,lastDay:ago(2),updatedAt:1});const k=kit(w);await sleep(50);
     assert(k.$('#view').textContent.includes('5 d'),'one-day gap bridged by shield');
     k.tab('gates');k.click(k.$('[data-act="breath"]'));k.click(k.$('#go'));k.adv(121000);k.click(k.$('#back'));
     const s=k.st();assert(s.streak===6&&s.shields===0,'streak continues and shield consumed');
   }
   {
-    const w=boot({v:2,xp:100,streak:5,best:5,shields:0,lastDay:ago(4),updatedAt:1});const k=kit(w);await sleep(50);
+    const w=await boot({v:2,xp:100,streak:5,best:5,shields:0,lastDay:ago(4),updatedAt:1});const k=kit(w);await sleep(50);
     assert(k.$('#view').textContent.includes('0 d'),'gap without shield resets the run');
     k.tab('gates');k.click(k.$('[data-act="breath"]'));k.click(k.$('#go'));k.adv(121000);
     assert(k.body().includes('+45 XP'),'comeback bonus added (20 + 25)');
@@ -240,7 +234,7 @@ function kit(w){
     const now=new Date();const dow=(now.getDay()+6)%7; // 0 = Monday
     if(dow>=4){
       const days={};for(let i=1;i<=4;i++)days[ago(i)]={n:1,e:3};
-      const w=boot({v:2,xp:100,streak:4,best:4,lastDay:ago(1),days,started:ago(4),updatedAt:1});const k=kit(w);await sleep(50);
+      const w=await boot({v:2,xp:100,streak:4,best:4,lastDay:ago(1),days,started:ago(4),updatedAt:1});const k=kit(w);await sleep(50);
       k.tab('gates');k.click(k.$('[data-act="breath"]'));k.click(k.$('#go'));k.adv(121000);k.click(k.$('#back'));
       const s=k.st();assert(s.shields===1&&s.weekAward!=='','fifth practice day this week earns a shield');
     } else console.log('skip  weekly goal test (needs Friday or later)');
@@ -248,7 +242,7 @@ function kit(w){
 
   /* ---------- resilience: corrupt, garbage, migration, storage failure ---------- */
   {
-    const w=boot(null,'{not json');const k=kit(w);await sleep(50);
+    const w=await boot(null,'{not json');const k=kit(w);await sleep(50);
     assert(!k.$('#notice').hidden&&k.$('#notice').textContent.includes('fresh start'),'corrupt storage shows notice');
     assert(w.localStorage.getItem(KEY+':corrupt')==='{not json','corrupt data is kept aside');
     k.tab('gates');k.click(k.$('[data-act="breath"]'));k.click(k.$('#go'));k.adv(121000);
@@ -256,7 +250,7 @@ function kit(w){
   }
   {
     const garbage={v:99,xp:'abc',stats:null,streak:-4,shields:50,lastDay:'yesterday',energy:'hi',hard:{},opener:42,rung:99,coldSecs:7,plan:{anchor:'<img>',mins:5},days:{'2025-01-01':{n:9,e:9},bad:{}},weak:{a:1,Q:9,'1':3},daily:{date:7,breath:'x'},log:[null,{type:'nope',score:99,xp:-5,meta:{}},5]};
-    const w=boot(garbage);const k=kit(w);await sleep(50);
+    const w=await boot(garbage);const k=kit(w);await sleep(50);
     assert(k.$('#view').innerHTML.length>500,'garbage state renders');
     k.tab('log');k.tab('guide');k.tab('gates');k.tab('status');
     k.click(k.$('[data-act="energy"][data-v="3"]'));
@@ -267,7 +261,7 @@ function kit(w){
     assert(Object.keys(s.days).join()==='2025-01-01'&&s.days['2025-01-01'].n===4,'days map validated');
   }
   {
-    const w=boot();
+    const w=await boot();
     // storage that throws on write
     const k=kit(w);await sleep(50);
     w.Storage.prototype.setItem=()=>{throw new Error('quota')};
@@ -279,7 +273,7 @@ function kit(w){
   }
   {
     // account sync: remote newer than local replaces it, older does not
-    const w=boot({v:2,xp:300,updatedAt:100});
+    const w=await boot({v:2,xp:300,updatedAt:100});
     const remote={v:2,xp:900,updatedAt:500};
     let written=null;
     w.claude={use:async n=>n==='user'?{id:async()=>'u1'}:{doc:p=>({get:async()=>({exists:true,data:()=>remote}),set:async v=>{written=v}})}};
