@@ -131,10 +131,13 @@ input[type=range]{width:100%;min-height:44px;accent-color:var(--tint)}
 /* ---------- state-mapped atmospheric mesh cards (Apple Mindfulness / Opal / Othership inspired) ---------- */
 .pcard{position:relative;border:1px solid rgba(255,255,255,.16);border-radius:22px;overflow:hidden;color:#FFFFFF;text-align:left;display:flex;flex-direction:column;justify-content:flex-end;background:#10252A;box-shadow:0 14px 32px rgba(14,24,34,.14),inset 0 1px 0 rgba(255,255,255,.22);transition:transform .22s var(--ease-spring),box-shadow .24s var(--ease-out)}
 .pcard:active{transform:scale(.965)}
-.pcard::before{content:"";position:absolute;inset:-25%;pointer-events:none;z-index:0;opacity:.95;will-change:transform}
-.pcard::after{content:"";position:absolute;inset:0;background:linear-gradient(180deg,rgba(8,14,22,0) 0%,rgba(8,14,22,.34) 100%);pointer-events:none;z-index:1}
-.pcard>*:not(.card-art){position:relative;z-index:2}
-.card-art{position:absolute;top:-6px;right:-6px;width:132px;height:132px;fill:none;color:#FFFFFF;pointer-events:none;z-index:1}
+.pcard::before{content:"";position:absolute;inset:-25%;pointer-events:none;z-index:0;opacity:.65;will-change:transform}
+.pcard::after{content:"";position:absolute;inset:0;background:linear-gradient(24deg,rgba(6,12,18,.62) 0%,rgba(6,12,18,.18) 52%,transparent 82%);pointer-events:none;z-index:1}
+.pcard>*:not(.card-img){position:relative;z-index:2}
+.card-img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:right center;display:block;pointer-events:none;z-index:0;transition:transform .55s var(--ease-out)}
+.pcard:hover>.card-img{transform:scale(1.04)}
+.rhythm-banner>.card-img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:right center;opacity:.88;z-index:0}
+.rhythm-banner::after{content:"";position:absolute;inset:0;background:linear-gradient(90deg,rgba(8,22,28,.82) 0%,rgba(8,22,28,.22) 70%,transparent 100%);pointer-events:none;z-index:1}
 
 /* State-mapped color fields */
 .mesh-hero{background:linear-gradient(140deg,#0A2429 0%,#124D54 52%,#1F8A82 100%);box-shadow:0 16px 34px rgba(18,77,84,.24),inset 0 1px 0 rgba(255,255,255,.24)}
