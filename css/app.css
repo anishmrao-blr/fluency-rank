@@ -132,8 +132,19 @@ input[type=range]{width:100%;min-height:44px;accent-color:var(--tint)}
 .pcard{position:relative;border:0;border-radius:16px;overflow:hidden;color:#FFFFFF;text-align:left;display:flex;flex-direction:column;justify-content:flex-end;background:#123434;box-shadow:0 8px 22px rgba(16,24,22,.10);transition:transform .2s var(--ease-spring)}
 .pcard:active{transform:scale(.975)}
 .pcard::after{content:"";position:absolute;inset:0;background:linear-gradient(24deg,rgba(10,16,18,.68) 0%,rgba(10,16,18,.20) 48%,transparent 78%);pointer-events:none;z-index:1}
-.pcard>*:not(.card-img){position:relative;z-index:2}
+.pcard>*:not(.card-img):not(.card-fx){position:relative;z-index:2}
 .card-img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:right center;display:block;pointer-events:none;z-index:0;transition:transform .5s var(--ease-out)}
+.card-fx{position:absolute;inset:0;width:100%;height:100%;pointer-events:none;z-index:1;fill:none;stroke:#F3EDE0;stroke-linecap:round;overflow:visible}
+.fx-orb{fill:#F3EDE0;stroke:none;opacity:.14;transform-box:fill-box;transform-origin:center}
+.fx-line{stroke-width:1.4;opacity:.28;transform-box:fill-box;transform-origin:center}
+.fx-sw{stroke-width:1.4;opacity:.30;will-change:transform}
+.fx-sw.s2{opacity:.20}
+.fx-ring{stroke-width:1.4;opacity:0;transform-box:fill-box;transform-origin:center;will-change:transform,opacity}
+.fx-box{stroke-width:1.4;opacity:.30;transform-box:fill-box;transform-origin:center;will-change:transform,opacity}
+.fx-box.b2{opacity:.22}
+.fx-star{fill:#F3EDE0;stroke:none;opacity:.45;will-change:opacity,transform}
+.fx-mist{stroke-width:1.6;opacity:.18;will-change:transform}
+.paused-anim .card-fx *,.paused-anim .wave-mini i,.paused-anim .wd.today .trk{animation-play-state:paused!important}
 .pcard:hover>.card-img{transform:scale(1.03)}
 .rhythm-banner>.card-img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:right center;z-index:0}
 .rhythm-banner::after{content:"";position:absolute;inset:0;background:linear-gradient(90deg,rgba(12,24,24,.84) 0%,rgba(12,24,24,.22) 68%,transparent 100%);pointer-events:none;z-index:1}
@@ -266,6 +277,20 @@ input[type=range]{width:100%;min-height:44px;accent-color:var(--tint)}
   #view .home>*:nth-child(4),#view .goal-grid>*:nth-child(4),#view .kpi-grid>*:nth-child(4){animation-delay:135ms}
   #view .home>*:nth-child(5){animation-delay:170ms}
   .wd.today:not(.n2) .trk{animation:todayPulse 3.2s ease-in-out infinite}
+  .fx-orb{animation:svgBreathe 8s cubic-bezier(.37,0,.63,1) infinite alternate}
+  .fx-line.l1{animation:svgSway 7s cubic-bezier(.37,0,.63,1) infinite alternate}
+  .fx-line.l2{animation:svgSway 9s cubic-bezier(.37,0,.63,1) 1.2s infinite alternate-reverse}
+  .fx-line.l3{animation:svgSway 8s cubic-bezier(.37,0,.63,1) 2.4s infinite alternate}
+  .fx-sw.s1{animation:svgDrift 10s cubic-bezier(.37,0,.63,1) infinite alternate}
+  .fx-sw.s2{animation:svgDrift 13s cubic-bezier(.37,0,.63,1) 1.5s infinite alternate-reverse}
+  .fx-ring.r1{animation:svgRipple 8.5s cubic-bezier(.22,1,.36,1) infinite}
+  .fx-ring.r2{animation:svgRipple 8.5s cubic-bezier(.22,1,.36,1) 4.25s infinite}
+  .fx-box.b1{animation:svgBoxBreath 8s cubic-bezier(.37,0,.63,1) infinite alternate}
+  .fx-box.b2{animation:svgBoxBreath 8s cubic-bezier(.37,0,.63,1) 2s infinite alternate-reverse}
+  .fx-star.st1{animation:svgTwinkle 6.5s ease-in-out infinite alternate}
+  .fx-star.st2{animation:svgTwinkle 8.2s ease-in-out 1.8s infinite alternate}
+  .fx-star.st3{animation:svgTwinkle 7.4s ease-in-out 3.1s infinite alternate}
+  .fx-mist{animation:svgDrift 12s cubic-bezier(.37,0,.63,1) infinite alternate}
   .wave-mini i{transform-origin:center;animation:waveIdle 1.6s ease-in-out infinite alternate}
   .wave-mini i:nth-child(2n){animation-delay:.22s}
   .wave-mini i:nth-child(3n){animation-delay:.45s}
@@ -277,6 +302,12 @@ input[type=range]{width:100%;min-height:44px;accent-color:var(--tint)}
 @keyframes viewIn{from{opacity:0;transform:translateY(10px)}}
 @keyframes todayPulse{0%,100%{box-shadow:0 0 0 2px color-mix(in srgb,var(--tint) 14%,transparent)}50%{box-shadow:0 0 0 6px color-mix(in srgb,var(--tint) 22%,transparent)}}
 @keyframes waveIdle{0%{transform:scaleY(.4)}100%{transform:scaleY(1)}}
+@keyframes svgBreathe{0%{transform:scale(.9);opacity:.08}100%{transform:scale(1.22);opacity:.22}}
+@keyframes svgSway{0%{transform:translateX(-4px);opacity:.18}100%{transform:translateX(5px);opacity:.38}}
+@keyframes svgDrift{0%{transform:translate3d(-10px,-2px,0)}100%{transform:translate3d(10px,3px,0)}}
+@keyframes svgRipple{0%{transform:scale(.6);opacity:.42}75%{transform:scale(2.15);opacity:.08}100%{transform:scale(2.4);opacity:0}}
+@keyframes svgBoxBreath{0%{transform:scale(.92) rotate(0deg);opacity:.20}100%{transform:scale(1.09) rotate(6deg);opacity:.40}}
+@keyframes svgTwinkle{0%{opacity:.16;transform:scale(.85)}100%{opacity:.72;transform:scale(1.15)}}
 
 /* ---------- speak: course of real-world steps ---------- */
 .course{position:relative;padding:4px 0}

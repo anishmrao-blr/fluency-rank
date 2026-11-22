@@ -36,13 +36,21 @@ export function isReminderDue(now) {
   const minsNow = d.getHours() * 60 + d.getMinutes();
   return minsNow >= (r.hour * 60 + r.min);
 }
+const CARD_FX = {
+  hero:'<svg class="card-fx fx-hero" viewBox="0 0 180 120" aria-hidden="true"><circle class="fx-orb" cx="136" cy="36" r="26"/><line class="fx-line l1" x1="104" y1="74" x2="162" y2="74"/><line class="fx-line l2" x1="114" y1="84" x2="156" y2="84"/><line class="fx-line l3" x1="122" y1="94" x2="148" y2="94"/></svg>',
+  calm:'<svg class="card-fx fx-calm" viewBox="0 0 160 140" aria-hidden="true"><path class="fx-sw s1" d="M-20 48 Q40 24 100 48 T220 48"/><path class="fx-sw s2" d="M-20 70 Q40 46 100 70 T220 70"/></svg>',
+  speak:'<svg class="card-fx fx-speak" viewBox="0 0 180 120" aria-hidden="true"><circle class="fx-ring r1" cx="136" cy="40" r="18"/><circle class="fx-ring r2" cx="136" cy="40" r="18"/></svg>',
+  focus:'<svg class="card-fx fx-focus" viewBox="0 0 160 140" aria-hidden="true"><rect class="fx-box b1" x="78" y="18" width="56" height="56" rx="12"/><rect class="fx-box b2" x="92" y="32" width="28" height="28" rx="7"/></svg>',
+  wind:'<svg class="card-fx fx-wind" viewBox="0 0 160 140" aria-hidden="true"><circle class="fx-star st1" cx="72" cy="24" r="1.8"/><circle class="fx-star st2" cx="98" cy="18" r="1.4"/><circle class="fx-star st3" cx="56" cy="46" r="1.5"/><path class="fx-mist" d="M40 62 Q95 50 155 62"/></svg>',
+  studio:'<svg class="card-fx fx-studio" viewBox="0 0 180 120" aria-hidden="true"><path class="fx-sw s1" d="M40 34 Q90 12 140 34 T220 34"/><path class="fx-sw s2" d="M40 54 Q90 32 140 54 T220 54"/></svg>'
+};
 const CARD_IMG = {
-  hero:'<img class="card-img" src="assets/art-home-daily.jpg" alt="" aria-hidden="true">',
-  calm:'<img class="card-img" src="assets/art-calm-sigh.jpg" alt="" aria-hidden="true">',
-  speak:'<img class="card-img" src="assets/art-speak-warm.jpg" alt="" aria-hidden="true">',
-  focus:'<img class="card-img" src="assets/art-focus-box.jpg" alt="" aria-hidden="true">',
-  wind:'<img class="card-img" src="assets/art-wind-down.jpg" alt="" aria-hidden="true">',
-  studio:'<img class="card-img" src="assets/art-speak-studio.jpg" alt="" aria-hidden="true">'
+  hero:'<img class="card-img" src="assets/art-home-daily.jpg" alt="" aria-hidden="true">' + CARD_FX.hero,
+  calm:'<img class="card-img" src="assets/art-calm-sigh.jpg" alt="" aria-hidden="true">' + CARD_FX.calm,
+  speak:'<img class="card-img" src="assets/art-speak-warm.jpg" alt="" aria-hidden="true">' + CARD_FX.speak,
+  focus:'<img class="card-img" src="assets/art-focus-box.jpg" alt="" aria-hidden="true">' + CARD_FX.focus,
+  wind:'<img class="card-img" src="assets/art-wind-down.jpg" alt="" aria-hidden="true">' + CARD_FX.wind,
+  studio:'<img class="card-img" src="assets/art-speak-studio.jpg" alt="" aria-hidden="true">' + CARD_FX.studio
 };
 
 export function viewHome() {

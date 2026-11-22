@@ -244,7 +244,10 @@ document.addEventListener('keydown', e => {
   if (sheetOpen()) { closeSheet(); return; }
   if (app.running) dismissEnd();
 });
-document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible' && !app.running) renderAll(); });
+document.addEventListener('visibilitychange', () => {
+  document.documentElement.classList.toggle('paused-anim', document.hidden);
+  if (document.visibilityState === 'visible' && !app.running) renderAll();
+});
 window.addEventListener('error', () => { toast('Something went wrong. Your progress is saved.'); });
 
 /* Calm 1-breath animated intro on first open per session; tap anywhere to skip, off under reduced motion */
