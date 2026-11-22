@@ -122,10 +122,10 @@ export function viewGates() {
     + '<span class="wave-mini" aria-hidden="true"><i style="height:36%"></i><i style="height:68%"></i><i style="height:92%"></i><i style="height:52%"></i><i style="height:82%"></i><i style="height:40%"></i><i style="height:96%"></i><i style="height:62%"></i><i style="height:34%"></i><i style="height:76%"></i><i style="height:52%"></i><i style="height:86%"></i></span>'
     + '</button>'
     + '<div class="drill-pair">'
-    + '<button type="button" class="dcard" data-act="raid" aria-label="Open Word warm-up"><span class="dicon warm" aria-hidden="true">Aa</span><span class="tt">Word warm-up</span><span class="ds">45 s · Word flow</span></button>'
-    + '<button type="button" class="dcard" data-act="cold" aria-label="Open Practice questions"><span class="dicon cool" aria-hidden="true">“ ”</span><span class="tt">Practice questions</span><span class="ds">60 s · On the spot</span></button>'
+    + '<button type="button" class="dcard" data-act="raid" aria-label="Open Word warm-up"><span class="dmeta warm">45 s · Flow</span><span class="tt">Word warm-up</span><span class="ds">Say words on the out-breath</span></button>'
+    + '<button type="button" class="dcard" data-act="cold" aria-label="Open Practice questions"><span class="dmeta cool">60 s · Live</span><span class="tt">Practice questions</span><span class="ds">Answer on the spot</span></button>'
     + '</div>'
-    + (challenge ? '<button type="button" class="dcard full" data-act="boss" aria-label="Open Challenge round"><span class="dicon dusk" aria-hidden="true">5×</span><span class="grow"><span class="tt">Challenge round</span><span class="ds">5 questions · 5 min</span></span>' + ICON.chev + '</button>' : '')
+    + (challenge ? '<button type="button" class="dcard full" data-act="boss" aria-label="Open Challenge round"><span class="grow"><span class="dmeta dusk">5 questions · 5 min</span><span class="tt" style="display:block;margin-top:2px">Challenge round</span></span>' + ICON.chev + '</button>' : '')
     + '</div>'
     + '<div class="step-summary">'
     + '<div class="ss-head"><span class="cap">Real-world steps · ' + doneSteps + ' of ' + MISSIONS.length + '</span><span class="cap">Optional</span></div>'
@@ -172,12 +172,12 @@ export function viewProgress() {
     insight = days + ' practice day' + (days === 1 ? '' : 's') + ' logged so far. Every single day counts.';
   }
   const plan = generalizationPlan(app.S);
-  h += '<div class="insight-card"><span class="insight-k">Your top insight</span><p class="insight-v">' + esc(insight) + '</p></div>';
   h += '<div class="journey-card">'
-    + '<div class="j-head"><span class="insight-k">Your adaptive journey</span><span class="j-trend">' + esc(plan.trend) + '</span></div>'
+    + '<div class="j-head"><span class="insight-k">Adaptive journey</span><span class="j-trend">' + esc(plan.trend) + '</span></div>'
     + '<ol class="j-ladder" aria-label="Generalization ladder">'
     + plan.stages.map((st, idx) => '<li class="' + (idx < plan.stage ? 'done' : idx === plan.stage ? 'now' : '') + '"><i>' + (idx + 1) + '</i><span>' + esc(st) + '</span></li>').join('')
     + '</ol>'
+    + '<p class="insight-v">' + esc(insight) + '</p>'
     + '<p class="ds">' + esc(plan.summary) + '</p>'
     + '<button type="button" class="btn btn-s btn-sm" data-act="nextStep" data-v="' + esc(plan.next.act + ':' + (plan.next.val || '')) + '">' + esc(plan.next.label) + '</button>'
     + '</div>';
