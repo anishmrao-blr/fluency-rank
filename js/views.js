@@ -36,23 +36,32 @@ export function isReminderDue(now) {
   const minsNow = d.getHours() * 60 + d.getMinutes();
   return minsNow >= (r.hour * 60 + r.min);
 }
+const CARD_ART = {
+  hero:'<svg class="card-art" viewBox="0 0 120 120" aria-hidden="true"><circle cx="88" cy="34" r="46" stroke="currentColor" stroke-width="1.2" opacity=".22"/><circle cx="88" cy="34" r="30" stroke="currentColor" stroke-width="1.4" opacity=".32"/><circle cx="88" cy="34" r="14" fill="currentColor" opacity=".24"/></svg>',
+  calm:'<svg class="card-art" viewBox="0 0 120 120" aria-hidden="true"><path d="M16 54c16-14 32-14 48 0s32 14 48 0" stroke="currentColor" stroke-width="2" opacity=".34"/><path d="M16 74c16-14 32-14 48 0s32 14 48 0" stroke="currentColor" stroke-width="1.6" opacity=".24"/><circle cx="92" cy="28" r="16" fill="currentColor" opacity=".18"/></svg>',
+  speak:'<svg class="card-art" viewBox="0 0 120 120" aria-hidden="true"><circle cx="88" cy="40" r="34" stroke="currentColor" stroke-width="1.4" stroke-dasharray="4 6" opacity=".34"/><circle cx="88" cy="40" r="20" stroke="currentColor" stroke-width="1.8" opacity=".42"/><circle cx="88" cy="40" r="8" fill="currentColor" opacity=".35"/></svg>',
+  focus:'<svg class="card-art" viewBox="0 0 120 120" aria-hidden="true"><rect x="52" y="14" width="54" height="54" rx="14" stroke="currentColor" stroke-width="1.5" opacity=".34"/><rect x="64" y="26" width="30" height="30" rx="8" stroke="currentColor" stroke-width="1.5" opacity=".44"/><circle cx="79" cy="41" r="5" fill="currentColor" opacity=".45"/></svg>',
+  wind:'<svg class="card-art" viewBox="0 0 120 120" aria-hidden="true"><path d="M88 18a26 26 0 1 0 18 44 20 20 0 1 1-18-44z" fill="currentColor" opacity=".3"/><circle cx="48" cy="30" r="2.2" fill="currentColor" opacity=".45"/><circle cx="32" cy="48" r="1.6" fill="currentColor" opacity=".35"/></svg>',
+  studio:'<svg class="card-art" viewBox="0 0 120 120" aria-hidden="true"><rect x="64" y="22" width="6" height="34" rx="3" fill="currentColor" opacity=".28"/><rect x="76" y="14" width="6" height="50" rx="3" fill="currentColor" opacity=".38"/><rect x="88" y="26" width="6" height="26" rx="3" fill="currentColor" opacity=".28"/><rect x="100" y="18" width="6" height="42" rx="3" fill="currentColor" opacity=".22"/></svg>'
+};
+
 export function viewHome() {
   const qp = questProgress();
   const due = isReminderDue();
   const hint = qp.done === 2 ? 'Both done today.' : qp.items[0].ok ? '1 drill left today · +40 XP' : qp.items[1].ok ? '1 breath left today · +40 XP' : (due ? 'Time for today’s 5-min session.' : '1 min breath + 1 drill.');
   return '<div class="home">' + titleBar('Today', '<button type="button" class="icb" data-act="settings" aria-label="Settings">' + ICON.gear + '</button>')
     + '<section class="tide-inline" aria-label="This week"><p class="nums">This week ' + practicedThisWeek() + ' of 5' + (app.S.best > 0 ? ' · Best run ' + app.S.best : '') + '</p>' + weekHtml() + '</section>'
-    + '<section class="pcard hero-card" aria-label="Daily session">'
-    + '<img src="assets/card-morning-home.jpg" alt="" aria-hidden="true">'
+    + '<section class="pcard hero-card mesh-hero" aria-label="Daily session">'
+    + CARD_ART.hero
     + '<span class="pc-pill' + (due ? ' mint' : '') + '">' + (due ? 'Due today · ' : '') + 'Today ' + qp.done + ' of ' + qp.total + ' · 5 min</span>'
     + '<h2 class="pc-title">Daily voice session</h2>'
     + '<p class="pc-sub">' + hint + '</p>'
     + '<div class="goal-bar" aria-hidden="true"><i class="' + (qp.done >= 1 ? 'on' : '') + '"></i><i class="' + (qp.done >= 2 ? 'on' : '') + '"></i></div>'
     + '<button type="button" class="pc-cta" data-act="session">Start daily session · 5 min</button>'
     + '</section>'
-    + '<section class="pcard relief-card" aria-label="Pre-call reset">'
-    + '<img src="assets/bg-forest-pacer.jpg" alt="" aria-hidden="true">'
-    + '<span class="pc-pill mint">90 seconds · Pre-call</span>'
+    + '<section class="pcard relief-card mesh-speak" aria-label="Pre-call reset">'
+    + CARD_ART.speak
+    + '<span class="pc-pill">90 seconds · Pre-call</span>'
     + '<p class="pc-sub">3 sighs + say your opening line aloud.</p>'
     + '<button type="button" class="pc-cta ghost" data-act="speak">I’m about to speak</button>'
     + '</section>'
@@ -62,21 +71,21 @@ export function viewHome() {
     + '</div></div>';
 }
 
-/* ---------- Breathe (Visual-First 2x2 Photo Goal Cards) ---------- */
+/* ---------- Breathe (State-Mapped Atmospheric Mesh 2x2 Goal Cards) ---------- */
 const GOAL_MEDIA = {
-  calm:{img:'assets/bg-forest-pacer.jpg', tag:'Cyclic sigh'},
-  speak:{img:'assets/card-speak-studio.jpg', tag:'Voice exhale'},
-  focus:{img:'assets/card-sea-focus.jpg', tag:'Box 4·4·4·4'},
-  wind:{img:'assets/medallion-lotus.jpg', tag:'Extended 4·8'}
+  calm:{cls:'mesh-calm', art:'calm', tag:'Cyclic sigh'},
+  speak:{cls:'mesh-speak', art:'speak', tag:'Voice exhale'},
+  focus:{cls:'mesh-focus', art:'focus', tag:'Box 4·4·4·4'},
+  wind:{cls:'mesh-wind', art:'wind', tag:'Extended 4·8'}
 };
 export function viewBreathe() {
   const mins = app.S.breathMins || 3;
   const chips = '<div class="seg b-len" role="group" aria-label="Session length">' + [1, 3, 5].map(m => '<button type="button" class="segb" data-act="bmins" data-v="' + m + '" aria-pressed="' + (m === mins) + '"><b>' + m + ' min</b></button>').join('') + '</div>';
   const goals = BREATH_GOALS.map(g => {
     const med = GOAL_MEDIA[g.id] || GOAL_MEDIA.calm;
-    return '<button type="button" class="pcard goal-card" data-act="goal" data-v="' + esc(g.pat) + '" aria-label="Start ' + esc(g.n) + ': ' + esc(PATTERNS[g.pat].n) + '">'
-      + '<img src="' + med.img + '" alt="" aria-hidden="true">'
-      + '<span class="pc-pill mint">' + esc(med.tag) + '</span>'
+    return '<button type="button" class="pcard goal-card ' + med.cls + '" data-act="goal" data-v="' + esc(g.pat) + '" aria-label="Start ' + esc(g.n) + ': ' + esc(PATTERNS[g.pat].n) + '">'
+      + (CARD_ART[med.art] || '')
+      + '<span class="pc-pill">' + esc(med.tag) + '</span>'
       + '<span class="gc-name">' + esc(g.n) + '</span>'
       + '<span class="gc-sub">' + esc(PATTERNS[g.pat].n) + '</span>'
       + '</button>';
@@ -105,18 +114,18 @@ export function viewGates() {
   const recId = recommendedMission(), recM = MISSIONS.find(m => m.id === recId) || MISSIONS[0];
   return titleBar('Speak')
     + '<div class="speak-grid" role="group" aria-label="Drills">'
-    + '<button type="button" class="pcard drill-hero" data-act="read" aria-label="Open Read aloud">'
-    + '<img src="assets/card-speak-studio.jpg" alt="" aria-hidden="true">'
-    + '<span class="pc-pill mint">' + WPM[app.S.rung] + ' wpm · 2 min</span>'
+    + '<button type="button" class="pcard drill-hero mesh-studio" data-act="read" aria-label="Open Read aloud">'
+    + CARD_ART.studio
+    + '<span class="pc-pill">' + WPM[app.S.rung] + ' wpm · 2 min</span>'
     + '<span class="pc-title">Read aloud</span>'
     + '<span class="pc-sub">Soft starts + live recording</span>'
     + '<span class="wave-mini" aria-hidden="true"><i style="height:36%"></i><i style="height:68%"></i><i style="height:92%"></i><i style="height:52%"></i><i style="height:82%"></i><i style="height:40%"></i><i style="height:96%"></i><i style="height:62%"></i><i style="height:34%"></i><i style="height:76%"></i><i style="height:52%"></i><i style="height:86%"></i></span>'
     + '</button>'
     + '<div class="drill-pair">'
-    + '<button type="button" class="dcard" data-act="raid" aria-label="Open Word warm-up"><span class="dicon" aria-hidden="true">Aa</span><span class="tt">Word warm-up</span><span class="ds">45 s · Word flow</span></button>'
-    + '<button type="button" class="dcard" data-act="cold" aria-label="Open Practice questions"><span class="dicon" aria-hidden="true">“ ”</span><span class="tt">Practice questions</span><span class="ds">60 s · On the spot</span></button>'
+    + '<button type="button" class="dcard" data-act="raid" aria-label="Open Word warm-up"><span class="dicon warm" aria-hidden="true">Aa</span><span class="tt">Word warm-up</span><span class="ds">45 s · Word flow</span></button>'
+    + '<button type="button" class="dcard" data-act="cold" aria-label="Open Practice questions"><span class="dicon cool" aria-hidden="true">“ ”</span><span class="tt">Practice questions</span><span class="ds">60 s · On the spot</span></button>'
     + '</div>'
-    + (challenge ? '<button type="button" class="dcard full" data-act="boss" aria-label="Open Challenge round"><span class="dicon" aria-hidden="true">5×</span><span class="grow"><span class="tt">Challenge round</span><span class="ds">5 questions · 5 min</span></span>' + ICON.chev + '</button>' : '')
+    + (challenge ? '<button type="button" class="dcard full" data-act="boss" aria-label="Open Challenge round"><span class="dicon dusk" aria-hidden="true">5×</span><span class="grow"><span class="tt">Challenge round</span><span class="ds">5 questions · 5 min</span></span>' + ICON.chev + '</button>' : '')
     + '</div>'
     + '<div class="step-summary">'
     + '<div class="ss-head"><span class="cap">Real-world steps · ' + doneSteps + ' of ' + MISSIONS.length + '</span><span class="cap">Optional</span></div>'
@@ -247,7 +256,7 @@ export function settingsHtml() {
     + '</div></div>'
     + '<p class="gf">iOS web apps cannot schedule their own alarm yet. Add to Calendar gives you an offline alert, and Home shows a gentle due nudge.</p>';
 
-  return '<div class="rhythm-banner"><img src="assets/banner-rhythm.jpg" alt=""><span class="rb-k">Consistency</span><strong class="rb-t">Small steps, every day.</strong></div>'
+  return '<div class="rhythm-banner mesh-hero">' + CARD_ART.calm + '<span class="rb-k">Consistency</span><strong class="rb-t">Small steps, every day.</strong></div>'
     + gh('Daily reminder') + remCard
     + gh('Practice time', 'ptH') + '<div class="group" role="group" aria-labelledby="ptH">' + ANCHORS.map(a => '<button type="button" class="li" data-act="plan" data-v="' + esc(a) + '" aria-pressed="' + (app.S.plan.anchor === a) + '"><span class="grow tt">' + esc(cap(a)) + '</span><svg class="ic ck" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg></button>').join('') + '</div><p class="gf">Tie practice to something you already do each day.</p>'
     + gh('Situations') + '<div class="group">' + CONTEXTS.map(c => toggle('ctx-' + c.id, c.n, (app.S.contexts || []).indexOf(c.id) >= 0)).join('') + '</div>'

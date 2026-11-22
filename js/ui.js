@@ -219,7 +219,7 @@ export function resultScreen(o) {
   if (res.rankUp) modal('[Rank up] Rank ' + res.rankUp, 'Your log, stats and mosaic carry over.', res.rankUp);
   const lines = (o.lines || []).concat(lastOne ? ['That is today’s session done.'] : []);
   const acts = inRun ? [{id:'nextb', label:'Next: ' + DRILL_N[RUN.q[0].replace(/\d+$/, '')], fn:nextRun}] : (o.actions || []);
-  const med = '<div class="med-wrap" aria-hidden="true"><div class="med-glow"></div><div class="med"><img src="assets/medallion-lotus.jpg" alt=""></div></div>';
+  const med = '<div class="med-wrap" aria-hidden="true"><div class="med-glow"></div><div class="med"><svg viewBox="0 0 48 48" fill="none" stroke="currentColor" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"><path d="M13 25.5 21 33.5 35.5 16.5"/></svg></div></div>';
   setRun(med + '<h2 class="lead center">' + esc(o.lead) + '</h2>' + (lines.length ? '<div class="stack">' + lines.map(l => '<p class="note center">' + esc(l) + '</p>').join('') + '</div>' : '')
     + '<div class="sys" role="status">' + notices(res, o.type).map(n => '<p>' + noticeHtml(n) + '</p>').join('') + '</div>' + resultTide(res),
     '<div class="stack">' + acts.map((a, i) => '<button type="button" class="btn ' + (i === 0 ? 'btn-p' : 'btn-s') + '" id="' + a.id + '">' + esc(a.label) + '</button>').join('') + '<button type="button" class="btn ' + (acts.length ? 'btn-s' : 'btn-p') + '" id="back">Done</button></div>');
